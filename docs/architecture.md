@@ -7,6 +7,9 @@ Decisions so far are marked **Decided**. Everything else is a recommendation to 
 - **Not decided:** PWA first or Expo (React Native) first. A PWA first is recommended because it matches the plan and makes testing easy (testers open a link).
 - **Decided:** Supabase for the backend (Postgres, row-level security, sign-in).
 - **Decided:** the app is free and never commercial.
+- **Decided:** devices are iPhone, Android and probably tablets, so the layout must work on phones and tablets.
+- **Decided:** the chords section lets members add links to sheet music or tabs.
+- **Decided:** each song has a lyrics section: a link to a lyrics site the band already uses (for example Ultimate Guitar) and an optional text box for the band's own lyrics or cues.
 - **Decided:** sharing is not needed at first, but should arrive early so it can be tested with bandmates.
 - **Decided:** a user can belong to several bands. Each band has several setlists (one per gig or arrangement).
 - **Decided:** all band members can edit setlists. Every change is recorded and can be restored.
@@ -48,6 +51,24 @@ A band's data must only reach its members, and that has to be enforced **on the 
 - Change ids are idempotency keys: the server ignores a change it has already seen, so retries are safe.
 - Flush stops at the first failure to keep order. The UI shows how many changes are waiting.
 - Needs a decision: sync transport (see stack options) and how long to keep history on device.
+
+## Lyrics and links
+- Each entry has `lyricsLink` (a link) and `lyrics` (optional text the band types or pastes). The app never supplies or fetches lyrics.
+- Links go through `cleanLink`: it unwraps pasted Google redirect links (the long `google.com/url?...&url=` kind),
+  strips tracking parameters, and only allows http and https, so a pasted `javascript:` link is rejected.
+- The link starts as a web search for the artist and title and is replaced when someone pastes the exact page.
+- Lyrics are copyrighted. Text a band pastes is stored on the server and shared with that band, so keep it members-only
+  (row-level security), with no public pages and no bulk import. For a free, non-commercial band tool the risk is lower
+  but not zero. If this grows, consider a licensed lyrics provider (check current terms). This is not legal advice.
+- Sheet music and tabs: each entry has `charts`, any number of labelled links (for example "Guitar tab", "Piano sheet").
+  Any member can add or remove them in the chords section. Each link goes through `cleanLink`, a missing label becomes
+  the site name, and a link that is typed but not yet added is added on save.
+- All of these fields are tracked by the change history like any other edit, and can be restored.
+
+## Layout: phones and tablets
+- Phone: one column, as in the prototype.
+- Tablet (about 768 px wide and up): two panes, setlist on the left and the selected song on the right.
+- Test landscape and large text on a tablet; a stage view with big lyrics and chords is on the roadmap.
 
 ## Metronome
 - A JS timer is not accurate enough for a click. `BeatScheduler` wakes often but hands the audio layer an exact

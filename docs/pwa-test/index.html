@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Setlist PWA test</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#111214">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PWA test">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{--bg:#F7F4EC;--card:#fff;--text:#1B1A17;--muted:#5E5A52;--accent:#F5A524;--accent-text:#9A5B00;--border:#CFC8B8;--ok:#1B7F3B;--bad:#B3261E}
+@media (prefers-color-scheme:dark){:root{--bg:#111214;--card:#1C1E22;--text:#F2EFE8;--muted:#A6A298;--accent-text:#F5A524;--border:#3A3D43;--ok:#5BC27A;--bad:#FF7A6B}}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+main{max-width:720px;margin:0 auto;padding:16px 16px 48px;display:flex;flex-direction:column;gap:14px}
+h1{margin:8px 0 0;font-size:28px}h2{margin:0 0 8px;font-size:18px}
+section{background:var(--card);border-radius:12px;padding:14px}
+.muted{color:var(--muted);font-size:14px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+button,select{min-height:44px;padding:0 14px;border-radius:10px;border:1.5px solid var(--accent-text);background:transparent;color:var(--accent-text);font:inherit;font-weight:600}
+button.primary{background:var(--accent);border-color:var(--accent);color:#111214}
+input[type=range]{flex:1;min-width:160px;min-height:44px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0}dt{color:var(--muted)}dd{margin:0;word-break:break-word}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}
+pre,textarea{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font:12px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap;max-height:240px;overflow:auto}
+label{display:flex;align-items:center;gap:8px}
+.q{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:8px 0}
+#flash{position:fixed;inset:0;background:#F5A524;opacity:0;pointer-events:none;transition:opacity 140ms ease-out;z-index:50}
+</style>
+</head>
+<body>
+<div id="flash"></div>
+<main>
+<h1>Setlist PWA test</h1>
+<p class="muted">Test page, version <span id="ver"></span>. It checks what an installed web app can do on this device. Nothing is sent anywhere.</p>
+
+<section>
+<h2>1. Install and offline</h2>
+<dl>
+<dt>Running installed</dt><dd id="st-installed">checking</dd>
+<dt>Device</dt><dd id="st-platform"></dd>
+<dt>Service worker</dt><dd id="st-sw">checking</dd>
+<dt>Connection</dt><dd id="st-online"></dd>
+</dl>
+<p class="muted" id="installHint"></p>
+<div class="row"><button class="primary" id="installBtn" hidden>Install app</button></div>
+</section>
+
+<section>
+<h2>2. Storage</h2>
+<dl>
+<dt>First opened</dt><dd id="st-first"></dd>
+<dt>Times opened</dt><dd id="st-count"></dd>
+<dt>Storage kept</dt><dd id="st-persist"></dd>
+<dt>Space</dt><dd id="st-space"></dd>
+</dl>
+<p class="muted">Close the app and open it again over the next days. If the first-opened date and count survive, saved data survives.</p>
+<div class="row"><button id="persistBtn">Ask to keep my data</button></div>
+</section>
+
+<section>
+<h2>3. Metronome</h2>
+<div class="row"><label>Tempo <input type="range" id="bpm" min="40" max="240" value="120"> <b id="bpmv">120</b></label></div>
+<div class="row"><label><input type="checkbox" id="soundOn" checked> Sound</label><label><input type="checkbox" id="flashOn"> Flash</label><label><input type="checkbox" id="silentFix"> Try silent-switch fix</label></div>
+<div class="row"><button class="primary" id="metroBtn">Start</button></div>
+<dl>
+<dt>Audio</dt><dd id="m-state">not started</dd>
+<dt>Beats scheduled</dt><dd id="m-beats">0</dd>
+<dt>Late beats</dt><dd id="m-late">0</dd>
+<dt>Longest timer gap</dt><dd id="m-gap">0 ms</dd>
+<dt>Gaps over 0.5 s</dt><dd id="m-big">0</dd>
+<dt>Audio clock behind</dt><dd id="m-drift">0 ms</dd>
+<dt>Latency</dt><dd id="m-lat"></dd>
+</dl>
+<p class="muted">Lock the screen for 30 seconds while it runs, then unlock and read the numbers. Large gaps or a big "audio clock behind" mean the click stopped.</p>
+</section>
+
+<section>
+<h2>4. Keep screen awake</h2>
+<dl><dt>Supported</dt><dd id="w-sup"></dd><dt>Status</dt><dd id="w-state">off</dd></dl>
+<div class="row"><button id="wlBtn">Keep screen awake</button></div>
+<p class="muted">Set the phone's auto-lock to 30 seconds, turn this on, and leave the app untouched for 2 minutes.</p>
+</section>
+
+<section>
+<h2>5. Screen</h2>
+<dl><dt>Size</dt><dd id="s-size"></dd><dt>Orientation</dt><dd id="s-orient"></dd><dt>Layout</dt><dd id="s-layout"></dd><dt>Touch</dt><dd id="s-touch"></dd></dl>
+<p class="muted">Rotate the device and check the layout line changes (tablet layout starts at 768 px wide).</p>
+</section>
+
+<section>
+<h2>6. What you saw</h2>
+<div class="q">Opened full screen from the home screen icon<select data-q="Opened full screen"><option>Not tested</option><option>Yes</option><option>No</option></select></div>
+<div class="q">Opened in airplane mode after being installed<select data-q="Works offline"><option>Not tested</option><option>Yes</option><option>No</option></select></div>
+<div class="q">Heard the click (silent switch off)<select data-q="Click audible"><option>Not tested</option><option>Yes</option><option>No</option></select></div>
+<div class="q">Heard the click (iPhone silent switch on)<select data-q="Click with silent switch on"><option>Not tested</option><option>Yes</option><option>No</option></select></div>
+<div class="q">Click kept going with the screen locked<select data-q="Click while locked"><option>Not tested</option><option>Yes</option><option>No</option></select></div>
+<div class="q">Flash was easy to see<select data-q="Flash visible"><option>Not tested</option><option>Yes</option><option>No</option></select></div>
+<div class="q">Screen stayed awake for 2 minutes<select data-q="Wake lock kept screen on"><option>Not tested</option><option>Yes</option><option>No</option></select></div>
+</section>
+
+<section>
+<h2>7. Report</h2>
+<div class="row"><button class="primary" id="reportBtn">Copy report</button><span class="muted" id="reportMsg"></span></div>
+<textarea id="reportBox" rows="6" hidden></textarea>
+<h2 style="margin-top:12px">Event log</h2>
+<pre id="log"></pre>
+</section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

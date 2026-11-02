@@ -3,7 +3,7 @@ import { applyChange, describe, diffFields, invert, replay } from '../src/change
 import type { Change, Entry, Setlist } from '../src/types';
 
 const e = (id: string, title: string, over: Partial<Entry> = {}): Entry =>
-  ({ id, title, artist: '', bpm: 100, key: 'C', chords: '', notes: '', link: '', ...over });
+  ({ id, title, artist: '', bpm: 100, key: 'C', chords: '', notes: '', link: '', lyricsLink: '', lyrics: '', charts: [], ...over });
 const base = (): Setlist => ({ id: 'l1', bandId: 'b1', name: 'Set 1', entries: [e('a', 'A'), e('b', 'B'), e('c', 'C')] });
 const meta = (id: string) => ({ id, setlistId: 'l1', author: 'u1', at: '2026-11-01T12:00:00Z' });
 const ids = (s: Setlist) => s.entries.map((x) => x.id).join('');
@@ -70,5 +70,22 @@ suite('describe', () => {
     const t = (id: string) => (id === 'a' ? 'Mustang Sally' : '?');
     expect(describe({ ...meta('1'), kind: 'edit', entryId: 'a', patch: { key: 'A', bpm: 112 }, inverse: {} }, t)).toBe('Mustang Sally: key, bpm');
     expect(describe({ ...meta('2'), kind: 'move', entryId: 'a', from: 0, to: 2 }, t)).toBe('Moved Mustang Sally to position 3');
+  });
+});
+
+suite('charts (sheet music and tab links)', () => {
+  it('records a change to the list, and none when the list is the same', () => {
+    const one = { label: 'Guitar tab', url: 'https://example.com/tab' };
+    const { patch, inverse } = diffFields(e('a', 'A'), e('a', 'A', { charts: [one] }));
+    expect(patch).toEqual({ charts: [one] });
+    expect(inverse).toEqual({ charts: [] });
+    expect(diffFields(e('a', 'A', { charts: [one] }), e('a', 'A', { charts: [{ ...one }] })).patch).toEqual({});
+  });
+  it('restores the earlier list', () => {
+    const one = { label: 'Piano sheet', url: 'https://example.com/sheet' };
+    const change: Change = { ...meta('1'), kind: 'edit', entryId: 'a', patch: { charts: [one] }, inverse: { charts: [] } };
+    const after = applyChange(base(), change);
+    expect(after.entries[0]?.charts).toEqual([one]);
+    expect(applyChange(after, invert(change, { id: 'r', author: 'u1', at: 'now' })).entries[0]?.charts).toEqual([]);
   });
 });

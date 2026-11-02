@@ -4,6 +4,9 @@ export type Role = 'admin' | 'member';
 export interface Member { userId: Id; name: string; role: Role }
 export interface Band { id: Id; name: string; members: Member[] }
 
+/** A labelled link to sheet music or a tab, added by a band member. */
+export interface ChartLink { label: string; url: string }
+
 /** The per-song fields a band can edit. */
 export interface EntryFields {
   title: string;
@@ -12,7 +15,14 @@ export interface EntryFields {
   key: string;
   chords: string;
   notes: string;
+  /** Video link, for example a YouTube video of the version the band is learning. */
   link: string;
+  /** Link to a lyrics or chords site the band already uses. Stored as a clean http(s) URL. */
+  lyricsLink: string;
+  /** Optional text the band types or pastes in for its own use (lyrics, cues). Never supplied by the app. */
+  lyrics: string;
+  /** Any number of links to sheet music or tabs. Each url is a clean http(s) link. */
+  charts: ChartLink[];
 }
 
 /** One song in one setlist. Arrangement edits live here, not in the shared catalog. */

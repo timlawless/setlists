@@ -98,8 +98,15 @@ input,textarea{font-family:inherit}
 <div style="background: var(--card); border-radius: 12px; padding: 14px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Key</div><div style="font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 40px">{{ sKey }}</div></div>
 </div>
 <sc-if value="{{ vChanged }}" hint-placeholder-val="{{ false }}"><div style="font-size: 14px; color: var(--muted)">Changed for your band. Original: {{ vOrigText }}</div></sc-if>
-<div style="background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Chords</div><div style="font-family: ui-monospace, Menlo, monospace; font-size: 17px; line-height: 1.5">{{ sChords }}</div></div>
+<div style="background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Chords</div><div style="font-family: ui-monospace, Menlo, monospace; font-size: 17px; line-height: 1.5">{{ sChords }}</div>
+<sc-for list="{{ vCharts }}" as="c" hint-placeholder-count="1"><a href="{{ c.url }}" style="min-height: 44px; box-sizing: border-box; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--card2); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 15px; font-weight: 600"><span>{{ c.label }}</span><span style="font-size: 13px; font-weight: 400; color: var(--muted)">{{ c.host }}</span></a></sc-for>
+<sc-if value="{{ noVCharts }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; color: var(--muted)">No sheet music or tab links yet. Add them in Edit.</div></sc-if>
+</div>
 <div style="background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Notes</div><div style="font-size: 16px; line-height: 1.45">{{ sNotes }}</div></div>
+<div style="background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 10px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Lyrics</div>
+<sc-if value="{{ hasLyrics }}" hint-placeholder-val="{{ false }}"><div style="font-size: 18px; line-height: 1.6; white-space: pre-wrap; max-height: 260px; overflow-y: auto">{{ sLyrics }}</div></sc-if>
+<sc-if value="{{ noLyrics }}" hint-placeholder-val="{{ true }}"><div style="font-size: 15px; color: var(--muted)">No lyrics saved. Add your own in Edit, or use the link.</div></sc-if>
+<sc-if value="{{ hasLyricsLink }}" hint-placeholder-val="{{ true }}"><a href="{{ sLyricsLink }}" style="min-height: 48px; box-sizing: border-box; padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--card2); border-radius: 10px; color: var(--text); text-decoration: none; font-size: 16px; font-weight: 600"><span>Open lyrics site</span><span style="font-size: 13px; font-weight: 400; color: var(--muted)">{{ sLyricsHost }}</span></a></sc-if></div>
 <sc-if value="{{ hasLink }}" hint-placeholder-val="{{ true }}"><a href="{{ sLink }}" style="min-height: 52px; box-sizing: border-box; padding: 8px 14px; display: flex; align-items: center; justify-content: center; gap: 12px; background: var(--card); border-radius: 12px; color: var(--text); text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--accent-text)" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg><span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 600">Listen on YouTube</span><span style="font-size: 12px; color: var(--muted)">{{ sLinkSub }}</span></span></a></sc-if>
 <button onClick="{{ toMetro }}" style="min-height: 52px; background: #F5A524; border: 0; border-radius: 12px; color: #111214; font-size: 17px; font-weight: 700">Open metronome at this tempo</button>
 </div>
@@ -118,8 +125,18 @@ input,textarea{font-family:inherit}
 <sc-if value="{{ hasConf }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; color: var(--accent-text)">{{ confNote }}</div></sc-if>
 <sc-if value="{{ noMatch }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; color: var(--muted)">No catalog match for this title yet. The prototype only knows a few songs (for example Walk This Way), so enter tempo and key by hand.</div></sc-if>
 <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Chords<input type="text" value="{{ fChords }}" onChange="{{ onChords }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-family: ui-monospace, Menlo, monospace"></label>
+<div style="display: flex; flex-direction: column; gap: 8px"><div style="font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Sheet music and tabs</div>
+<sc-for list="{{ fCharts }}" as="c" hint-placeholder-count="1"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--card); border-radius: 10px; padding: 4px 4px 4px 14px"><span style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 15px; font-weight: 600">{{ c.label }}</span><span style="font-size: 12px; color: var(--muted)">{{ c.host }}</span></span><button onClick="{{ c.remove }}" aria-label="Remove link" style="min-height: 44px; padding: 0 12px; background: none; border: 0; color: var(--danger); font-size: 14px; font-weight: 600">Remove</button></div></sc-for>
+<input type="text" placeholder="Label, for example Guitar tab" value="{{ fCLabel }}" onChange="{{ onCLabel }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px">
+<input type="text" inputmode="url" placeholder="Paste a link to sheet music or a tab" value="{{ fCUrl }}" onChange="{{ onCUrl }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px">
+<button onClick="{{ addChart }}" style="min-height: 48px; background: transparent; border: 1.5px solid var(--accent-text); border-radius: 12px; color: var(--accent-text); font-size: 16px; font-weight: 600">+ Add link</button>
+<sc-if value="{{ hasCErr }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; color: var(--danger)">{{ cErr }}</div></sc-if></div>
 <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">YouTube link<input type="text" inputmode="url" value="{{ fLink }}" onChange="{{ onLink }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; letter-spacing: 0; text-transform: none"></label>
 <div style="margin-top: -6px; font-size: 13px; color: var(--muted)">Starts as a YouTube search for the chosen version. Paste a specific video, or your own arrangement, to replace it.</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Lyrics link<input type="text" inputmode="url" value="{{ fLyricsLink }}" onChange="{{ onLyricsLink }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; letter-spacing: 0; text-transform: none"></label>
+<div style="margin-top: -6px; font-size: 13px; color: var(--muted)">Starts as a web search. Paste the exact page your band uses (for example on Ultimate Guitar). Pasted Google redirect links are cleaned up when you save.</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Lyrics (optional)<textarea onChange="{{ onLyrics }}" style="min-height: 120px; box-sizing: border-box; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; letter-spacing: 0; text-transform: none; resize: none">{{ fLyrics }}</textarea></label>
+<div style="margin-top: -6px; font-size: 13px; color: var(--muted)">Your band's own text only: lyrics you type or paste, or cues such as verse and chorus order. Visible to your band's members only.</div>
 <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Notes<textarea onChange="{{ onNotes }}" style="min-height: 96px; box-sizing: border-box; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; resize: none">{{ fNotes }}</textarea></label>
 <div style="display: flex; gap: 12px">
 <button onClick="{{ cancel }}" style="flex: 1; min-height: 52px; background: transparent; border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-weight: 600">Cancel</button>
@@ -165,6 +182,7 @@ const base = [
 { id: 3, title: 'Mustang Sally', bpm: 109, key: 'C', orig: { bpm: 109, key: 'C' }, artist: 'Wilson Pickett', link: 'https://www.youtube.com/results?search_query=Wilson+Pickett+Mustang+Sally', chords: 'C – F – C (verse)', notes: '' },
 { id: 4, title: 'Running Down a Dream', bpm: 170, key: 'E', orig: { bpm: 170, key: 'E' }, artist: 'Tom Petty and the Heartbreakers', link: 'https://www.youtube.com/results?search_query=Tom+Petty+and+the+Heartbreakers+Running+Down+a+Dream', chords: 'E – D (verse) · G – A – G – E (chorus)', notes: 'Feels like 85 in half-time.' }
 ];
+base.forEach((x) => { x.lyricsLink = 'https://www.google.com/search?q=' + encodeURIComponent(x.artist + ' ' + x.title.replace('’', "'") + ' lyrics'); x.lyrics = ''; });
 this.state = {
 screen: 'lists', bandId: 1, setlistId: 1, nextListId: 4, nextBandId: 3, newBand: '', offline: false, pending: 0,
 history: [
@@ -236,6 +254,17 @@ const lookupV = (t) => catalog[t.toLowerCase().replace(/[^a-z0-9 ]/g, '').replac
 const goBack = () => this.setState({ screen: 'setlist', editing: false, isNew: false });
 const pill = (on) => 'min-height: 44px; padding: 0 20px; border-radius: 22px; font-size: 15px; font-weight: 600; background: ' + (on ? 'var(--accent)' : 'transparent') + '; color: ' + (on ? '#111214' : 'var(--text)') + '; border: 1.5px solid ' + (on ? 'var(--accent)' : 'var(--border)');
 const ytAuto = (g, title, artist) => (!g.link || g.linkAuto) ? { link: 'https://www.youtube.com/results?search_query=' + encodeURIComponent((artist + ' ' + title.trim()).trim()), linkAuto: true } : {};
+const lyAuto = (g, title, artist) => (!g.lyricsLink || g.lyricsAuto) ? { lyricsLink: 'https://www.google.com/search?q=' + encodeURIComponent((artist + ' ' + title.trim() + ' lyrics').trim()), lyricsAuto: true } : {};
+const clean = (input) => {
+const raw = (input || '').trim(); if (!raw) return '';
+let u; try { u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : 'https://' + raw); } catch (e) { return ''; }
+if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+const host = u.hostname.replace(/^www\./, '');
+if (/^google\.[a-z.]+$/.test(host) && u.pathname === '/url') { const t = u.searchParams.get('url') || u.searchParams.get('q'); if (t) return clean(t); }
+Array.from(u.searchParams.keys()).forEach((k) => { if (/^(utm_|fbclid$|gclid$|ved$|usg$|opi$|sa$|rct$|esrc$|cad$|uact$)/i.test(k)) u.searchParams.delete(k); });
+return u.toString();
+};
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } };
 return {
 isSetlist: s.screen === 'setlist', isView: s.screen === 'song' && !s.editing, isForm: s.screen === 'song' && s.editing, isMetro: s.screen === 'metro',
 isLight: s.light, isDark: !s.light, toggleTheme: () => this.setState({ light: !s.light }), themeLabel: s.light ? 'Switch to dark mode' : 'Switch to light mode',
@@ -277,20 +306,34 @@ sChords: song.chords || 'No chords yet', sNotes: song.notes || 'No notes yet',
 hasOrig: !!f.orig, origText: f.orig ? (f.artist ? f.artist + ' · ' : '') + f.orig.bpm + ' BPM · key of ' + f.orig.key : '',
 sArtist: song.artist || '', hasArtist: !!song.artist,
 fLink: f.link || '', onLink: (e) => this.setState({ form: { ...f, link: e.target.value, linkAuto: false } }),
+fLyricsLink: f.lyricsLink || '', onLyricsLink: (e) => this.setState({ form: { ...f, lyricsLink: e.target.value, lyricsAuto: false } }),
+fLyrics: f.lyrics || '', onLyrics: (e) => this.setState({ form: { ...f, lyrics: e.target.value } }),
+fCharts: (f.charts || []).map((c, i) => ({ label: c.label, host: hostOf(c.url), remove: () => this.setState({ form: { ...f, charts: f.charts.filter((_, j) => j !== i) } }) })),
+fCLabel: f.cLabel || '', onCLabel: (e) => this.setState({ form: { ...f, cLabel: e.target.value } }),
+fCUrl: f.cUrl || '', onCUrl: (e) => this.setState({ form: { ...f, cUrl: e.target.value, cErr: '' } }),
+cErr: f.cErr || '', hasCErr: !!f.cErr,
+addChart: () => {
+const u = clean(f.cUrl);
+if (!u) { this.setState({ form: { ...f, cErr: (f.cUrl || '').trim() ? 'That does not look like a web link.' : 'Paste a link first.' } }); return; }
+this.setState({ form: { ...f, charts: (f.charts || []).concat({ label: (f.cLabel || '').trim() || hostOf(u), url: u }), cLabel: '', cUrl: '', cErr: '' } });
+},
+vCharts: (song.charts || []).map((c) => ({ label: c.label, url: c.url, host: hostOf(c.url) })), noVCharts: !(song.charts || []).length,
+sLyricsLink: song.lyricsLink || '', hasLyricsLink: !!song.lyricsLink, sLyrics: song.lyrics || '', hasLyrics: !!song.lyrics, noLyrics: !song.lyrics,
+sLyricsHost: (() => { try { return new URL(song.lyricsLink).hostname.replace(/^www\./, ''); } catch (e) { return ''; } })(),
 sLink: song.link || '', hasLink: !!song.link, sLinkSub: song.link && song.link.indexOf('search_query') > -1 ? 'Opens a YouTube search for this version' : 'Opens your saved link',
 noMatch: f.title.trim().length > 2 && !f.orig && !f.versions,
 hasConf: !!f.orig && !!f.orig.conf, confNote: 'Sources disagree on the key for this version. Check it against the recording.',
 hasVersions: !!f.versions && f.versions.length > 1,
-versionChoices: (f.versions || []).map((v, i) => ({ label: v.artist + ' · ' + v.year, sub: v.bpm + ' BPM · key of ' + v.key + (v.conf ? ' (check)' : ''), pressed: i === f.vIdx, style: 'min-height: 56px; box-sizing: border-box; padding: 8px 14px; border-radius: 12px; color: var(--text); text-align: left; display: flex; flex-direction: column; gap: 2px; background: var(--card); border: 1.5px solid ' + (i === f.vIdx ? 'var(--accent-text)' : 'var(--border)'), pick: () => this.setState({ form: { ...f, vIdx: i, bpm: String(v.bpm), key: v.key, orig: v, artist: v.artist, ...ytAuto(f, f.title, v.artist) } }) })),
+versionChoices: (f.versions || []).map((v, i) => ({ label: v.artist + ' · ' + v.year, sub: v.bpm + ' BPM · key of ' + v.key + (v.conf ? ' (check)' : ''), pressed: i === f.vIdx, style: 'min-height: 56px; box-sizing: border-box; padding: 8px 14px; border-radius: 12px; color: var(--text); text-align: left; display: flex; flex-direction: column; gap: 2px; background: var(--card); border: 1.5px solid ' + (i === f.vIdx ? 'var(--accent-text)' : 'var(--border)'), pick: () => this.setState({ form: { ...f, vIdx: i, bpm: String(v.bpm), key: v.key, orig: v, artist: v.artist, ...ytAuto(f, f.title, v.artist), ...lyAuto(f, f.title, v.artist) } }) })),
 formChanged: !!f.orig && (String(f.orig.bpm) !== String(f.bpm).trim() || f.orig.key !== f.key.trim()),
 resetOrig: () => this.setState({ form: { ...f, bpm: String(f.orig.bpm), key: f.orig.key } }),
 vChanged: !!song.orig && (song.orig.bpm !== song.bpm || song.orig.key !== song.key),
 vOrigText: song.orig ? song.orig.bpm + ' BPM · key of ' + song.orig.key : '',
 back: goBack,
-startEdit: () => this.setState({ editing: true, isNew: false, lookupMsg: '', form: { title: song.title, bpm: song.bpm ? String(song.bpm) : '', key: song.key, chords: song.chords, notes: song.notes, orig: song.orig || null, artist: song.artist || '', link: song.link || '', linkAuto: false, versions: lookupV(song.title), vIdx: Math.max(0, (lookupV(song.title) || []).findIndex((x) => x.artist === song.artist)) } }),
+startEdit: () => this.setState({ editing: true, isNew: false, lookupMsg: '', form: { title: song.title, bpm: song.bpm ? String(song.bpm) : '', key: song.key, chords: song.chords, notes: song.notes, orig: song.orig || null, artist: song.artist || '', link: song.link || '', linkAuto: false, lyricsLink: song.lyricsLink || '', lyricsAuto: false, lyrics: song.lyrics || '', charts: (song.charts || []).slice(), cLabel: '', cUrl: '', cErr: '', versions: lookupV(song.title), vIdx: Math.max(0, (lookupV(song.title) || []).findIndex((x) => x.artist === song.artist)) } }),
 formHeading: s.isNew ? 'New song' : 'Edit song', notNew: !s.isNew,
 fTitle: f.title, fBpm: f.bpm, fKey: f.key, fChords: f.chords, fNotes: f.notes,
-onTitle: (e) => { const v = e.target.value; const vs = lookupV(v); this.setState({ form: vs ? { ...f, title: v, versions: vs, vIdx: 0, bpm: String(vs[0].bpm), key: vs[0].key, orig: vs[0], artist: vs[0].artist, ...ytAuto(f, v, vs[0].artist) } : { ...f, title: v, versions: null, orig: null, artist: '' } }); }, onBpm: (e) => this.setForm('bpm', e.target.value), onKey: (e) => this.setForm('key', e.target.value),
+onTitle: (e) => { const v = e.target.value; const vs = lookupV(v); this.setState({ form: vs ? { ...f, title: v, versions: vs, vIdx: 0, bpm: String(vs[0].bpm), key: vs[0].key, orig: vs[0], artist: vs[0].artist, ...ytAuto(f, v, vs[0].artist), ...lyAuto(f, v, vs[0].artist) } : { ...f, title: v, versions: null, orig: null, artist: '' } }); }, onBpm: (e) => this.setForm('bpm', e.target.value), onKey: (e) => this.setForm('key', e.target.value),
 onChords: (e) => this.setForm('chords', e.target.value), onNotes: (e) => this.setForm('notes', e.target.value),
 lookupMsg: s.lookupMsg, hasMsg: !!s.lookupMsg,
 lookup: () => {
@@ -299,16 +342,16 @@ if (hit) this.setState({ form: { ...f, bpm: String(hit.bpm), key: hit.key }, loo
 else this.setState({ lookupMsg: 'No match in the catalog. Enter tempo and key by hand.' });
 },
 save: () => {
-const nt = f.title.trim() || 'Untitled'; const nb = parseInt(f.bpm, 10) || null; const nk = f.key.trim(); const nl = (f.link || '').trim();
+const nt = f.title.trim() || 'Untitled'; const nb = parseInt(f.bpm, 10) || null; const nk = f.key.trim(); const nl = clean(f.link); const nll = clean(f.lyricsLink); const nly = f.lyrics || ''; const pend = clean(f.cUrl); const charts = (f.charts || []).concat(pend ? [{ label: (f.cLabel || '').trim() || hostOf(pend), url: pend }] : []);
 const parts = [];
 if (!s.isNew) {
 if (nb !== song.bpm) parts.push('tempo ' + (song.bpm || '\u2014') + ' \u2192 ' + (nb || '\u2014'));
 if (nk !== song.key) parts.push('key ' + (song.key || '\u2014') + ' \u2192 ' + (nk || '\u2014'));
 if (f.chords !== song.chords) parts.push('chords'); if (f.notes !== song.notes) parts.push('notes');
-if (nl !== (song.link || '')) parts.push('link'); if (nt !== song.title) parts.push('title');
+if (nl !== clean(song.link)) parts.push('link'); if (nll !== clean(song.lyricsLink)) parts.push('lyrics link'); if (nly !== (song.lyrics || '')) parts.push('lyrics'); if (JSON.stringify(charts) !== JSON.stringify(song.charts || [])) parts.push('sheet music links'); if (nt !== song.title) parts.push('title');
 }
-const entry = (s.isNew || parts.length) ? this.histPatch({ list: list.id, songId: song.id, text: s.isNew ? 'Added ' + nt : nt + ': ' + parts.join(', '), before: s.isNew ? null : { title: song.title, bpm: song.bpm, key: song.key, chords: song.chords, notes: song.notes, link: song.link || '', artist: song.artist || '' } }) : {};
-this.setState({ editing: false, isNew: false, ...this.withSongs(songs.map((x) => x.id === song.id ? { ...x, title: nt, bpm: nb, key: nk, chords: f.chords, notes: f.notes, orig: f.orig || x.orig || null, artist: f.artist || x.artist || '', link: nl } : x)), ...entry });
+const entry = (s.isNew || parts.length) ? this.histPatch({ list: list.id, songId: song.id, text: s.isNew ? 'Added ' + nt : nt + ': ' + parts.join(', '), before: s.isNew ? null : { title: song.title, bpm: song.bpm, key: song.key, chords: song.chords, notes: song.notes, link: song.link || '', lyricsLink: song.lyricsLink || '', lyrics: song.lyrics || '', charts: song.charts || [], artist: song.artist || '' } }) : {};
+this.setState({ editing: false, isNew: false, ...this.withSongs(songs.map((x) => x.id === song.id ? { ...x, title: nt, bpm: nb, key: nk, chords: f.chords, notes: f.notes, orig: f.orig || x.orig || null, artist: f.artist || x.artist || '', link: nl, lyricsLink: nll, lyrics: nly, charts } : x)), ...entry });
 },
 cancel: () => { if (s.isNew) this.setState({ ...this.withSongs(songs.filter((x) => x.id !== song.id)), screen: 'setlist', editing: false, isNew: false }); else this.setState({ editing: false }); },
 del: () => this.setState({ ...this.withSongs(songs.filter((x) => x.id !== song.id)), screen: 'setlist', editing: false, isNew: false, ...this.histPatch({ list: list.id, songId: song.id, text: 'Removed ' + (song.title || 'Untitled') }) }),

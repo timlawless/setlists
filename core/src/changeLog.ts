@@ -1,13 +1,16 @@
 import type { Change, Entry, EntryFields, Id, Setlist } from './types';
 
-const FIELDS: (keyof EntryFields)[] = ['title', 'artist', 'bpm', 'key', 'chords', 'notes', 'link'];
+const FIELDS: (keyof EntryFields)[] = ['title', 'artist', 'bpm', 'key', 'chords', 'notes', 'link', 'lyricsLink', 'lyrics', 'charts'];
+
+/** Strict equality for simple values, structural equality for lists such as `charts`. */
+const same = (a: unknown, b: unknown) => a === b || JSON.stringify(a) === JSON.stringify(b);
 
 /** Field-level diff. `inverse` holds the old values, so an edit can be restored later. */
 export function diffFields(before: EntryFields, after: EntryFields) {
   const patch: Partial<EntryFields> = {};
   const inverse: Partial<EntryFields> = {};
   for (const f of FIELDS) {
-    if (before[f] !== after[f]) {
+    if (!same(before[f], after[f])) {
       (patch as Record<string, unknown>)[f] = after[f];
       (inverse as Record<string, unknown>)[f] = before[f];
     }

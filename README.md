@@ -9,12 +9,14 @@ optional flash, several setlists per band, several bands per user, change histor
 | `prototype/` | Interactive UI prototype (sample data). The UI reference for the app. |
 | `core/` | TypeScript library with the logic that must be right: change history, offline queue, metronome scheduler. Tested. |
 | `docs/architecture.md` | Decisions, data model, privacy, versioning, offline, open questions. |
+| `docs/roadmap.md` | What is done and what to do next, in order. |
+| `AGENTS.md` | Ground rules for AI coding agents and new contributors. |
 
 ## Run the tests
 ```bash
 cd core
 npm install
-npm test          # 14 tests
+npm test          # 23 tests
 npm run typecheck
 ```
 
