@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Band setlist app</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+button{font-family:inherit;cursor:pointer}
+input,textarea{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; background: var(--bg); color: var(--text); {{ themeVars }}; font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; overflow: hidden">
+<sc-if value="{{ isSetlist }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 44px 20px 16px; display: flex; flex-direction: column; gap: 16px">
+<button onClick="{{ toLists }}" style="align-self: flex-start; min-height: 44px; padding: 0 14px 0 8px; background: none; border: 0; color: var(--accent-text); font-size: 16px; display: flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Setlists</button>
+<div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<div style="font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">{{ bandName }}</div>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 44px; line-height: 1">{{ listName }}</h1>
+</div>
+<div style="display: flex; align-items: center; gap: 8px"><button onClick="{{ toggleTheme }}" aria-label="{{ themeLabel }}" style="width: 44px; height: 44px; border-radius: 12px; border: 1.5px solid var(--border); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center"><sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"></path></svg></sc-if><sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></sc-if></button><button onClick="{{ toggleEdit }}" style="min-height: 44px; min-width: 64px; padding: 0 16px; background: transparent; border: 1.5px solid var(--accent-text); border-radius: 12px; color: var(--accent-text); font-size: 16px; font-weight: 600">{{ editLabel }}</button></div>
+</div>
+<div style="display: flex; gap: 8px">
+<button onClick="{{ toggleOffline }}" style="flex: 1; min-width: 0; min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 6px 14px; background: var(--card); border: 0; border-radius: 12px; color: var(--text); text-align: left"><span style="{{ dotStyle }}"></span><span style="display: flex; flex-direction: column"><span style="font-size: 14px">{{ syncText }}</span><span style="font-size: 12px; color: var(--muted)">{{ syncHint }}</span></span></button>
+<button onClick="{{ toHistory }}" style="min-height: 52px; padding: 0 16px; background: transparent; border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-size: 15px; font-weight: 600">History</button>
+</div>
+<sc-if value="{{ editMode }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Setlist name<input type="text" value="{{ listNameVal }}" onChange="{{ onListName }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; letter-spacing: 0; text-transform: none"></label><button onClick="{{ delList }}" style="min-height: 44px; background: none; border: 0; color: var(--danger); font-size: 15px; font-weight: 600; align-self: flex-start">Delete this setlist</button></div></sc-if>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ songs }}" as="song" hint-placeholder-count="4">
+<div style="display: flex; align-items: center; gap: 4px; background: var(--card); border-radius: 12px; padding-right: 6px">
+<button onClick="{{ song.open }}" style="flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 10px 8px 10px 14px; background: none; border: 0; color: var(--text); text-align: left">
+<span style="font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 26px; color: var(--accent-text); width: 24px; flex-shrink: 0">{{ song.num }}</span>
+<span style="flex: 1; min-width: 0; display: flex; flex-direction: column"><span style="font-size: 17px; font-weight: 600">{{ song.title }}</span><span style="font-size: 13px; color: var(--muted)">{{ song.artist }}</span></span>
+<span style="display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 13px; color: var(--muted)"><span style="color: var(--text); font-weight: 600">{{ song.key }}</span><span>{{ song.bpm }} BPM</span></span>
+</button>
+<sc-if value="{{ song.edit }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ song.up }}" aria-label="Move up" style="color: var(--text); width: 44px; height: 44px; border-radius: 10px; border: 0; background: var(--card2); opacity: {{ song.upOp }}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 15l6-6 6 6"></path></svg></button>
+<button onClick="{{ song.down }}" aria-label="Move down" style="color: var(--text); width: 44px; height: 44px; border-radius: 10px; border: 0; background: var(--card2); opacity: {{ song.downOp }}; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+</sc-if>
+</div>
+</sc-for>
+</div>
+<button onClick="{{ addSong }}" style="min-height: 52px; background: transparent; border: 1.5px dashed var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-weight: 600">+ Add song</button>
+</div>
+</sc-if>
+<sc-if value="{{ isLists }}" hint-placeholder-val="{{ true }}">
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 56px 20px 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<button onClick="{{ toBands }}" aria-label="Switch band" style="min-height: 56px; display: flex; align-items: center; gap: 10px; padding: 0; background: none; border: 0; color: var(--text); text-align: left"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Your band</span><span style="font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; line-height: 1; font-size: 40px">{{ bandName }}</span></span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"></path></svg></button>
+<button onClick="{{ toggleTheme }}" aria-label="{{ themeLabel }}" style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 12px; border: 1.5px solid var(--border); background: transparent; color: var(--text); display: flex; align-items: center; justify-content: center"><sc-if value="{{ isLight }}" hint-placeholder-val="{{ true }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"></path></svg></sc-if><sc-if value="{{ isDark }}" hint-placeholder-val="{{ false }}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg></sc-if></button>
+</div>
+<div style="font-size: 14px; color: var(--muted)">{{ bandSub }}</div>
+<div style="font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Setlists</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ lists }}" as="l" hint-placeholder-count="2"><button onClick="{{ l.open }}" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; width: 100%; box-sizing: border-box; padding: 10px 14px; background: var(--card); border: 0; border-radius: 12px; color: var(--text); text-align: left"><span style="font-size: 17px; font-weight: 600">{{ l.name }}</span><span style="font-size: 13px; color: var(--muted)">{{ l.count }}</span></button></sc-for>
+<sc-if value="{{ noLists }}" hint-placeholder-val="{{ false }}"><div style="font-size: 15px; color: var(--muted)">No setlists yet for this band.</div></sc-if>
+</div>
+<button onClick="{{ addList }}" style="min-height: 52px; background: transparent; border: 1.5px dashed var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-weight: 600">+ New setlist</button>
+</div>
+</sc-if>
+<sc-if value="{{ isBands }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 48px 20px 16px; display: flex; flex-direction: column; gap: 16px">
+<button onClick="{{ toLists }}" style="align-self: flex-start; min-height: 44px; padding: 0 14px 0 8px; background: none; border: 0; color: var(--accent-text); font-size: 16px; display: flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Setlists</button>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; line-height: 1; font-size: 44px">Your bands</h1>
+<div style="font-size: 14px; line-height: 1.45; color: var(--muted)">You only see bands you belong to. A band's setlists, songs and notes are visible to its members only. Every member can edit, and every change is recorded in the setlist's history.</div>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<sc-for list="{{ bands }}" as="b" hint-placeholder-count="2"><button onClick="{{ b.pick }}" style="{{ b.style }}"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 600">{{ b.name }}</span><span style="font-size: 13px; color: var(--muted)">{{ b.sub }}</span></span><sc-if value="{{ b.current }}" hint-placeholder-val="{{ false }}"><span style="font-size: 13px; font-weight: 600; color: var(--accent-text)">Current</span></sc-if></button></sc-for>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px"><label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Start a new band<input type="text" value="{{ newBand }}" onChange="{{ onNewBand }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; letter-spacing: 0; text-transform: none"></label><button onClick="{{ createBand }}" style="min-height: 52px; background: var(--accent); border: 0; border-radius: 12px; color: #111214; font-size: 16px; font-weight: 700">Create band</button></div>
+</div>
+</sc-if>
+<sc-if value="{{ isHistory }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 48px 20px 16px; display: flex; flex-direction: column; gap: 16px">
+<button onClick="{{ toSetlist }}" style="align-self: flex-start; min-height: 44px; padding: 0 14px 0 8px; background: none; border: 0; color: var(--accent-text); font-size: 16px; display: flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Setlist</button>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; line-height: 1; font-size: 44px">Change history</h1>
+<div style="font-size: 14px; line-height: 1.45; color: var(--muted)">Every change is recorded with who made it. Anyone in the band can edit, and any edit can be restored.</div>
+<sc-for list="{{ hist }}" as="h" hint-placeholder-count="3"><div style="background: var(--card); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px"><div style="display: flex; flex-direction: column; gap: 3px; min-width: 0"><span style="font-size: 15px; font-weight: 600">{{ h.text }}</span><span style="font-size: 13px; color: var(--muted)">{{ h.who }} · {{ h.when }}</span><sc-if value="{{ h.pend }}" hint-placeholder-val="{{ false }}"><span style="font-size: 12px; color: var(--accent-text)">Waiting to sync</span></sc-if></div><sc-if value="{{ h.canRevert }}" hint-placeholder-val="{{ true }}"><button onClick="{{ h.revert }}" style="min-height: 44px; padding: 0 12px; flex-shrink: 0; background: none; border: 1.5px solid var(--accent-text); border-radius: 10px; color: var(--accent-text); font-size: 14px; font-weight: 600">Restore</button></sc-if></div></sc-for>
+<sc-if value="{{ noHist }}" hint-placeholder-val="{{ false }}"><div style="font-size: 15px; color: var(--muted)">No changes yet.</div></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ isView }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 48px 20px 16px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button onClick="{{ back }}" style="min-height: 44px; padding: 0 14px 0 8px; background: none; border: 0; color: var(--accent-text); font-size: 16px; display: flex; align-items: center; gap: 6px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>Setlist</button>
+<button onClick="{{ startEdit }}" style="min-height: 44px; min-width: 64px; padding: 0 16px; background: transparent; border: 1.5px solid var(--accent-text); border-radius: 12px; color: var(--accent-text); font-size: 16px; font-weight: 600">Edit</button>
+</div>
+<h1 style="margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 44px; line-height: 1">{{ sTitle }}</h1>
+<sc-if value="{{ hasArtist }}" hint-placeholder-val="{{ false }}"><div style="margin-top: -8px; font-size: 15px; color: var(--muted)">{{ sArtist }}</div></sc-if>
+<sc-if value="{{ hasLast }}" hint-placeholder-val="{{ false }}"><div style="margin-top: -8px; font-size: 13px; color: var(--muted)">{{ sLast }}</div></sc-if>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<div style="background: var(--card); border-radius: 12px; padding: 14px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Tempo</div><div style="font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 40px">{{ sBpm }}</div></div>
+<div style="background: var(--card); border-radius: 12px; padding: 14px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Key</div><div style="font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 40px">{{ sKey }}</div></div>
+</div>
+<sc-if value="{{ vChanged }}" hint-placeholder-val="{{ false }}"><div style="font-size: 14px; color: var(--muted)">Changed for your band. Original: {{ vOrigText }}</div></sc-if>
+<div style="background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Chords</div><div style="font-family: ui-monospace, Menlo, monospace; font-size: 17px; line-height: 1.5">{{ sChords }}</div></div>
+<div style="background: var(--card); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 6px"><div style="font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Notes</div><div style="font-size: 16px; line-height: 1.45">{{ sNotes }}</div></div>
+<sc-if value="{{ hasLink }}" hint-placeholder-val="{{ true }}"><a href="{{ sLink }}" style="min-height: 52px; box-sizing: border-box; padding: 8px 14px; display: flex; align-items: center; justify-content: center; gap: 12px; background: var(--card); border-radius: 12px; color: var(--text); text-decoration: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" style="color: var(--accent-text)" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg><span style="display: flex; flex-direction: column"><span style="font-size: 16px; font-weight: 600">Listen on YouTube</span><span style="font-size: 12px; color: var(--muted)">{{ sLinkSub }}</span></span></a></sc-if>
+<button onClick="{{ toMetro }}" style="min-height: 52px; background: #F5A524; border: 0; border-radius: 12px; color: #111214; font-size: 17px; font-weight: 700">Open metronome at this tempo</button>
+</div>
+</sc-if>
+<sc-if value="{{ isForm }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; min-height: 0; overflow-y: auto; padding: 56px 20px 16px; display: flex; flex-direction: column; gap: 14px">
+<h1 style="margin: 0; font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 36px; line-height: 1">{{ formHeading }}</h1>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Title<input type="text" value="{{ fTitle }}" onChange="{{ onTitle }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; letter-spacing: 0; text-transform: none"></label>
+<sc-if value="{{ hasVersions }}" hint-placeholder-val="{{ false }}"><div style="display: flex; flex-direction: column; gap: 8px"><div style="font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Which version?</div><sc-for list="{{ versionChoices }}" as="v" hint-placeholder-count="2"><button onClick="{{ v.pick }}" aria-pressed="{{ v.pressed }}" style="{{ v.style }}"><span style="font-size: 16px; font-weight: 600">{{ v.label }}</span><span style="font-size: 13px; color: var(--muted)">{{ v.sub }}</span></button></sc-for></div></sc-if>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Tempo (BPM)<input type="text" inputmode="numeric" value="{{ fBpm }}" onChange="{{ onBpm }}" style="min-height: 48px; box-sizing: border-box; width: 100%; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Key<input type="text" value="{{ fKey }}" onChange="{{ onKey }}" style="min-height: 48px; box-sizing: border-box; width: 100%; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px"></label>
+</div>
+<sc-if value="{{ hasOrig }}" hint-placeholder-val="{{ false }}"><div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--card); border-radius: 12px; padding: 10px 14px"><div style="font-size: 14px; color: var(--muted)">Original: <span style="color: var(--text); font-weight: 600">{{ origText }}</span></div><sc-if value="{{ formChanged }}" hint-placeholder-val="{{ false }}"><button onClick="{{ resetOrig }}" style="min-height: 44px; padding: 0 12px; background: none; border: 0; color: var(--accent-text); font-size: 14px; font-weight: 600">Reset</button></sc-if></div></sc-if>
+<div style="font-size: 13px; color: var(--muted)">Tempo and key fill in from the original recording when the title matches the catalog. Change them any time.</div>
+<sc-if value="{{ hasConf }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; color: var(--accent-text)">{{ confNote }}</div></sc-if>
+<sc-if value="{{ noMatch }}" hint-placeholder-val="{{ false }}"><div style="font-size: 13px; color: var(--muted)">No catalog match for this title yet. The prototype only knows a few songs (for example Walk This Way), so enter tempo and key by hand.</div></sc-if>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Chords<input type="text" value="{{ fChords }}" onChange="{{ onChords }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-family: ui-monospace, Menlo, monospace"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">YouTube link<input type="text" inputmode="url" value="{{ fLink }}" onChange="{{ onLink }}" style="min-height: 48px; box-sizing: border-box; padding: 0 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; letter-spacing: 0; text-transform: none"></label>
+<div style="margin-top: -6px; font-size: 13px; color: var(--muted)">Starts as a YouTube search for the chosen version. Paste a specific video, or your own arrangement, to replace it.</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Notes<textarea onChange="{{ onNotes }}" style="min-height: 96px; box-sizing: border-box; padding: 12px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; resize: none">{{ fNotes }}</textarea></label>
+<div style="display: flex; gap: 12px">
+<button onClick="{{ cancel }}" style="flex: 1; min-height: 52px; background: transparent; border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-weight: 600">Cancel</button>
+<button onClick="{{ save }}" style="flex: 1; min-height: 52px; background: #F5A524; border: 0; border-radius: 12px; color: #111214; font-size: 16px; font-weight: 700">Save</button>
+</div>
+<sc-if value="{{ notNew }}" hint-placeholder-val="{{ true }}"><button onClick="{{ del }}" style="min-height: 48px; background: none; border: 0; color: var(--danger); font-size: 16px; font-weight: 600">Delete song</button></sc-if>
+</div>
+</sc-if>
+<sc-if value="{{ isMetro }}" hint-placeholder-val="{{ false }}">
+<div style="flex: 1; min-height: 0; position: relative; overflow: hidden; padding: 72px 20px 16px; display: flex; flex-direction: column; align-items: center; gap: 28px">
+<div style="{{ flashOverlay }}"></div>
+<div style="font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Metronome</div>
+<div style="display: flex; flex-direction: column; align-items: center"><div style="font-family: 'Barlow Condensed', system-ui, sans-serif; font-weight: 700; font-size: 148px; line-height: 1">{{ bpm }}</div><div style="font-size: 15px; color: var(--muted)">beats per minute</div></div>
+<div style="display: flex; gap: 14px">
+<sc-for list="{{ beats }}" as="b" hint-placeholder-count="4"><div style="{{ b.style }}"></div></sc-for>
+</div>
+<div style="display: flex; align-items: center; gap: 20px">
+<button onClick="{{ dec }}" aria-label="Slower" style="width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--card); color: var(--text); font-size: 28px">−</button>
+<button onClick="{{ toggle }}" aria-label="Start or stop" style="width: 88px; height: 88px; border-radius: 50%; border: 0; background: #F5A524; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{ playing }}" hint-placeholder-val="{{ false }}"><svg width="32" height="32" viewBox="0 0 24 24" fill="#111214" aria-hidden="true"><rect x="6" y="5" width="4" height="14"></rect><rect x="14" y="5" width="4" height="14"></rect></svg></sc-if>
+<sc-if value="{{ notPlaying }}" hint-placeholder-val="{{ true }}"><svg width="32" height="32" viewBox="0 0 24 24" fill="#111214" aria-hidden="true"><path d="M7 4l13 8-13 8z"></path></svg></sc-if>
+</button>
+<button onClick="{{ inc }}" aria-label="Faster" style="width: 56px; height: 56px; border-radius: 50%; border: 0; background: var(--card); color: var(--text); font-size: 28px">+</button>
+</div>
+<button onClick="{{ tap }}" style="min-height: 52px; padding: 0 36px; background: transparent; border: 1.5px solid var(--border); border-radius: 12px; color: var(--text); font-size: 16px; font-weight: 600">Tap tempo</button>
+<div style="display: flex; gap: 12px"><button onClick="{{ toggleSound }}" aria-pressed="{{ sound }}" style="{{ soundBtn }}">Sound</button><button onClick="{{ toggleFlash }}" aria-pressed="{{ flash }}" style="{{ flashBtn }}">Flash</button></div>
+<div style="max-width: 300px; text-align: center; font-size: 12px; line-height: 1.4; color: var(--muted)">Flash fires on every beat up to 180 BPM. Above that it flashes on beat 1 only, to keep the flashing rate low.</div>
+</div>
+</sc-if>
+<div style="flex-shrink: 0; display: flex; border-top: 1px solid var(--divider); padding-bottom: 20px">
+<button onClick="{{ goSetlist }}" style="flex: 1; min-height: 64px; background: none; border: 0; font-size: 14px; font-weight: 600; color: {{ tabSetColor }}">Setlists</button>
+<button onClick="{{ goMetro }}" style="flex: 1; min-height: 64px; background: none; border: 0; font-size: 14px; font-weight: 600; color: {{ tabMetColor }}">Metronome</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) {
+super(props);
+const base = [
+{ id: 1, title: 'Summer of ’69', bpm: 139, key: 'D', orig: { bpm: 139, key: 'D' }, artist: 'Bryan Adams', link: 'https://www.youtube.com/results?search_query=Bryan+Adams+Summer+of+%2769', chords: 'D – A – D – A (verse)', notes: 'Sample note: edit to match your arrangement.' },
+{ id: 2, title: 'Hard to Handle', bpm: 104, key: 'B', orig: { bpm: 104, key: 'B' }, artist: 'The Black Crowes', link: 'https://www.youtube.com/results?search_query=The+Black+Crowes+Hard+to+Handle', chords: 'B – E – F# – D – B', notes: '' },
+{ id: 3, title: 'Mustang Sally', bpm: 109, key: 'C', orig: { bpm: 109, key: 'C' }, artist: 'Wilson Pickett', link: 'https://www.youtube.com/results?search_query=Wilson+Pickett+Mustang+Sally', chords: 'C – F – C (verse)', notes: '' },
+{ id: 4, title: 'Running Down a Dream', bpm: 170, key: 'E', orig: { bpm: 170, key: 'E' }, artist: 'Tom Petty and the Heartbreakers', link: 'https://www.youtube.com/results?search_query=Tom+Petty+and+the+Heartbreakers+Running+Down+a+Dream', chords: 'E – D (verse) · G – A – G – E (chorus)', notes: 'Feels like 85 in half-time.' }
+];
+this.state = {
+screen: 'lists', bandId: 1, setlistId: 1, nextListId: 4, nextBandId: 3, newBand: '', offline: false, pending: 0,
+history: [
+{ hid: 1, list: 1, who: 'Jo', when: '2 days ago', songId: 3, text: 'Mustang Sally: key Bb \u2192 C', before: { key: 'Bb' } },
+{ hid: 2, list: 1, who: 'Maya', when: 'Yesterday', songId: 4, text: 'Running Down a Dream: notes added', before: { notes: '' } }
+],
+songId: 1, bpm: 139, playing: false, beat: -1, taps: [],
+light: true, sound: true, flash: false, flashOn: false, flashStrong: false, editMode: false, editing: false, isNew: false, nextId: 5, lookupMsg: '',
+form: { title: '', bpm: '', key: '', chords: '', notes: '' },
+bands: [
+{ id: 1, name: 'Harbour Nights', role: 'Admin', members: 4, setlists: [
+{ id: 1, name: 'Saturday · Set 1', songs: base },
+{ id: 2, name: 'Wedding · Acoustic', songs: [base[1], base[0]] }
+] },
+{ id: 2, name: 'Island Soul Trio', role: 'Member', members: 3, setlists: [
+{ id: 3, name: 'Sunday · Beach Bar', songs: [{ ...base[2], bpm: 112, key: 'A', notes: 'We play it a little faster and lower than the original.' }] }
+] }
+]
+};
+}
+componentWillUnmount() { this.stop(); }
+stop() { if (this._t) { clearInterval(this._t); this._t = null; } clearTimeout(this._f); }
+click(accent) {
+try {
+const C = this._c || (this._c = new (window.AudioContext || window.webkitAudioContext)());
+const o = C.createOscillator(); const g = C.createGain();
+o.frequency.value = accent ? 1200 : 800; g.gain.value = 0.15;
+o.connect(g); g.connect(C.destination); o.start(); o.stop(C.currentTime + 0.04);
+} catch (e) {}
+}
+tick() {
+const s = this.state; const b = (s.beat + 1) % 4;
+if (s.sound) this.click(b === 0);
+const fl = s.flash && (s.bpm <= 180 || b === 0);
+this.setState({ beat: b, flashOn: fl, flashStrong: b === 0 });
+if (fl) { clearTimeout(this._f); this._f = setTimeout(() => this.setState({ flashOn: false }), 110); }
+}
+start(bpm) { this.stop(); this._t = setInterval(() => this.tick(), 60000 / bpm); }
+setBpm(v) { v = Math.max(40, Math.min(240, v)); this.setState({ bpm: v }); if (this.state.playing) this.start(v); }
+move(i, d) {
+const j = i + d; const a = this.curSongs().slice();
+if (j < 0 || j >= a.length) return;
+const t = a[i]; a[i] = a[j]; a[j] = t;
+this.setState({ ...this.withSongs(a), ...this.histPatch({ list: this.state.setlistId, text: 'Moved ' + t.title + ' to position ' + (j + 1) }) });
+}
+histPatch(e) { const s = this.state; return { history: [{ hid: Date.now() + Math.random(), who: 'You', when: 'Just now', pend: s.offline, ...e }].concat(s.history), pending: s.pending + (s.offline ? 1 : 0) }; }
+curSongs() { const s = this.state; const b = s.bands.find((x) => x.id === s.bandId); const l = b && b.setlists.find((x) => x.id === s.setlistId); return l ? l.songs : []; }
+withSongs(arr) { const s = this.state; return { bands: s.bands.map((b) => b.id !== s.bandId ? b : { ...b, setlists: b.setlists.map((l) => l.id !== s.setlistId ? l : { ...l, songs: arr }) }) }; }
+setForm(k, v) { this.setState({ form: { ...this.state.form, [k]: v } }); }
+renderVals() {
+const s = this.state; const f = s.form;
+const band = s.bands.find((x) => x.id === s.bandId) || s.bands[0];
+const list = band.setlists.find((x) => x.id === s.setlistId) || band.setlists[0] || { id: 0, name: '', songs: [] };
+const songs = list.songs;
+const song = songs.find((x) => x.id === s.songId) || songs[0] || { id: 0, title: '', bpm: null, key: '', chords: '', notes: '' };
+const upd = (fn) => s.bands.map((b) => b.id !== band.id ? b : { ...b, setlists: fn(b.setlists) });
+const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+const lastH = s.history.find((h) => h.list === list.id && h.songId === song.id);
+const on = 'var(--accent-text)'; const off = 'var(--muted)';
+const n = songs.length;
+const V = (artist, year, bpm, key, conf) => ({ artist, year, bpm, key, conf });
+const rdd = [V('Tom Petty and the Heartbreakers', 1989, 170, 'E')];
+const catalog = {
+'summer of 69': [V('Bryan Adams', 1984, 139, 'D')], 'hard to handle': [V('The Black Crowes', 1990, 104, 'B')],
+'mustang sally': [V('Wilson Pickett', 1966, 109, 'C')], 'running down a dream': rdd, 'runnin down a dream': rdd,
+'walk this way': [V('Aerosmith', 1975, 108, 'Am', 'low'), V('Run-DMC with Aerosmith', 1986, 106, 'F#m', 'low')]
+};
+const lookupV = (t) => catalog[t.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()] || null;
+const goBack = () => this.setState({ screen: 'setlist', editing: false, isNew: false });
+const pill = (on) => 'min-height: 44px; padding: 0 20px; border-radius: 22px; font-size: 15px; font-weight: 600; background: ' + (on ? 'var(--accent)' : 'transparent') + '; color: ' + (on ? '#111214' : 'var(--text)') + '; border: 1.5px solid ' + (on ? 'var(--accent)' : 'var(--border)');
+const ytAuto = (g, title, artist) => (!g.link || g.linkAuto) ? { link: 'https://www.youtube.com/results?search_query=' + encodeURIComponent((artist + ' ' + title.trim()).trim()), linkAuto: true } : {};
+return {
+isSetlist: s.screen === 'setlist', isView: s.screen === 'song' && !s.editing, isForm: s.screen === 'song' && s.editing, isMetro: s.screen === 'metro',
+isLight: s.light, isDark: !s.light, toggleTheme: () => this.setState({ light: !s.light }), themeLabel: s.light ? 'Switch to dark mode' : 'Switch to light mode',
+themeVars: s.light ? '--bg:#F7F4EC;--card:#FFFFFF;--card2:#ECE7DB;--border:#CFC8B8;--divider:#E2DCCD;--text:#1B1A17;--muted:#5E5A52;--accent:#F5A524;--accent-text:#9A5B00;--danger:#B3261E' : '--bg:#111214;--card:#1C1E22;--card2:#2A2C30;--border:#3A3D43;--divider:#25272B;--text:#F2EFE8;--muted:#A6A298;--accent:#F5A524;--accent-text:#F5A524;--danger:#FF7A6B',
+editLabel: s.editMode ? 'Done' : 'Edit',
+isHistory: s.screen === 'history', toHistory: () => this.setState({ screen: 'history' }), toSetlist: () => this.setState({ screen: 'setlist' }),
+syncText: s.offline ? 'Offline \u00b7 ' + plural(s.pending, 'change') + ' waiting to sync' : 'Synced 2 min ago \u00b7 ' + band.members + ' band members',
+syncHint: s.offline ? 'Tap to go back online' : 'Tap to try offline mode',
+dotStyle: 'width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: ' + (s.offline ? '#F5A524' : '#5BC27A'),
+toggleOffline: () => s.offline ? this.setState({ offline: false, pending: 0, history: s.history.map((h) => ({ ...h, pend: false })) }) : this.setState({ offline: true }),
+hist: s.history.filter((h) => h.list === list.id).map((h) => ({ who: h.who, when: h.when, text: h.text, pend: !!h.pend, canRevert: !!h.before,
+revert: () => this.setState({ ...this.withSongs(songs.map((x) => x.id === h.songId ? { ...x, ...h.before } : x)), ...this.histPatch({ list: list.id, songId: h.songId, text: 'Restored: ' + h.text }) }) })),
+noHist: !s.history.some((h) => h.list === list.id),
+hasLast: !!lastH, sLast: lastH ? 'Last changed by ' + lastH.who + ' \u00b7 ' + lastH.when : '',
+isLists: s.screen === 'lists', isBands: s.screen === 'bands', editMode: s.editMode,
+bandName: band.name, memberCount: band.members, bandSub: band.role + ' · ' + plural(band.members, 'member'),
+listName: list.name || 'Untitled setlist', listNameVal: list.name,
+lists: band.setlists.map((l) => ({ name: l.name || 'Untitled setlist', count: plural(l.songs.length, 'song'), open: () => this.setState({ screen: 'setlist', setlistId: l.id, editMode: false }) })),
+noLists: band.setlists.length === 0,
+addList: () => { const id = s.nextListId; this.setState({ bands: upd((ls) => ls.concat({ id, name: 'New setlist', songs: [] })), nextListId: id + 1, setlistId: id, screen: 'setlist', editMode: true }); },
+onListName: (e) => this.setState({ bands: upd((ls) => ls.map((l) => l.id !== list.id ? l : { ...l, name: e.target.value })) }),
+delList: () => this.setState({ bands: upd((ls) => ls.filter((l) => l.id !== list.id)), screen: 'lists', editMode: false }),
+toLists: () => this.setState({ screen: 'lists', editMode: false }), toBands: () => this.setState({ screen: 'bands' }),
+bands: s.bands.map((b) => ({ name: b.name, sub: b.role + ' · ' + plural(b.members, 'member') + ' · ' + plural(b.setlists.length, 'setlist'), current: b.id === band.id, style: 'display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; width: 100%; box-sizing: border-box; padding: 10px 14px; border-radius: 12px; color: var(--text); text-align: left; background: var(--card); border: 1.5px solid ' + (b.id === band.id ? 'var(--accent-text)' : 'transparent'), pick: () => this.setState({ bandId: b.id, setlistId: (b.setlists[0] || { id: 0 }).id, screen: 'lists', editMode: false }) })),
+newBand: s.newBand, onNewBand: (e) => this.setState({ newBand: e.target.value }),
+createBand: () => { const name = s.newBand.trim(); if (!name) return; const id = s.nextBandId; this.setState({ bands: s.bands.concat({ id, name, role: 'Admin', members: 1, setlists: [] }), nextBandId: id + 1, bandId: id, setlistId: 0, newBand: '', screen: 'lists' }); }, toggleEdit: () => this.setState({ editMode: !s.editMode }),
+songs: songs.map((x, i) => ({
+num: i + 1, title: x.title || 'Untitled', artist: x.artist || '', key: x.key || '—', bpm: x.bpm || '—', edit: s.editMode,
+upOp: i === 0 ? '0.35' : '1', downOp: i === n - 1 ? '0.35' : '1',
+open: () => this.setState({ screen: 'song', songId: x.id, editing: false }),
+up: () => this.move(i, -1), down: () => this.move(i, 1)
+})),
+addSong: () => {
+const id = s.nextId;
+this.setState({ ...this.withSongs(songs.concat({ id, title: '', bpm: null, key: '', chords: '', notes: '' })), nextId: id + 1, screen: 'song', songId: id, editing: true, isNew: true, editMode: false, lookupMsg: '', form: { title: '', bpm: '', key: '', chords: '', notes: '' } });
+},
+sTitle: song.title || 'Untitled', sBpm: song.bpm || '—', sKey: song.key || '—',
+sChords: song.chords || 'No chords yet', sNotes: song.notes || 'No notes yet',
+hasOrig: !!f.orig, origText: f.orig ? (f.artist ? f.artist + ' · ' : '') + f.orig.bpm + ' BPM · key of ' + f.orig.key : '',
+sArtist: song.artist || '', hasArtist: !!song.artist,
+fLink: f.link || '', onLink: (e) => this.setState({ form: { ...f, link: e.target.value, linkAuto: false } }),
+sLink: song.link || '', hasLink: !!song.link, sLinkSub: song.link && song.link.indexOf('search_query') > -1 ? 'Opens a YouTube search for this version' : 'Opens your saved link',
+noMatch: f.title.trim().length > 2 && !f.orig && !f.versions,
+hasConf: !!f.orig && !!f.orig.conf, confNote: 'Sources disagree on the key for this version. Check it against the recording.',
+hasVersions: !!f.versions && f.versions.length > 1,
+versionChoices: (f.versions || []).map((v, i) => ({ label: v.artist + ' · ' + v.year, sub: v.bpm + ' BPM · key of ' + v.key + (v.conf ? ' (check)' : ''), pressed: i === f.vIdx, style: 'min-height: 56px; box-sizing: border-box; padding: 8px 14px; border-radius: 12px; color: var(--text); text-align: left; display: flex; flex-direction: column; gap: 2px; background: var(--card); border: 1.5px solid ' + (i === f.vIdx ? 'var(--accent-text)' : 'var(--border)'), pick: () => this.setState({ form: { ...f, vIdx: i, bpm: String(v.bpm), key: v.key, orig: v, artist: v.artist, ...ytAuto(f, f.title, v.artist) } }) })),
+formChanged: !!f.orig && (String(f.orig.bpm) !== String(f.bpm).trim() || f.orig.key !== f.key.trim()),
+resetOrig: () => this.setState({ form: { ...f, bpm: String(f.orig.bpm), key: f.orig.key } }),
+vChanged: !!song.orig && (song.orig.bpm !== song.bpm || song.orig.key !== song.key),
+vOrigText: song.orig ? song.orig.bpm + ' BPM · key of ' + song.orig.key : '',
+back: goBack,
+startEdit: () => this.setState({ editing: true, isNew: false, lookupMsg: '', form: { title: song.title, bpm: song.bpm ? String(song.bpm) : '', key: song.key, chords: song.chords, notes: song.notes, orig: song.orig || null, artist: song.artist || '', link: song.link || '', linkAuto: false, versions: lookupV(song.title), vIdx: Math.max(0, (lookupV(song.title) || []).findIndex((x) => x.artist === song.artist)) } }),
+formHeading: s.isNew ? 'New song' : 'Edit song', notNew: !s.isNew,
+fTitle: f.title, fBpm: f.bpm, fKey: f.key, fChords: f.chords, fNotes: f.notes,
+onTitle: (e) => { const v = e.target.value; const vs = lookupV(v); this.setState({ form: vs ? { ...f, title: v, versions: vs, vIdx: 0, bpm: String(vs[0].bpm), key: vs[0].key, orig: vs[0], artist: vs[0].artist, ...ytAuto(f, v, vs[0].artist) } : { ...f, title: v, versions: null, orig: null, artist: '' } }); }, onBpm: (e) => this.setForm('bpm', e.target.value), onKey: (e) => this.setForm('key', e.target.value),
+onChords: (e) => this.setForm('chords', e.target.value), onNotes: (e) => this.setForm('notes', e.target.value),
+lookupMsg: s.lookupMsg, hasMsg: !!s.lookupMsg,
+lookup: () => {
+const hit = catalog[f.title.toLowerCase().replace(/[’]/g, '\'').trim()];
+if (hit) this.setState({ form: { ...f, bpm: String(hit.bpm), key: hit.key }, lookupMsg: 'Found: ' + hit.bpm + ' BPM, key of ' + hit.key + '. Check it against your arrangement.' });
+else this.setState({ lookupMsg: 'No match in the catalog. Enter tempo and key by hand.' });
+},
+save: () => {
+const nt = f.title.trim() || 'Untitled'; const nb = parseInt(f.bpm, 10) || null; const nk = f.key.trim(); const nl = (f.link || '').trim();
+const parts = [];
+if (!s.isNew) {
+if (nb !== song.bpm) parts.push('tempo ' + (song.bpm || '\u2014') + ' \u2192 ' + (nb || '\u2014'));
+if (nk !== song.key) parts.push('key ' + (song.key || '\u2014') + ' \u2192 ' + (nk || '\u2014'));
+if (f.chords !== song.chords) parts.push('chords'); if (f.notes !== song.notes) parts.push('notes');
+if (nl !== (song.link || '')) parts.push('link'); if (nt !== song.title) parts.push('title');
+}
+const entry = (s.isNew || parts.length) ? this.histPatch({ list: list.id, songId: song.id, text: s.isNew ? 'Added ' + nt : nt + ': ' + parts.join(', '), before: s.isNew ? null : { title: song.title, bpm: song.bpm, key: song.key, chords: song.chords, notes: song.notes, link: song.link || '', artist: song.artist || '' } }) : {};
+this.setState({ editing: false, isNew: false, ...this.withSongs(songs.map((x) => x.id === song.id ? { ...x, title: nt, bpm: nb, key: nk, chords: f.chords, notes: f.notes, orig: f.orig || x.orig || null, artist: f.artist || x.artist || '', link: nl } : x)), ...entry });
+},
+cancel: () => { if (s.isNew) this.setState({ ...this.withSongs(songs.filter((x) => x.id !== song.id)), screen: 'setlist', editing: false, isNew: false }); else this.setState({ editing: false }); },
+del: () => this.setState({ ...this.withSongs(songs.filter((x) => x.id !== song.id)), screen: 'setlist', editing: false, isNew: false, ...this.histPatch({ list: list.id, songId: song.id, text: 'Removed ' + (song.title || 'Untitled') }) }),
+toMetro: () => { const v = song.bpm || s.bpm; this.setState({ screen: 'metro', bpm: v }); if (s.playing) this.start(v); },
+goSetlist: () => this.setState({ screen: 'lists', editing: false, isNew: false, editMode: false }), goMetro: () => this.setState({ screen: 'metro' }),
+tabSetColor: s.screen === 'metro' ? off : on, tabMetColor: s.screen === 'metro' ? on : off,
+bpm: s.bpm, playing: s.playing, notPlaying: !s.playing,
+sound: s.sound, flash: s.flash, soundBtn: pill(s.sound), flashBtn: pill(s.flash),
+toggleSound: () => this.setState({ sound: !s.sound }), toggleFlash: () => this.setState({ flash: !s.flash, flashOn: false }),
+flashOverlay: 'position: absolute; inset: 0; pointer-events: none; background: var(--accent); transition: opacity 140ms ease-out; opacity: ' + (s.flashOn ? (s.flashStrong ? '0.85' : '0.55') : '0'),
+beats: [0, 1, 2, 3].map((i) => ({ style: 'width: 22px; height: 22px; border-radius: 50%; background: ' + (s.beat === i ? 'var(--accent)' : 'var(--card2)') + (s.beat === i ? '; transform: scale(1.25)' : '') })),
+toggle: () => {
+if (s.playing) { this.stop(); this.setState({ playing: false, beat: -1, flashOn: false }); }
+else { this.setState({ playing: true, beat: -1 }); this.start(s.bpm); this.tick(); }
+},
+dec: () => this.setBpm(s.bpm - 1), inc: () => this.setBpm(s.bpm + 1),
+tap: () => {
+const now = Date.now(); const t = s.taps.filter((x) => now - x < 2500).concat(now).slice(-5);
+this.setState({ taps: t });
+if (t.length > 1) this.setBpm(Math.round(60000 / ((t[t.length - 1] - t[0]) / (t.length - 1))));
+}
+};
+}
+}
+</script>
+</body>
+</html>
