@@ -1,6 +1,6 @@
 // Bump VERSION whenever you want installed copies to drop old cached files.
 const VERSION = 'setlist-v2-1';
-const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', CDN];
 
 self.addEventListener('install', (e) => {
