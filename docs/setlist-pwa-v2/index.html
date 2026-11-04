@@ -209,6 +209,7 @@ function detail(s) {
   <div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>
   <label>Chords<textarea data-f="chords" rows="4" class="mono">${esc(s.chords)}</textarea></label>
   <label>Notes<textarea data-f="notes" rows="3">${esc(s.notes)}</textarea></label>
+  <label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>
   ${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}
   <div class="btns"><button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button><button data-a="hist">History</button><button data-a="remove">Remove from setlist</button></div>
   <ul data-lookup></ul>
@@ -238,14 +239,25 @@ $('list').onclick = async (e) => {
     else if (a === 'save') {
       const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
       if (!p.title) return say('A title is needed');
-      await must(sb.from('songs').update({ title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) }).eq('id', sid));
+      await must(sb.from('songs').update({ title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}), change_note: art.querySelector('[data-r="reason"]').value.trim() || null }).eq('id', sid));
       say('Saved'); await loadSetlist();
     }
     else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { await must(sb.from('setlist_songs').update({ deleted_at: new Date().toISOString() }).eq('id', id)); openId = null; await loadSetlist(); } }
     else if (a === 'hist') {
-      const rows = await must(sb.from('change_log').select('changed_at,op,old_data,new_data').eq('table_name', 'songs').eq('row_id', sid).order('changed_at', { ascending: false }).limit(6));
-      const diff = (r) => { const o = r.old_data || {}, n = r.new_data || {}; const ks = Object.keys(n).filter((k) => k !== 'updated_at' && JSON.stringify(o[k]) !== JSON.stringify(n[k])); return r.op === 'INSERT' ? 'created' : 'changed ' + ks.join(', '); };
-      art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><small>${esc(diff(r))}</small><small>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
+      const [rows, mem] = await Promise.all([
+        must(sb.from('change_log').select('changed_at,changed_by,op,old_data,new_data,reason').eq('table_name', 'songs').eq('row_id', sid).order('changed_at', { ascending: false }).limit(20)),
+        must(sb.from('band_members').select('user_id,profiles(display_name)').eq('band_id', bandId)),
+      ]);
+      const who = Object.fromEntries(mem.map((m) => [m.user_id, m.profiles?.display_name || 'Someone']));
+      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', notes: 'notes', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', deleted_at: 'deleted' };
+      const short = (v) => { const t = v == null || v === '' ? 'empty' : String(v); return t.length > 30 ? t.slice(0, 30) + '…' : t; };
+      const diff = (r) => {
+        if (r.op === 'INSERT') return 'Song added';
+        const o = r.old_data || {}, n = r.new_data || {};
+        const ch = Object.keys(LABEL).filter((k) => JSON.stringify(o[k]) !== JSON.stringify(n[k]));
+        return ch.map((k) => (k === 'chords' || k === 'notes' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
+      };
+      art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><span>${esc(diff(r))}${r.reason ? `<br><small>Reason: ${esc(r.reason)}</small>` : ''}</span><small style="text-align:right">${esc(who[r.changed_by] || 'Someone')}<br>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
     }
     else if (a === 'lookup') {
       const val = (k) => art.querySelector(`[data-f="${k}"]`).value.trim(), title = val('title'), artist = val('artist');
