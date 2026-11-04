@@ -3,209 +3,282 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Setlist test v2</title>
+<title>Setlist</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#16191f">
 <style>
-:root{--bg:#f4f5f7;--card:#fff;--ink:#16191f;--mute:#5d6673;--line:#d9dde3;--accent:#0f766e;--on:#fff;--flash:#f59e0b;color-scheme:light}
-@media (prefers-color-scheme:dark){:root{--bg:#16191f;--card:#1f242c;--ink:#eef0f3;--mute:#9aa3b0;--line:#333a45;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}}
+:root{--bg:#f6f5f2;--card:#fff;--ink:#17191d;--mute:#667080;--line:#dcdfe4;--accent:#0f766e;--on:#fff;--flash:#f59e0b;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}
 *{box-sizing:border-box}
-html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;gap:8px}
-header h1{font-size:18px;margin:0}
-#who{color:var(--mute);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-nav{display:flex;gap:6px;padding:0 12px 8px;overflow-x:auto}
-nav button{flex:none;background:transparent;color:var(--mute);border:1px solid var(--line);border-radius:999px;padding:8px 14px}
-nav button.on{background:var(--accent);color:var(--on);border-color:var(--accent)}
-main{max-width:760px;margin:0 auto;padding:0 12px 120px}
-section{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-section.on{display:block}
-h2{font-size:16px;margin:0 0 10px}
-label{display:block;color:var(--mute);font-size:13px;margin:8px 0 2px}
-input,select,button{font:inherit;color:var(--ink)}
-input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
-button{padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+header select{flex:1;min-width:0}
+main{max-width:820px;margin:0 auto;padding:12px 12px 190px}
+.card,article{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+input,select,textarea,button{font:inherit;color:var(--ink)}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+button{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
 button.primary{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
-.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.row>*{flex:1 1 120px}
-ul{list-style:none;margin:10px 0 0;padding:0}
-li{padding:8px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;align-items:center}
-li small{color:var(--mute)}
-pre{margin:0;white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,Consolas,monospace;color:var(--mute)}
-#flash{height:120px;border-radius:12px;border:1px solid var(--line);margin:10px 0;display:grid;place-items:center;font-size:40px;font-weight:700;transition:background .05s}
-#flash.on{background:var(--flash);color:#16191f}
-#log{position:fixed;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom,0px));max-height:90px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+button:disabled{opacity:.35}
+label{display:block;color:var(--mute);font-size:13px;margin-top:8px}
+label a{margin-left:8px}
+a{color:var(--accent)}
+.top{display:flex;align-items:center;gap:10px}
+.n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);font-weight:700;font-size:13px;flex:none}
+.t{flex:1;min-width:0}.t b{display:block}.t small{color:var(--mute)}
+.pill{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
+.btns,.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.btns>*{flex:1 1 70px}.row>*{flex:1 1 120px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 10px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+h2,h3{margin:14px 0 6px;font-size:15px}
+ul{list-style:none;margin:6px 0;padding:0}
+li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)}li button{flex:none}
+small{color:var(--mute)}
+pre{margin:6px 0;white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--mute)}
+#bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+.bt{display:flex;align-items:center;gap:8px;margin-bottom:6px}.bt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dot{width:14px;height:14px;border-radius:50%;background:var(--line);flex:none}#dot.on{background:var(--flash)}
+.bc{display:flex;gap:6px;align-items:center}.bc input[type=number]{width:72px;text-align:center}.bc .fl{margin:0 0 0 auto;display:flex;gap:4px;align-items:center;color:var(--ink)}.fl input{width:auto}
+#fx{position:fixed;inset:0;z-index:40;background:var(--flash);opacity:0;pointer-events:none}#fx.on{opacity:.6}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);max-width:560px;width:calc(100% - 24px);padding:14px}
+dialog::backdrop{background:#0008}
 </style>
 </head>
 <body>
-<header><h1>Setlist test v2</h1><span id="who">signed out</span></header>
-<nav id="tabs">
-  <button data-t="account" class="on">Account</button>
-  <button data-t="bands">Bands</button>
-  <button data-t="songs">Songs</button>
-  <button data-t="history">History</button>
-  <button data-t="metro">Metronome</button>
-</nav>
+<header>
+  <select id="band" aria-label="Band"></select>
+  <select id="setlist" aria-label="Setlist"></select>
+  <button id="menuBtn" aria-label="Menu">☰</button>
+</header>
 <main>
-<section id="account" class="on">
-  <h2>Sign in</h2>
-  <label for="email">Email</label><input id="email" type="email" autocomplete="username">
-  <label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
-  <label for="name">Your name (sign up only)</label><input id="name" autocomplete="nickname">
-  <div class="row"><button id="signIn" class="primary">Sign in</button><button id="signUp">Sign up</button><button id="signOut">Sign out</button></div>
-</section>
-
-<section id="bands">
-  <h2>Your bands</h2>
-  <select id="band"></select>
-  <div class="row"><button id="invite">New invite code</button></div>
-  <p id="code"></p>
-  <label for="newBand">Create a band</label><input id="newBand" placeholder="Band name">
-  <div class="row"><button id="createBand" class="primary">Create band</button></div>
-  <label for="joinCode">Join with an invite code</label><input id="joinCode" placeholder="e.g. 3F9A12BC">
-  <div class="row"><button id="joinBand" class="primary">Join band</button></div>
-</section>
-
-<section id="songs">
-  <h2>Songs in this band</h2>
-  <label for="sTitle">Title</label><input id="sTitle">
-  <label for="sArtist">Artist</label><input id="sArtist">
-  <div class="row"><div><label for="sBpm">BPM</label><input id="sBpm" type="number" min="20" max="400"></div><div><label for="sKey">Key</label><input id="sKey" placeholder="E"></div></div>
-  <div class="row"><button id="addSong" class="primary">Add song</button></div>
-  <ul id="songList"></ul>
-  <h2 style="margin-top:18px">Setlists</h2>
-  <div class="row"><input id="slName" placeholder="Setlist name"><button id="addSetlist" class="primary">Create setlist</button></div>
-  <label for="setlist">Open setlist</label><select id="setlist"></select>
-  <div class="row"><select id="slSong"></select><button id="addToSetlist">Add song to setlist</button></div>
-  <ul id="slList"></ul>
-</section>
-
-<section id="history">
-  <h2>Recent changes in this band</h2>
-  <div class="row"><button id="refreshHistory">Refresh</button></div>
-  <ul id="histList"></ul>
-</section>
-
-<section id="metro">
-  <h2>Metronome</h2>
-  <div id="flash">&nbsp;</div>
-  <label for="bpm">BPM</label><input id="bpm" type="number" value="120" min="20" max="300">
-  <div class="row"><button id="start" class="primary">Start</button><button id="stop">Stop</button><button id="tone">Test tone</button></div>
-  <pre id="dbg" style="margin-top:12px"></pre>
-</section>
+  <section id="auth" class="card">
+    <h2>Sign in</h2>
+    <label>Email<input id="email" type="email" autocomplete="username"></label>
+    <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
+    <label>Your name (sign up only)<input id="name"></label>
+    <div class="row"><button id="signIn" class="primary">Sign in</button><button id="signUp">Sign up</button></div>
+  </section>
+  <div id="app" hidden>
+    <div id="nobands" class="card" hidden><b>No bands yet.</b><p>Create a band, or join one with an invite code.</p><button class="primary" data-open="menu">Create or join a band</button></div>
+    <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
+    <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button></div><div id="list"></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
+  </div>
 </main>
-<pre id="log"></pre>
+
+<div id="bar">
+  <div class="bt"><span id="dot"></span><b id="now">Metronome</b></div>
+  <div class="bc"><button id="bpmDn">−</button><input id="bpm" type="number" value="120" min="20" max="300" inputmode="numeric" aria-label="BPM"><button id="bpmUp">+</button><button id="go" class="primary">Start</button><label class="fl"><input type="checkbox" id="fl"> Flash</label></div>
+</div>
+<div id="fx"></div><div id="toast"></div>
+
+<dialog id="menu">
+  <div class="row" style="margin:0"><b id="who" style="flex:3">Menu</b><button id="menuClose">Close</button></div>
+  <h3>Bands</h3>
+  <div class="row"><input id="newBand" placeholder="New band name"><button id="mkBand" class="primary">Create band</button></div>
+  <div class="row"><input id="joinCode" placeholder="Invite code"><button id="joinBand" class="primary">Join band</button></div>
+  <div class="row"><button id="invite">New invite code for this band</button></div><p id="code"></p>
+  <h3>Setlists</h3>
+  <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div>
+  <h3>Appearance</h3>
+  <div class="row"><select id="theme"><option value="auto">Light or dark: automatic</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+  <div class="row"><label style="margin:0;flex:2">Colour for this band<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
+  <h3>Audio check</h3>
+  <div class="row"><button id="tone">Test tone</button></div><pre id="dbg"></pre>
+  <div class="row"><button id="signOut">Sign out</button></div>
+</dialog>
+
+<dialog id="addDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Add a song</b><button id="addClose">Close</button></div>
+  <h3>From this band’s songs</h3>
+  <div class="row"><select id="libSel"></select><button id="addExisting" class="primary">Add</button></div>
+  <h3>Or create a new song</h3>
+  <div class="grid"><label>Title<input id="nTitle"></label><label>Artist<input id="nArtist"></label><label>BPM<input id="nBpm" type="number" inputmode="numeric"></label><label>Key<input id="nKey"></label></div>
+  <div class="row"><button id="addNew" class="primary">Create and add</button></div>
+</dialog>
 
 <script type="module">
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
 const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
-const say = (m) => { $('log').textContent = new Date().toLocaleTimeString() + '  ' + m + '\n' + $('log').textContent; };
-const must = async (p) => { const r = await p; if (r.error) { say('ERROR: ' + r.error.message); throw r.error; } return r.data; };
-const fill = (ul, items) => { ul.replaceChildren(...items); };
-const li = (text, small, btn) => { const e = document.createElement('li'); const s = document.createElement('span'); s.textContent = text; if (small) { const m = document.createElement('small'); m.textContent = ' ' + small; s.append(m); } e.append(s); if (btn) e.append(btn); return e; };
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safe = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
+const norm = (u) => { u = (u || '').trim(); return !u ? null : /^https?:\/\//i.test(u) ? u : 'https://' + u; };
+const say = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(say.t); say.t = setTimeout(() => t.classList.remove('on'), 3500); };
+const must = async (p) => { const r = await p; if (r.error) { say('Error: ' + r.error.message); throw r.error; } return r.data; };
 
-let user = null, bandId = null;
+let user = null, bandId = null, setlistId = null, items = [], openId = null, bandRows = [];
+const ck = (k) => `c:${user.id}:${k}`;
+async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
+  try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); return v; }
+  catch (e) { const c = localStorage.getItem(k); if (c) { say('Offline: showing the saved copy'); return JSON.parse(c); } throw e; }
+}
 
-// ---- tabs
-$('tabs').onclick = (e) => {
-  const t = e.target.dataset.t; if (!t) return;
-  document.querySelectorAll('nav button').forEach((b) => b.classList.toggle('on', b === e.target));
-  document.querySelectorAll('section').forEach((s) => s.classList.toggle('on', s.id === t));
-};
+// ---- appearance
+const root = document.documentElement;
+root.dataset.theme = localStorage.getItem('theme') || 'auto'; $('theme').value = root.dataset.theme;
+$('theme').onchange = () => { localStorage.setItem('theme', $('theme').value); root.dataset.theme = $('theme').value; };
+function setAccent(hex) {
+  if (!hex) { root.style.removeProperty('--accent'); root.style.removeProperty('--on'); return; }
+  const n = parseInt(hex.slice(1), 16), L = ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+  root.style.setProperty('--accent', hex); root.style.setProperty('--on', L > 150 ? '#111' : '#fff');
+}
+async function saveAccent(hex) {
+  await must(sb.from('band_members').update({ theme: hex ? { accent: hex } : {} }).eq('band_id', bandId).eq('user_id', user.id));
+  const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.theme = hex ? { accent: hex } : {};
+  setAccent(hex); say(hex ? 'Colour saved for this band' : 'Colour reset');
+}
+$('accentSave').onclick = () => bandId && saveAccent($('accent').value);
+$('accentReset').onclick = () => bandId && saveAccent('');
 
 // ---- account
-$('signUp').onclick = async () => {
-  const d = await must(sb.auth.signUp({ email: $('email').value.trim(), password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } }));
-  say(d.session ? 'Signed up and signed in' : 'Signed up. Turn off "Confirm email" in Supabase to sign in straight away.');
-};
+$('signUp').onclick = async () => { const d = await must(sb.auth.signUp({ email: $('email').value.trim(), password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } })); say(d.session ? 'Signed up' : 'Signed up. Check the email setting in Supabase.'); };
 $('signIn').onclick = async () => { await must(sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value })); };
-$('signOut').onclick = () => sb.auth.signOut();
-sb.auth.onAuthStateChange((_e, s) => {
-  user = s?.user || null;
-  $('who').textContent = user ? user.email : 'signed out';
-  say(user ? 'Signed in' : 'Signed out');
-  setTimeout(() => (user ? loadBands() : (fill($('band'), []), bandId = null)), 0);
-});
+$('signOut').onclick = async () => { Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
+sb.auth.onAuthStateChange((_e, s) => { user = s?.user || null; $('who').textContent = user ? user.email : 'Menu'; setTimeout(loadBands, 0); });
 
-// ---- bands
+// ---- bands and setlists
 async function loadBands() {
-  const rows = await must(sb.from('band_members').select('role, bands(id,name)').eq('user_id', user.id));
-  const sel = $('band'); const keep = sel.value;
-  sel.replaceChildren(...rows.map((r) => new Option(`${r.bands.name} (${r.role})`, r.bands.id)));
-  if (keep && rows.some((r) => r.bands.id === keep)) sel.value = keep;
-  bandId = sel.value || null;
-  loadBandData();
+  if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
+  try {
+    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,theme,bands(id,name)').eq('user_id', user.id)));
+    $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
+    const last = localStorage.getItem('band'); if (last && bandRows.some((r) => r.bands.id === last)) $('band').value = last;
+    await loadBand();
+  } catch { render(); }
 }
-$('band').onchange = () => { bandId = $('band').value; loadBandData(); };
-$('createBand').onclick = async () => { await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; say('Band created'); loadBands(); };
-$('joinBand').onclick = async () => { await must(sb.rpc('join_band', { p_code: $('joinCode').value })); $('joinCode').value = ''; say('Joined band'); loadBands(); };
-$('invite').onclick = async () => {
-  if (!bandId) return say('Pick a band first');
-  const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id }).select().single());
-  $('code').textContent = 'Invite code: ' + d.code + ' (valid 7 days)';
-};
-
-// ---- songs and setlists
-async function loadBandData() {
-  if (!bandId) { fill($('songList'), []); fill($('slList'), []); return; }
-  const songs = await must(sb.from('songs').select('id,title,artist,bpm,musical_key').eq('band_id', bandId).is('deleted_at', null).order('title'));
-  fill($('songList'), songs.map((s) => {
-    const b = document.createElement('button'); b.textContent = 'Edit BPM';
-    b.onclick = async () => { const v = prompt('New BPM for ' + s.title, s.bpm ?? ''); if (v) { await must(sb.from('songs').update({ bpm: +v }).eq('id', s.id)); loadBandData(); } };
-    return li(s.title, [s.artist, s.bpm && s.bpm + ' bpm', s.musical_key].filter(Boolean).join(' · '), b);
-  }));
-  $('slSong').replaceChildren(...songs.map((s) => new Option(s.title, s.id)));
-  const lists = await must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'));
-  const keep = $('setlist').value;
-  $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
-  if (keep && lists.some((l) => l.id === keep)) $('setlist').value = keep;
-  loadSetlist();
+async function loadBand() {
+  bandId = $('band').value || null; localStorage.setItem('band', bandId || '');
+  const r = bandRows.find((x) => x.bands.id === bandId); setAccent(r?.theme?.accent || ''); $('accent').value = r?.theme?.accent || '#0f766e';
+  try {
+    const lists = bandId ? await cached(ck('sl:' + bandId), () => must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'))) : [];
+    $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
+    const last = localStorage.getItem('sl' + bandId); if (last && lists.some((l) => l.id === last)) $('setlist').value = last;
+    await loadSetlist();
+  } catch { render(); }
 }
-$('addSong').onclick = async () => {
-  if (!bandId) return say('Pick a band first');
-  await must(sb.from('songs').insert({ band_id: bandId, title: $('sTitle').value.trim(), artist: $('sArtist').value.trim(), bpm: +$('sBpm').value || null, musical_key: $('sKey').value.trim() || null, created_by: user.id }));
-  ['sTitle', 'sArtist', 'sBpm', 'sKey'].forEach((i) => ($(i).value = ''));
-  loadBandData();
-};
-$('addSetlist').onclick = async () => {
-  if (!bandId) return say('Pick a band first');
-  await must(sb.from('setlists').insert({ band_id: bandId, name: $('slName').value.trim(), created_by: user.id }));
-  $('slName').value = ''; loadBandData();
-};
 async function loadSetlist() {
-  const id = $('setlist').value; if (!id) return fill($('slList'), []);
-  const rows = await must(sb.from('setlist_songs').select('id,position,songs(title,bpm,musical_key)').eq('setlist_id', id).is('deleted_at', null).order('position'));
-  fill($('slList'), rows.map((r, i) => {
-    const b = document.createElement('button'); b.textContent = 'Remove';
-    b.onclick = async () => { await must(sb.from('setlist_songs').update({ deleted_at: new Date().toISOString() }).eq('id', r.id)); loadSetlist(); };
-    return li(`${i + 1}. ${r.songs.title}`, [r.songs.bpm && r.songs.bpm + ' bpm', r.songs.musical_key].filter(Boolean).join(' · '), b);
-  }));
+  setlistId = $('setlist').value || null; if (bandId) localStorage.setItem('sl' + bandId, setlistId || '');
+  try {
+    const rows = setlistId ? await cached(ck('items:' + setlistId), () => must(sb.from('setlist_songs').select('id,position,songs(*)').eq('setlist_id', setlistId).is('deleted_at', null).order('position'))) : [];
+    items = rows.filter((r) => r.songs && !r.songs.deleted_at);
+  } catch { items = []; }
+  render();
 }
-$('setlist').onchange = loadSetlist;
-$('addToSetlist').onclick = async () => {
-  const sl = $('setlist').value, song = $('slSong').value; if (!sl || !song) return say('Create a setlist and a song first');
-  const last = await must(sb.from('setlist_songs').select('position').eq('setlist_id', sl).order('position', { ascending: false }).limit(1));
-  await must(sb.from('setlist_songs').insert({ band_id: bandId, setlist_id: sl, song_id: song, position: (last[0]?.position ?? 0) + 1 }));
-  loadSetlist();
+$('band').onchange = loadBand; $('setlist').onchange = () => { openId = null; loadSetlist(); };
+
+async function makeSetlist(inp) {
+  const name = inp.value.trim(); if (!name || !bandId) return say('Pick a band and type a name');
+  const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
+  inp.value = ''; localStorage.setItem('sl' + bandId, d.id); $('menu').close(); await loadBand();
+}
+$('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
+$('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
+$('joinBand').onclick = async () => { const id = await must(sb.rpc('join_band', { p_code: $('joinCode').value })); $('joinCode').value = ''; localStorage.setItem('band', id); $('menu').close(); await loadBands(); };
+$('invite').onclick = async () => { if (!bandId) return say('Pick a band first'); const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id }).select().single()); $('code').textContent = 'Invite code: ' + d.code + ' (valid for 7 days)'; };
+$('menuBtn').onclick = () => $('menu').showModal(); $('menuClose').onclick = () => $('menu').close();
+document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
+
+// ---- the setlist screen
+function render() {
+  $('auth').hidden = !!user; $('app').hidden = !user; if (!user) return;
+  $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
+  $('emptySl').hidden = items.length > 0;
+  $('list').innerHTML = items.map(card).join('');
+  if (openId) loadLinks(openId);
+}
+function card(it, i) {
+  const s = it.songs, o = openId === s.id;
+  return `<article data-id="${it.id}" data-sid="${s.id}">
+  <div class="top"><span class="n">${i + 1}</span><div class="t"><b>${esc(s.title)}</b><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small></div><span class="pill">${s.bpm || '–'} bpm</span><span class="pill">${esc(s.musical_key || '–')}</span></div>
+  <div class="btns"><button data-a="up" ${i ? '' : 'disabled'}>▲</button><button data-a="down" ${i < items.length - 1 ? '' : 'disabled'}>▼</button><button data-a="play" class="primary">▶ Click</button><button data-a="toggle">${o ? 'Close' : 'Details'}</button></div>${o ? detail(s) : ''}</article>`;
+}
+function detail(s) {
+  const f = (k, l, t = 'text') => `<label>${l}<input data-f="${k}" type="${t}" value="${esc(s[k] ?? '')}"></label>`;
+  const lk = (k, l) => `<label>${l}${safe(s[k]) ? `<a href="${esc(s[k])}" target="_blank" rel="noopener">open</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"></label>`;
+  return `<div>
+  <div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>
+  <label>Chords<textarea data-f="chords" rows="4" class="mono">${esc(s.chords)}</textarea></label>
+  <label>Notes<textarea data-f="notes" rows="3">${esc(s.notes)}</textarea></label>
+  ${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}
+  <div class="btns"><button data-a="save" class="primary">Save changes</button><button data-a="hist">History</button><button data-a="remove">Remove from setlist</button></div>
+  <small>Changes apply to this song in every setlist.</small>
+  <h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>
+  <div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
+  <div class="btns"><button data-a="addlink">Add link</button></div><ul data-hist></ul></div>`;
+}
+async function loadLinks(sid) {
+  const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
+  try {
+    const rows = await cached(ck('links:' + sid), () => must(sb.from('song_links').select('id,kind,label,url').eq('song_id', sid).is('deleted_at', null).order('created_at')));
+    ul.innerHTML = rows.length ? rows.map((l) => `<li><a href="${esc(safe(l.url) || '#')}" target="_blank" rel="noopener">${esc(l.label || l.kind.replace('_', ' '))}</a><button data-a="dellink" data-lid="${l.id}">×</button></li>`).join('') : '<li><small>No links yet</small></li>';
+  } catch { ul.innerHTML = '<li><small>Could not load links</small></li>'; }
+}
+$('list').onclick = async (e) => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
+  try {
+    if (a === 'toggle') { openId = openId === sid ? null : sid; render(); }
+    else if (a === 'up' || a === 'down') {
+      const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j];
+      await Promise.all([must(sb.from('setlist_songs').update({ position: y.position }).eq('id', x.id)), must(sb.from('setlist_songs').update({ position: x.position }).eq('id', y.id))]);
+      await loadSetlist();
+    }
+    else if (a === 'play') { loadSong(items[i].songs); if (!running) await start(); }
+    else if (a === 'save') {
+      const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
+      if (!p.title) return say('A title is needed');
+      await must(sb.from('songs').update({ title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url) }).eq('id', sid));
+      say('Saved'); await loadSetlist();
+    }
+    else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { await must(sb.from('setlist_songs').update({ deleted_at: new Date().toISOString() }).eq('id', id)); openId = null; await loadSetlist(); } }
+    else if (a === 'hist') {
+      const rows = await must(sb.from('change_log').select('changed_at,op,old_data,new_data').eq('table_name', 'songs').eq('row_id', sid).order('changed_at', { ascending: false }).limit(6));
+      const diff = (r) => { const o = r.old_data || {}, n = r.new_data || {}; const ks = Object.keys(n).filter((k) => k !== 'updated_at' && JSON.stringify(o[k]) !== JSON.stringify(n[k])); return r.op === 'INSERT' ? 'created' : 'changed ' + ks.join(', '); };
+      art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><small>${esc(diff(r))}</small><small>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
+    }
+    else if (a === 'addlink') {
+      const g = (k) => art.querySelector(`[data-l="${k}"]`).value.trim(), url = norm(g('url')); if (!url) return say('Add a link first');
+      await must(sb.from('song_links').insert({ band_id: bandId, song_id: sid, kind: g('kind'), label: g('label'), url, added_by: user.id }));
+      art.querySelector('[data-l="url"]').value = ''; art.querySelector('[data-l="label"]').value = ''; localStorage.removeItem(ck('links:' + sid)); loadLinks(sid);
+    }
+    else if (a === 'dellink') { await must(sb.from('song_links').update({ deleted_at: new Date().toISOString() }).eq('id', b.dataset.lid)); loadLinks(sid); }
+  } catch { /* the error toast has already been shown */ }
 };
 
-// ---- history
-async function loadHistory() {
-  if (!bandId) return fill($('histList'), []);
-  const rows = await must(sb.from('change_log').select('changed_at,table_name,op,new_data,old_data').eq('band_id', bandId).order('changed_at', { ascending: false }).limit(20));
-  fill($('histList'), rows.map((r) => { const d = r.new_data || r.old_data || {}; return li(`${r.op} ${r.table_name}`, `${d.title || d.name || ''} · ${new Date(r.changed_at).toLocaleTimeString()}`); }));
+// ---- add songs
+async function addToSetlist(songId) {
+  const last = await must(sb.from('setlist_songs').select('position').eq('setlist_id', setlistId).order('position', { ascending: false }).limit(1));
+  await must(sb.from('setlist_songs').insert({ band_id: bandId, setlist_id: setlistId, song_id: songId, position: (last[0]?.position ?? 0) + 1 }));
+  $('addDlg').close(); await loadSetlist();
 }
-$('refreshHistory').onclick = loadHistory;
+$('addBtn').onclick = async () => {
+  try {
+    const lib = await must(sb.from('songs').select('id,title,artist').eq('band_id', bandId).is('deleted_at', null).order('title'));
+    const used = new Set(items.map((x) => x.songs.id));
+    $('libSel').replaceChildren(...lib.filter((s) => !used.has(s.id)).map((s) => new Option(s.title + (s.artist ? ' – ' + s.artist : ''), s.id)));
+    $('addDlg').showModal();
+  } catch {}
+};
+$('addClose').onclick = () => $('addDlg').close();
+$('addExisting').onclick = () => $('libSel').value && addToSetlist($('libSel').value).catch(() => {});
+$('addNew').onclick = async () => {
+  const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
+  try {
+    const s = await must(sb.from('songs').insert({ band_id: bandId, title, artist: $('nArtist').value.trim(), bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, created_by: user.id }).select().single());
+    ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); await addToSetlist(s.id);
+  } catch {}
+};
 
 // ---- metronome (with the iOS audio fix)
-let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock;
+let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4;
 function silentWavUrl() {
   const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
   const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
@@ -215,53 +288,47 @@ function silentWavUrl() {
   w(36, 'data'); v.setUint32(40, n * 2, true);
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
 }
-async function unlockAudio() {
+async function unlock() {
   ctx ||= new (window.AudioContext || window.webkitAudioContext)();
   try { if ('audioSession' in navigator) navigator.audioSession.type = 'playback'; } catch {}
   if (!silentEl) { silentEl = new Audio(silentWavUrl()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); }
-  try { await silentEl.play(); } catch (e) { say('silent audio blocked: ' + e.message); }
+  try { await silentEl.play(); } catch (e) { say('Silent audio blocked: ' + e.message); }
   if (ctx.state !== 'running') await ctx.resume();
   const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate); s.connect(ctx.destination); s.start(0);
 }
-function beep(t, freq, len, vol) {
-  const o = ctx.createOscillator(), g = ctx.createGain();
-  o.frequency.value = freq; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+function beep(t, f, len, vol) {
+  const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
   o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + len);
+}
+function flash() {
+  $('dot').classList.add('on'); if ($('fl').checked) $('fx').classList.add('on');
+  setTimeout(() => { $('dot').classList.remove('on'); $('fx').classList.remove('on'); }, 90);
 }
 function tick() {
   const bpm = Math.min(300, Math.max(20, +$('bpm').value || 120));
   while (nextT < ctx.currentTime + 0.15) {
-    const strong = beat % 4 === 0; beep(nextT, strong ? 1500 : 1000, 0.06, 0.5);
-    const ms = Math.max(0, (nextT - ctx.currentTime) * 1000);
-    setTimeout(() => { $('flash').classList.add('on'); $('flash').textContent = strong ? '1' : ''; setTimeout(() => $('flash').classList.remove('on'), 90); }, ms);
+    beep(nextT, beat % perBar === 0 ? 1500 : 1000, 0.06, 0.5);
+    setTimeout(flash, Math.max(0, (nextT - ctx.currentTime) * 1000));
     nextT += 60 / bpm; beat++;
   }
 }
-async function getLock() { try { if ('wakeLock' in navigator) { lock = await navigator.wakeLock.request('screen'); say('wake lock on'); } } catch (e) { say('wake lock failed: ' + e.message); } }
-$('start').onclick = async () => {
-  if (running) return;
-  await unlockAudio(); running = true; beat = 0; nextT = ctx.currentTime + 0.05;
-  timer = setInterval(tick, 25); getLock(); say('metronome started');
-};
-$('stop').onclick = () => { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); say('metronome stopped'); };
-$('tone').onclick = async () => { await unlockAudio(); beep(ctx.currentTime + 0.02, 440, 0.4, 0.4); say('test tone sent'); };
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState !== 'visible' || !running) return;
-  ctx?.resume(); silentEl?.play().catch(() => {}); getLock();
-});
+async function getLock() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch {} }
+async function start() { if (running) return; await unlock(); running = true; beat = 0; nextT = ctx.currentTime + 0.05; timer = setInterval(tick, 25); $('go').textContent = 'Stop'; getLock(); }
+function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; }
+function loadSong(s) { $('bpm').value = s.bpm || 120; $('now').textContent = s.title; perBar = parseInt(s.time_signature) || 4; beat = 0; }
+$('go').onclick = () => (running ? stop() : start());
+$('bpmDn').onclick = () => ($('bpm').value = Math.max(20, +$('bpm').value - 1));
+$('bpmUp').onclick = () => ($('bpm').value = Math.min(300, +$('bpm').value + 1));
+$('tone').onclick = async () => { await unlock(); beep(ctx.currentTime + 0.02, 440, 0.4, 0.4); say('Test tone sent'); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && running) { ctx?.resume(); silentEl?.play().catch(() => {}); getLock(); } });
 setInterval(() => {
-  $('dbg').textContent = [
-    'audioSession.type: ' + ('audioSession' in navigator ? navigator.audioSession.type : 'unsupported'),
-    'audio context: ' + (ctx ? ctx.state : 'not started'),
-    'silent audio element: ' + (silentEl ? (silentEl.paused ? 'paused' : 'playing') : 'not created'),
-    'wake lock: ' + (lock && !lock.released ? 'on' : 'off'),
-    'installed: ' + (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches),
-    'online: ' + navigator.onLine,
-  ].join('\n');
+  $('dbg').textContent = ['audioSession: ' + ('audioSession' in navigator ? navigator.audioSession.type : 'unsupported'), 'audio: ' + (ctx ? ctx.state : 'not started'),
+    'silent element: ' + (silentEl ? (silentEl.paused ? 'paused' : 'playing') : 'none'), 'wake lock: ' + (lock && !lock.released ? 'on' : 'off'),
+    'installed: ' + (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches), 'online: ' + navigator.onLine].join('\n');
 }, 500);
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').then(() => say('offline support ready')).catch((e) => say('service worker failed: ' + e.message));
-if (SUPABASE_URL.includes('YOUR-PROJECT')) say('Edit config.js: add your Supabase URL and anon key');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch((e) => say('Offline support failed: ' + e.message));
 </script>
 </body>
 </html>
