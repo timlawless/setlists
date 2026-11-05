@@ -48,6 +48,22 @@ pre{margin:6px 0;white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace
 #toast{position:fixed;left:12px;right:12px;bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
 dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);max-width:560px;width:calc(100% - 24px);padding:14px}
 dialog::backdrop{background:#0008}
+input:disabled,textarea:disabled,select:disabled{opacity:1;color:var(--ink)}
+li select{width:auto}
+.rl{margin-top:6px;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gig{position:fixed;inset:0;z-index:15;background:var(--bg);overflow:auto;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 150px}
+#gig h1{font-size:clamp(28px,7vw,52px);line-height:1.1;margin:10px 0 2px}
+.gtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tiles{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
+.tile{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;text-align:center}
+.tile b{display:block;font-size:clamp(44px,14vw,96px);line-height:1.05;color:var(--accent)}
+.tile.xl{flex-basis:100%}.tile.xl b{font-size:clamp(80px,30vw,200px)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.panel h3{margin:0 0 6px;color:var(--mute)}
+.pbody{white-space:pre-wrap;font-size:clamp(18px,4.5vw,28px);line-height:1.5}
+.btnlink{display:inline-block;padding:14px 22px;border-radius:10px;background:var(--accent);color:var(--on);font-weight:700;text-decoration:none;font-size:20px}
+.next{margin:12px 0;font-size:18px;color:var(--mute)}.next b{color:var(--ink)}
+.gnav{display:flex;gap:8px;margin-top:12px}.gnav button{flex:1;padding:16px;font-size:18px}
 </style>
 </head>
 <body>
@@ -67,7 +83,7 @@ dialog::backdrop{background:#0008}
   <div id="app" hidden>
     <div id="nobands" class="card" hidden><b>No bands yet.</b><p>Create a band, or join one with an invite code.</p><button class="primary" data-open="menu">Create or join a band</button></div>
     <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
-    <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button></div><div id="list"></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
+    <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
   </div>
 <p style="text-align:center"><small>BPM and key data from <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM</a></small></p>
 </main>
@@ -76,6 +92,7 @@ dialog::backdrop{background:#0008}
   <div class="bt"><span id="dot"></span><b id="now">Metronome</b></div>
   <div class="bc"><button id="bpmDn">−</button><input id="bpm" type="number" value="120" min="20" max="300" inputmode="numeric" aria-label="BPM"><button id="bpmUp">+</button><button id="go" class="primary">Start</button><label class="fl"><input type="checkbox" id="fl"> Flash</label></div>
 </div>
+<div id="gig" hidden></div>
 <div id="fx"></div><div id="toast"></div>
 
 <dialog id="menu">
@@ -83,15 +100,34 @@ dialog::backdrop{background:#0008}
   <h3>Bands</h3>
   <div class="row"><input id="newBand" placeholder="New band name"><button id="mkBand" class="primary">Create band</button></div>
   <div class="row"><input id="joinCode" placeholder="Invite code"><button id="joinBand" class="primary">Join band</button></div>
-  <div class="row"><button id="invite">New invite code for this band</button></div><p id="code"></p>
-  <h3>Setlists</h3>
-  <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div>
+  <div class="row"><button id="memBtn">Band members and access</button></div>
+  <div id="slSec"><h3>Setlists</h3>
+  <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div></div>
+  <h3>My roles in this band</h3>
+  <div id="roles" class="row"></div>
   <h3>Appearance</h3>
   <div class="row"><select id="theme"><option value="auto">Light or dark: automatic</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
-  <div class="row"><label style="margin:0;flex:2">Colour for this band<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
   <h3>Audio check</h3>
   <div class="row"><button id="tone">Test tone</button></div><pre id="dbg"></pre>
   <div class="row"><button id="signOut">Sign out</button></div>
+</dialog>
+
+<dialog id="memDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Band members</b><button id="memClose">Close</button></div>
+  <p><small id="myLevel"></small></p>
+  <ul id="memList"></ul>
+  <p><small>Owner and Admin: full control. Editor: edit songs and setlists. Viewer: view only, with the metronome and gig mode.</small></p>
+  <div id="invSec" hidden>
+    <h3>Invite someone</h3>
+    <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake" class="primary">New invite code</button></div>
+    <p id="invCode"></p>
+  </div>
+  <div id="bandSec" hidden>
+    <h3>Band settings</h3>
+    <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
+    <div class="row"><label style="margin:0;flex:2">Band colour<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
+  </div>
+  <div class="row"><button id="leaveBand">Leave this band</button></div>
 </dialog>
 
 <dialog id="addDlg">
@@ -133,12 +169,86 @@ function setAccent(hex) {
   root.style.setProperty('--accent', hex); root.style.setProperty('--on', L > 150 ? '#111' : '#fff');
 }
 async function saveAccent(hex) {
-  await must(sb.from('band_members').update({ theme: hex ? { accent: hex } : {} }).eq('band_id', bandId).eq('user_id', user.id));
-  const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.theme = hex ? { accent: hex } : {};
-  setAccent(hex); say(hex ? 'Colour saved for this band' : 'Colour reset');
+  try {
+    await must(sb.from('bands').update({ theme: hex ? { accent: hex } : {} }).eq('id', bandId));
+    const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.bands.theme = hex ? { accent: hex } : {};
+    setAccent(hex); say(hex ? 'Band colour saved' : 'Band colour reset');
+  } catch {}
 }
 $('accentSave').onclick = () => bandId && saveAccent($('accent').value);
 $('accentReset').onclick = () => bandId && saveAccent('');
+
+// ---- roles
+const ROLES = [['singer', 'Singer'], ['guitarist', 'Guitarist'], ['bassist', 'Bassist'], ['drummer', 'Drummer'], ['keyboards', 'Keyboards']];
+const myRoles = () => bandRows.find((x) => x.bands.id === bandId)?.roles || [];
+function drawRoles() {
+  const mine = myRoles();
+  $('roles').innerHTML = ROLES.map(([v, l]) => `<label style="display:flex;gap:6px;align-items:center;color:var(--ink);margin:0;flex:0 0 auto"><input type="checkbox" value="${v}" style="width:auto" ${mine.includes(v) ? 'checked' : ''}> ${l}</label>`).join('');
+}
+$('roles').onchange = async () => {
+  if (!bandId) return;
+  const roles = [...$('roles').querySelectorAll('input:checked')].map((i) => i.value);
+  try {
+    await must(sb.from('band_members').update({ roles }).eq('band_id', bandId).eq('user_id', user.id));
+    const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.roles = roles;
+    say('Roles saved'); render();
+  } catch { drawRoles(); }
+};
+
+// ---- access levels and band members
+const LEVELS = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
+const myLevel = () => { const l = bandRows.find((x) => x.bands.id === bandId)?.role; return l === 'member' ? 'editor' : l || 'viewer'; };
+const canEdit = () => ['owner', 'admin', 'editor'].includes(myLevel());
+const isAdmin = () => ['owner', 'admin'].includes(myLevel());
+async function openMembers() {
+  if (!bandId) return say('Pick a band first');
+  const a = isAdmin();
+  $('invSec').hidden = !a; $('bandSec').hidden = !a; $('leaveBand').hidden = myLevel() === 'owner';
+  $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = '';
+  $('myLevel').textContent = `You are ${LEVELS[myLevel()]} in this band.` + (a ? '' : ' Only owners and admins can change this list.');
+  $('memDlg').showModal(); await loadMembers();
+}
+async function loadMembers() {
+  try {
+    const rows = await cached(ck('members:' + bandId), () => must(sb.from('band_members').select('user_id,role,roles,profiles(display_name)').eq('band_id', bandId)));
+    const order = { owner: 0, admin: 1, editor: 2, viewer: 3 }, a = isAdmin();
+    rows.sort((x, y) => (order[x.role] ?? 2) - (order[y.role] ?? 2) || (x.profiles?.display_name || '').localeCompare(y.profiles?.display_name || ''));
+    $('memList').innerHTML = rows.map((m) => {
+      const mine = m.user_id === user.id, lv = m.role === 'member' ? 'editor' : m.role;
+      const inst = (m.roles || []).map((r) => ROLES.find((x) => x[0] === r)?.[1] || r).join(', ');
+      const ctl = a && !mine && lv !== 'owner'
+        ? `<select data-m="${m.user_id}">${['admin', 'editor', 'viewer'].map((v) => `<option value="${v}"${v === lv ? ' selected' : ''}>${LEVELS[v]}</option>`).join('')}</select> <button data-rm="${m.user_id}">Remove</button>`
+        : `<span class="pill">${esc(LEVELS[lv] || lv)}</span>`;
+      return `<li><span><b>${esc(m.profiles?.display_name || 'Unnamed')}</b>${mine ? ' (you)' : ''}<br><small>${esc(inst || 'No instrument chosen')}</small></span><span>${ctl}</span></li>`;
+    }).join('');
+  } catch { $('memList').innerHTML = '<li><small>Could not load the member list</small></li>'; }
+}
+$('memBtn').onclick = () => { $('menu').close(); openMembers(); };
+$('memClose').onclick = () => $('memDlg').close();
+$('memList').onchange = async (e) => {
+  const u = e.target.dataset.m; if (!u) return;
+  try { await must(sb.rpc('set_member_role', { p_band: bandId, p_user: u, p_role: e.target.value })); say('Access level changed'); } catch {}
+  loadMembers();
+};
+$('memList').onclick = async (e) => {
+  const u = e.target.dataset.rm; if (!u || !confirm('Remove this person from the band?')) return;
+  try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: u })); say('Removed from the band'); } catch {}
+  loadMembers();
+};
+$('invMake').onclick = async () => {
+  try {
+    const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id, role: $('invRole').value }).select().single());
+    $('invCode').textContent = `Invite code: ${d.code} (${LEVELS[d.role]} access, valid for 7 days)`;
+  } catch {}
+};
+$('bandRename').onclick = async () => {
+  const name = $('bandName').value.trim(); if (!name) return say('Type a band name');
+  try { await must(sb.from('bands').update({ name }).eq('id', bandId)); say('Band renamed'); await loadBands(); } catch {}
+};
+$('leaveBand').onclick = async () => {
+  if (!confirm('Leave this band? You will lose access to its songs and setlists.')) return;
+  try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: user.id })); $('memDlg').close(); localStorage.removeItem('band'); await loadBands(); } catch {}
+};
 
 // ---- account
 $('signUp').onclick = async () => { const d = await must(sb.auth.signUp({ email: $('email').value.trim(), password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } })); say(d.session ? 'Signed up' : 'Signed up. Check the email setting in Supabase.'); };
@@ -150,7 +260,7 @@ sb.auth.onAuthStateChange((_e, s) => { user = s?.user || null; $('who').textCont
 async function loadBands() {
   if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
   try {
-    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,theme,bands(id,name)').eq('user_id', user.id)));
+    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,bands(id,name,theme)').eq('user_id', user.id)));
     $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
     const last = localStorage.getItem('band'); if (last && bandRows.some((r) => r.bands.id === last)) $('band').value = last;
     await loadBand();
@@ -158,7 +268,7 @@ async function loadBands() {
 }
 async function loadBand() {
   bandId = $('band').value || null; localStorage.setItem('band', bandId || '');
-  const r = bandRows.find((x) => x.bands.id === bandId); setAccent(r?.theme?.accent || ''); $('accent').value = r?.theme?.accent || '#0f766e';
+  const r = bandRows.find((x) => x.bands.id === bandId); setAccent(r?.bands?.theme?.accent || ''); $('accent').value = r?.bands?.theme?.accent || '#0f766e'; drawRoles();
   try {
     const lists = bandId ? await cached(ck('sl:' + bandId), () => must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'))) : [];
     $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
@@ -174,9 +284,10 @@ async function loadSetlist() {
   } catch { items = []; }
   render();
 }
-$('band').onchange = loadBand; $('setlist').onchange = () => { openId = null; loadSetlist(); };
+$('band').onchange = () => { closeGig(); loadBand(); }; $('setlist').onchange = () => { closeGig(); openId = null; loadSetlist(); };
 
 async function makeSetlist(inp) {
+  if (!canEdit()) return say('You have view-only access in this band');
   const name = inp.value.trim(); if (!name || !bandId) return say('Pick a band and type a name');
   const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
   inp.value = ''; localStorage.setItem('sl' + bandId, d.id); $('menu').close(); await loadBand();
@@ -184,7 +295,6 @@ async function makeSetlist(inp) {
 $('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
 $('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
 $('joinBand').onclick = async () => { const id = await must(sb.rpc('join_band', { p_code: $('joinCode').value })); $('joinCode').value = ''; localStorage.setItem('band', id); $('menu').close(); await loadBands(); };
-$('invite').onclick = async () => { if (!bandId) return say('Pick a band first'); const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id }).select().single()); $('code').textContent = 'Invite code: ' + d.code + ' (valid for 7 days)'; };
 $('menuBtn').onclick = () => $('menu').showModal(); $('menuClose').onclick = () => $('menu').close();
 document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
 
@@ -193,41 +303,54 @@ function render() {
   $('auth').hidden = !!user; $('app').hidden = !user; if (!user) return;
   $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
   $('emptySl').hidden = items.length > 0;
+  const ce = canEdit(); $('addBtn').hidden = !ce; $('slNew2').parentElement.hidden = !ce; $('slSec').hidden = !ce;
   $('list').innerHTML = items.map(card).join('');
   if (openId) loadLinks(openId);
+  if (!$('gig').hidden) renderGig();
+}
+function roleLine(s) {
+  const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
+  if (r.includes('singer') && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
+  if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + first(s.chords));
+  if (r.includes('bassist') && s.root_notes) out.push('Root: ' + first(s.root_notes));
+  if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
+  return out.length ? `<div class="rl">${out.join(' · ')}</div>` : '';
 }
 function card(it, i) {
   const s = it.songs, o = openId === s.id;
   return `<article data-id="${it.id}" data-sid="${s.id}">
   <div class="top"><span class="n">${i + 1}</span><div class="t"><b>${esc(s.title)}</b><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small></div><span class="pill">${s.bpm || '–'} bpm</span><span class="pill">${esc(s.musical_key || '–')}</span></div>
-  <div class="btns"><button data-a="up" ${i ? '' : 'disabled'}>▲</button><button data-a="down" ${i < items.length - 1 ? '' : 'disabled'}>▼</button><button data-a="play" class="primary">▶ Click</button><button data-a="toggle">${o ? 'Close' : 'Details'}</button></div>${o ? detail(s) : ''}</article>`;
+  ${roleLine(s)}<div class="btns">${canEdit() ? `<button data-a="up" ${i ? '' : 'disabled'}>▲</button><button data-a="down" ${i < items.length - 1 ? '' : 'disabled'}>▼</button>` : ''}<button data-a="play" class="primary">▶ Click</button><button data-a="toggle">${o ? 'Close' : 'Details'}</button></div>${o ? detail(s) : ''}</article>`;
 }
 function detail(s) {
-  const f = (k, l, t = 'text') => `<label>${l}<input data-f="${k}" type="${t}" value="${esc(s[k] ?? '')}"></label>`;
-  const lk = (k, l) => `<label>${l}${safe(s[k]) ? `<a href="${esc(s[k])}" target="_blank" rel="noopener">open</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"></label>`;
+  const ro = !canEdit(), dis = ro ? ' disabled' : '';
+  const f = (k, l, t = 'text') => `<label>${l}<input data-f="${k}" type="${t}" value="${esc(s[k] ?? '')}"${dis}></label>`;
+  const lk = (k, l) => `<label>${l}${safe(s[k]) ? `<a href="${esc(s[k])}" target="_blank" rel="noopener">open</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"${dis}></label>`;
   return `<div>
   <div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>
-  <label>Chords<textarea data-f="chords" rows="4" class="mono">${esc(s.chords)}</textarea></label>
-  <label>Notes<textarea data-f="notes" rows="3">${esc(s.notes)}</textarea></label>
-  <label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>
+  <label>Chords<textarea data-f="chords" rows="4" class="mono"${dis}>${esc(s.chords)}</textarea></label>
+  <label>Root notes (for bass)<textarea data-f="root_notes" rows="2" class="mono" placeholder="e.g. E  A  B  E"${dis}>${esc(s.root_notes)}</textarea></label>
+  <label>Notes<textarea data-f="notes" rows="3"${dis}>${esc(s.notes)}</textarea></label>
+  ${ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`}
   ${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}
-  <div class="btns"><button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button><button data-a="hist">History</button><button data-a="remove">Remove from setlist</button></div>
+  <div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button>`}</div>
   <ul data-lookup></ul>
-  <small>Changes apply to this song in every setlist.</small>
+  ${ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>'}
   <h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>
-  <div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
-  <div class="btns"><button data-a="addlink">Add link</button></div><ul data-hist></ul></div>`;
+  ${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
+  <div class="btns"><button data-a="addlink">Add link</button></div>`}<ul data-hist></ul></div>`;
 }
 async function loadLinks(sid) {
   const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
   try {
     const rows = await cached(ck('links:' + sid), () => must(sb.from('song_links').select('id,kind,label,url').eq('song_id', sid).is('deleted_at', null).order('created_at')));
-    ul.innerHTML = rows.length ? rows.map((l) => `<li><a href="${esc(safe(l.url) || '#')}" target="_blank" rel="noopener">${esc(l.label || l.kind.replace('_', ' '))}</a><button data-a="dellink" data-lid="${l.id}">×</button></li>`).join('') : '<li><small>No links yet</small></li>';
+    ul.innerHTML = rows.length ? rows.map((l) => `<li><a href="${esc(safe(l.url) || '#')}" target="_blank" rel="noopener">${esc(l.label || l.kind.replace('_', ' '))}</a>${canEdit() ? `<button data-a="dellink" data-lid="${l.id}">×</button>` : ''}</li>`).join('') : '<li><small>No links yet</small></li>';
   } catch { ul.innerHTML = '<li><small>Could not load links</small></li>'; }
 }
 $('list').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
+  if (['up', 'down', 'save', 'remove', 'lookup', 'usematch', 'addlink', 'dellink'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
     if (a === 'toggle') { openId = openId === sid ? null : sid; render(); }
     else if (a === 'up' || a === 'down') {
@@ -239,7 +362,7 @@ $('list').onclick = async (e) => {
     else if (a === 'save') {
       const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
       if (!p.title) return say('A title is needed');
-      await must(sb.from('songs').update({ title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}), change_note: art.querySelector('[data-r="reason"]').value.trim() || null }).eq('id', sid));
+      await must(sb.from('songs').update({ title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}), change_note: art.querySelector('[data-r="reason"]').value.trim() || null }).eq('id', sid));
       say('Saved'); await loadSetlist();
     }
     else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { await must(sb.from('setlist_songs').update({ deleted_at: new Date().toISOString() }).eq('id', id)); openId = null; await loadSetlist(); } }
@@ -249,13 +372,13 @@ $('list').onclick = async (e) => {
         must(sb.from('band_members').select('user_id,profiles(display_name)').eq('band_id', bandId)),
       ]);
       const who = Object.fromEntries(mem.map((m) => [m.user_id, m.profiles?.display_name || 'Someone']));
-      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', notes: 'notes', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', deleted_at: 'deleted' };
+      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', notes: 'notes', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', deleted_at: 'deleted' };
       const short = (v) => { const t = v == null || v === '' ? 'empty' : String(v); return t.length > 30 ? t.slice(0, 30) + '…' : t; };
       const diff = (r) => {
         if (r.op === 'INSERT') return 'Song added';
         const o = r.old_data || {}, n = r.new_data || {};
         const ch = Object.keys(LABEL).filter((k) => JSON.stringify(o[k]) !== JSON.stringify(n[k]));
-        return ch.map((k) => (k === 'chords' || k === 'notes' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
+        return ch.map((k) => (k === 'chords' || k === 'root_notes' || k === 'notes' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
       };
       art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><span>${esc(diff(r))}${r.reason ? `<br><small>Reason: ${esc(r.reason)}</small>` : ''}</span><small style="text-align:right">${esc(who[r.changed_by] || 'Someone')}<br>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
     }
@@ -307,6 +430,41 @@ $('addNew').onclick = async () => {
     ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); await addToSetlist(s.id);
   } catch {}
 };
+
+// ---- gig mode
+let gigIdx = 0, gigLock = null;
+async function gigWake() { try { if ('wakeLock' in navigator && !$('gig').hidden) gigLock = await navigator.wakeLock.request('screen'); } catch {} }
+function openGig() {
+  if (!items.length) return say('Add a song to this setlist first');
+  const k = items.findIndex((x) => x.songs.id === openId); gigIdx = k >= 0 ? k : 0;
+  $('gig').hidden = false; gigWake(); renderGig(); loadSong(items[gigIdx].songs);
+}
+function closeGig() { $('gig').hidden = true; gigLock?.release?.(); gigLock = null; }
+function gigGo(d) { const n = gigIdx + d; if (n < 0 || n >= items.length) return; gigIdx = n; loadSong(items[n].songs); renderGig(); $('gig').scrollTop = 0; }
+function renderGig() {
+  if (!items.length) { closeGig(); return; }
+  gigIdx = Math.max(0, Math.min(items.length - 1, gigIdx));
+  const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), has = (r) => roles.includes(r), drummer = has('drummer');
+  const tile = (l, v, c = '') => `<div class="tile ${c}"><small>${l}</small><b>${esc(v || '–')}</b></div>`;
+  const panel = (t, body, mono) => `<section class="panel"><h3>${t}</h3>${body ? `<div class="pbody${mono ? ' mono' : ''}">${esc(body)}</div>` : '<small>Nothing entered yet. Add it under Details.</small>'}</section>`;
+  const parts = [];
+  if (has('singer')) parts.push(safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', ''));
+  if (has('guitarist') || has('keyboards')) parts.push(panel('Chords', s.chords, true));
+  if (has('bassist')) parts.push(panel('Root notes', s.root_notes, true));
+  if (s.notes) parts.push(panel('Notes', s.notes));
+  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics, chords or root notes here.</small></p>';
+  $('gig').innerHTML = `<div class="gtop"><small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small><button id="gigClose">✕ Close</button></div>
+  <h1>${esc(s.title)}</h1><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small>
+  <div class="tiles">${tile('BPM', s.bpm, drummer ? 'xl' : '')}${tile('Key', s.musical_key)}${drummer ? tile('Time', s.time_signature || '4/4') : ''}</div>
+  ${hint}${parts.join('')}
+  <div class="next">${nx ? `Next: <b>${esc(nx.title)}</b> · ${nx.bpm || '–'} bpm · ${esc(nx.musical_key || '–')}` : 'Last song in the setlist'}</div>
+  <div class="gnav"><button id="gPrev" ${gigIdx ? '' : 'disabled'}>◀ Previous</button><button id="gPlay" class="primary">▶ Click</button><button id="gNext" ${gigIdx < items.length - 1 ? '' : 'disabled'}>Next ▶</button></div>`;
+  $('gigClose').onclick = closeGig; $('gPrev').onclick = () => gigGo(-1); $('gNext').onclick = () => gigGo(1);
+  $('gPlay').onclick = () => { if (!running) start(); };
+}
+$('gigBtn').onclick = openGig;
+document.addEventListener('keydown', (e) => { if ($('gig').hidden) return; if (e.key === 'ArrowRight') gigGo(1); else if (e.key === 'ArrowLeft') gigGo(-1); else if (e.key === 'Escape') closeGig(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('gig').hidden) gigWake(); });
 
 // ---- metronome (with the iOS audio fix)
 let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4;
