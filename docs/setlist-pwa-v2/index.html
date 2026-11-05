@@ -217,7 +217,7 @@ async function loadMembers() {
       const mine = m.user_id === user.id, lv = m.role === 'member' ? 'editor' : m.role;
       const inst = (m.roles || []).map((r) => ROLES.find((x) => x[0] === r)?.[1] || r).join(', ');
       const ctl = a && !mine && lv !== 'owner'
-        ? `<select data-m="${m.user_id}">${['admin', 'editor', 'viewer'].map((v) => `<option value="${v}"${v === lv ? ' selected' : ''}>${LEVELS[v]}</option>`).join('')}</select> <button data-rm="${m.user_id}">Remove</button>`
+        ? `<select data-m="${m.user_id}">${['admin', 'editor', 'viewer'].map((v) => `<option value="${v}"${v === lv ? ' selected' : ''}>${LEVELS[v]}</option>`).join('')}</select> <button data-rm="${m.user_id}">Remove</button>${myLevel() === 'owner' ? ` <button data-own="${m.user_id}">Make owner</button>` : ''}`
         : `<span class="pill">${esc(LEVELS[lv] || lv)}</span>`;
       return `<li><span><b>${esc(m.profiles?.display_name || 'Unnamed')}</b>${mine ? ' (you)' : ''}<br><small>${esc(inst || 'No instrument chosen')}</small></span><span>${ctl}</span></li>`;
     }).join('');
@@ -231,6 +231,13 @@ $('memList').onchange = async (e) => {
   loadMembers();
 };
 $('memList').onclick = async (e) => {
+  const own = e.target.dataset.own;
+  if (own) {
+    const who = e.target.closest('li').querySelector('b').textContent;
+    if (!confirm(`Make ${who} the owner of this band? You will become an admin, and only the new owner will be able to delete the band.`)) return;
+    try { await must(sb.rpc('transfer_ownership', { p_band: bandId, p_user: own })); say('Ownership transferred'); $('memDlg').close(); await loadBands(); openMembers(); } catch {}
+    return;
+  }
   const u = e.target.dataset.rm; if (!u || !confirm('Remove this person from the band?')) return;
   try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: u })); say('Removed from the band'); } catch {}
   loadMembers();
