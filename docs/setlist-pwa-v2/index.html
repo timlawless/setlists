@@ -261,13 +261,16 @@ $('leaveBand').onclick = async () => {
 $('signUp').onclick = async () => { const d = await must(sb.auth.signUp({ email: $('email').value.trim(), password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } })); say(d.session ? 'Signed up' : 'Signed up. Check the email setting in Supabase.'); };
 $('signIn').onclick = async () => { await must(sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value })); };
 $('signOut').onclick = async () => { Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
-sb.auth.onAuthStateChange((_e, s) => { user = s?.user || null; $('who').textContent = user ? user.email : 'Menu'; setTimeout(loadBands, 0); });
+sb.auth.onAuthStateChange((_e, s) => {
+  const before = user?.id || null; user = s?.user || null; $('who').textContent = user ? user.email : 'Menu';
+  if ((user?.id || null) !== before) setTimeout(loadBands, 0); // only when someone signs in or out, not when the same person returns to the tab
+});
 
 // ---- bands and setlists
 async function loadBands() {
   if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
   try {
-    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,bands(id,name,theme)').eq('user_id', user.id)));
+    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme)').eq('user_id', user.id)));
     $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
     const last = localStorage.getItem('band'); if (last && bandRows.some((r) => r.bands.id === last)) $('band').value = last;
     await loadBand();
@@ -279,12 +282,17 @@ async function loadBand() {
   try {
     const lists = bandId ? await cached(ck('sl:' + bandId), () => must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'))) : [];
     $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
-    const last = localStorage.getItem('sl' + bandId); if (last && lists.some((l) => l.id === last)) $('setlist').value = last;
+    const pick = [r?.last_setlist_id, localStorage.getItem('sl' + bandId)].find((id) => id && lists.some((l) => l.id === id)); if (pick) $('setlist').value = pick;
     await loadSetlist();
   } catch { render(); }
 }
+function rememberSetlist() { // save the last-used setlist for this band on your account
+  const r = bandRows.find((x) => x.bands.id === bandId); if (!r || !setlistId || r.last_setlist_id === setlistId) return;
+  r.last_setlist_id = setlistId;
+  sb.from('band_members').update({ last_setlist_id: setlistId }).eq('band_id', bandId).eq('user_id', user.id).then(() => {}, () => {});
+}
 async function loadSetlist() {
-  setlistId = $('setlist').value || null; if (bandId) localStorage.setItem('sl' + bandId, setlistId || '');
+  setlistId = $('setlist').value || null; if (bandId) localStorage.setItem('sl' + bandId, setlistId || ''); rememberSetlist();
   try {
     const rows = setlistId ? await cached(ck('items:' + setlistId), () => must(sb.from('setlist_songs').select('id,position,songs(*)').eq('setlist_id', setlistId).is('deleted_at', null).order('position'))) : [];
     items = rows.filter((r) => r.songs && !r.songs.deleted_at);
@@ -327,7 +335,7 @@ function card(it, i) {
   const s = it.songs, o = openId === s.id;
   return `<article data-id="${it.id}" data-sid="${s.id}">
   <div class="top"><span class="n">${i + 1}</span><div class="t"><b>${esc(s.title)}</b><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small></div><span class="pill">${s.bpm || '–'} bpm</span><span class="pill">${esc(s.musical_key || '–')}</span></div>
-  ${roleLine(s)}<div class="btns">${canEdit() ? `<button data-a="up" ${i ? '' : 'disabled'}>▲</button><button data-a="down" ${i < items.length - 1 ? '' : 'disabled'}>▼</button>` : ''}<button data-a="play" class="primary">▶ Click</button><button data-a="toggle">${o ? 'Close' : 'Details'}</button></div>${o ? detail(s) : ''}</article>`;
+  ${roleLine(s)}<div class="btns">${canEdit() ? `<button data-a="up" ${i ? '' : 'disabled'}>▲</button><button data-a="down" ${i < items.length - 1 ? '' : 'disabled'}>▼</button>` : ''}<button data-a="play" class="primary">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button><button data-a="toggle">${o ? 'Close' : 'Details'}</button></div>${o ? detail(s) : ''}</article>`;
 }
 function detail(s) {
   const ro = !canEdit(), dis = ro ? ' disabled' : '';
@@ -365,7 +373,7 @@ $('list').onclick = async (e) => {
       await Promise.all([must(sb.from('setlist_songs').update({ position: y.position }).eq('id', x.id)), must(sb.from('setlist_songs').update({ position: x.position }).eq('id', y.id))]);
       await loadSetlist();
     }
-    else if (a === 'play') { loadSong(items[i].songs); if (!running) await start(); }
+    else if (a === 'play') { await toggleClick(items[i].songs); }
     else if (a === 'save') {
       const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
       if (!p.title) return say('A title is needed');
@@ -465,16 +473,16 @@ function renderGig() {
   <div class="tiles">${tile('BPM', s.bpm, drummer ? 'xl' : '')}${tile('Key', s.musical_key)}${drummer ? tile('Time', s.time_signature || '4/4') : ''}</div>
   ${hint}${parts.join('')}
   <div class="next">${nx ? `Next: <b>${esc(nx.title)}</b> · ${nx.bpm || '–'} bpm · ${esc(nx.musical_key || '–')}` : 'Last song in the setlist'}</div>
-  <div class="gnav"><button id="gPrev" ${gigIdx ? '' : 'disabled'}>◀ Previous</button><button id="gPlay" class="primary">▶ Click</button><button id="gNext" ${gigIdx < items.length - 1 ? '' : 'disabled'}>Next ▶</button></div>`;
+  <div class="gnav"><button id="gPrev" ${gigIdx ? '' : 'disabled'}>◀ Previous</button><button id="gPlay" class="primary">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button><button id="gNext" ${gigIdx < items.length - 1 ? '' : 'disabled'}>Next ▶</button></div>`;
   $('gigClose').onclick = closeGig; $('gPrev').onclick = () => gigGo(-1); $('gNext').onclick = () => gigGo(1);
-  $('gPlay').onclick = () => { if (!running) start(); };
+  $('gPlay').onclick = () => toggleClick(items[gigIdx].songs);
 }
 $('gigBtn').onclick = openGig;
 document.addEventListener('keydown', (e) => { if ($('gig').hidden) return; if (e.key === 'ArrowRight') gigGo(1); else if (e.key === 'ArrowLeft') gigGo(-1); else if (e.key === 'Escape') closeGig(); });
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('gig').hidden) gigWake(); });
 
 // ---- metronome (with the iOS audio fix)
-let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4;
+let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4, clickSong = null;
 function silentWavUrl() {
   const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
   const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
@@ -510,9 +518,17 @@ function tick() {
   }
 }
 async function getLock() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch {} }
-async function start() { if (running) return; await unlock(); running = true; beat = 0; nextT = ctx.currentTime + 0.05; timer = setInterval(tick, 25); $('go').textContent = 'Stop'; getLock(); }
-function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; }
-function loadSong(s) { $('bpm').value = s.bpm || 120; $('now').textContent = s.title; perBar = parseInt(s.time_signature) || 4; beat = 0; }
+async function start() { if (running) return; await unlock(); running = true; beat = 0; nextT = ctx.currentTime + 0.05; timer = setInterval(tick, 25); $('go').textContent = 'Stop'; getLock(); syncPlay(); }
+function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; syncPlay(); }
+function loadSong(s) { $('bpm').value = s.bpm || 120; $('now').textContent = s.title; perBar = parseInt(s.time_signature) || 4; beat = 0; clickSong = s.id; syncPlay(); }
+async function toggleClick(s) { // the same song's button starts it, then stops it
+  if (running && clickSong === s.id) { stop(); return; }
+  loadSong(s); if (!running) await start();
+}
+function syncPlay() { // keep every Click button's label in step with the metronome
+  document.querySelectorAll('#list article').forEach((a) => { const b = a.querySelector('[data-a="play"]'); if (b) b.textContent = running && a.dataset.sid === clickSong ? '■ Stop' : '▶ Click'; });
+  const g = document.getElementById('gPlay'); if (g) g.textContent = running && clickSong === items[gigIdx]?.songs.id ? '■ Stop' : '▶ Click';
+}
 $('go').onclick = () => (running ? stop() : start());
 $('bpmDn').onclick = () => ($('bpm').value = Math.max(20, +$('bpm').value - 1));
 $('bpmUp').onclick = () => ($('bpm').value = Math.min(300, +$('bpm').value + 1));
