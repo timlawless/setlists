@@ -102,7 +102,9 @@ li select{width:auto}
   <div class="row"><input id="joinCode" placeholder="Invite code"><button id="joinBand" class="primary">Join band</button></div>
   <div class="row"><button id="memBtn">Band members and access</button></div>
   <div id="slSec"><h3>Setlists</h3>
-  <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div></div>
+  <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div>
+  <div class="row"><input id="slRename" placeholder="Rename this setlist"><button id="slRenameBtn">Rename</button></div>
+  <div class="row"><button id="slDup">Duplicate this setlist</button><button id="slDel">Delete this setlist</button></div></div>
   <h3>My roles in this band</h3>
   <div id="roles" class="row"></div>
   <h3>Appearance</h3>
@@ -126,15 +128,16 @@ li select{width:auto}
     <h3>Band settings</h3>
     <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
     <div class="row"><label style="margin:0;flex:2">Band colour<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
+    <div class="row" id="delBandRow" hidden><button id="delBand">Delete this band…</button></div>
   </div>
   <div class="row"><button id="leaveBand">Leave this band</button></div>
 </dialog>
 
 <dialog id="addDlg">
-  <div class="row" style="margin:0"><b style="flex:3">Add a song</b><button id="addClose">Close</button></div>
-  <h3>From this band’s songs</h3>
-  <div class="row"><select id="libSel"></select><button id="addExisting" class="primary">Add</button></div>
-  <h3>Or create a new song</h3>
+  <div class="row" style="margin:0"><b style="flex:3">Songs in this band</b><button id="addClose">Close</button></div>
+  <input id="songSearch" placeholder="Search songs" style="margin-top:10px">
+  <ul id="libList"></ul>
+  <h3>Create a new song</h3>
   <div class="grid"><label>Title<input id="nTitle"></label><label>Artist<input id="nArtist"></label><label>BPM<input id="nBpm" type="number" inputmode="numeric"></label><label>Key<input id="nKey"></label></div>
   <div class="row"><button id="addNew" class="primary">Create and add</button></div>
 </dialog>
@@ -152,7 +155,7 @@ const say = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('o
 const must = async (p) => { const r = await p; if (r.error) { say('Error: ' + r.error.message); throw r.error; } return r.data; };
 
 let user = null, bandId = null, setlistId = null, items = [], openId = null, bandRows = [];
-let matches = [];
+let matches = [], forcePick = null;
 const ck = (k) => `c:${user.id}:${k}`;
 async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
   try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); return v; }
@@ -203,7 +206,7 @@ const isAdmin = () => ['owner', 'admin'].includes(myLevel());
 async function openMembers() {
   if (!bandId) return say('Pick a band first');
   const a = isAdmin();
-  $('invSec').hidden = !a; $('bandSec').hidden = !a; $('leaveBand').hidden = myLevel() === 'owner';
+  $('invSec').hidden = !a; $('bandSec').hidden = !a; $('delBandRow').hidden = myLevel() !== 'owner'; $('leaveBand').hidden = myLevel() === 'owner';
   $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = '';
   $('myLevel').textContent = `You are ${LEVELS[myLevel()]} in this band.` + (a ? '' : ' Only owners and admins can change this list.');
   $('memDlg').showModal(); await loadMembers();
@@ -252,6 +255,17 @@ $('bandRename').onclick = async () => {
   const name = $('bandName').value.trim(); if (!name) return say('Type a band name');
   try { await must(sb.from('bands').update({ name }).eq('id', bandId)); say('Band renamed'); await loadBands(); } catch {}
 };
+$('delBand').onclick = async () => {
+  const name = bandRows.find((x) => x.bands.id === bandId)?.bands.name || '', gone = bandId;
+  const typed = prompt(`This permanently deletes “${name}” with all its songs, setlists and history, and cannot be undone.\n\nType the band name to confirm:`);
+  if (typed === null) return; if (typed.trim() !== name) return say('The name did not match, so nothing was deleted');
+  try {
+    const d = await must(sb.from('bands').delete().eq('id', gone).select());
+    if (!d.length) return say('Only the owner can delete the band');
+    Object.keys(localStorage).filter((k) => k.includes(gone)).forEach((k) => localStorage.removeItem(k));
+    $('memDlg').close(); localStorage.removeItem('band'); say('Band deleted'); await loadBands();
+  } catch {}
+};
 $('leaveBand').onclick = async () => {
   if (!confirm('Leave this band? You will lose access to its songs and setlists.')) return;
   try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: user.id })); $('memDlg').close(); localStorage.removeItem('band'); await loadBands(); } catch {}
@@ -282,7 +296,7 @@ async function loadBand() {
   try {
     const lists = bandId ? await cached(ck('sl:' + bandId), () => must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'))) : [];
     $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
-    const pick = [r?.last_setlist_id, localStorage.getItem('sl' + bandId)].find((id) => id && lists.some((l) => l.id === id)); if (pick) $('setlist').value = pick;
+    const pick = [forcePick, r?.last_setlist_id, localStorage.getItem('sl' + bandId)].find((id) => id && lists.some((l) => l.id === id)); forcePick = null; if (pick) $('setlist').value = pick;
     await loadSetlist();
   } catch { render(); }
 }
@@ -301,17 +315,37 @@ async function loadSetlist() {
 }
 $('band').onchange = () => { closeGig(); loadBand(); }; $('setlist').onchange = () => { closeGig(); openId = null; loadSetlist(); };
 
+async function showSetlist(id) { forcePick = id; await loadBand(); }
 async function makeSetlist(inp) {
   if (!canEdit()) return say('You have view-only access in this band');
   const name = inp.value.trim(); if (!name || !bandId) return say('Pick a band and type a name');
   const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
-  inp.value = ''; localStorage.setItem('sl' + bandId, d.id); $('menu').close(); await loadBand();
+  inp.value = ''; $('menu').close(); await showSetlist(d.id);
 }
 $('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
 $('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
 $('joinBand').onclick = async () => { const id = await must(sb.rpc('join_band', { p_code: $('joinCode').value })); $('joinCode').value = ''; localStorage.setItem('band', id); $('menu').close(); await loadBands(); };
-$('menuBtn').onclick = () => $('menu').showModal(); $('menuClose').onclick = () => $('menu').close();
+$('menuBtn').onclick = () => { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('menu').showModal(); }; $('menuClose').onclick = () => $('menu').close();
 document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
+
+$('slRenameBtn').onclick = async () => {
+  const name = $('slRename').value.trim(); if (!setlistId || !name) return say('Pick a setlist and type a new name');
+  try { await must(sb.from('setlists').update({ name }).eq('id', setlistId)); say('Setlist renamed'); $('menu').close(); await showSetlist(setlistId); } catch {}
+};
+$('slDup').onclick = async () => {
+  if (!setlistId) return say('Pick a setlist first');
+  const name = ($('setlist').selectedOptions[0]?.text || 'Setlist') + ' (copy)';
+  try {
+    const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
+    if (items.length) await must(sb.from('setlist_songs').insert(items.map((it) => ({ band_id: bandId, setlist_id: d.id, song_id: it.songs.id, position: it.position }))));
+    say('Setlist duplicated'); $('menu').close(); await showSetlist(d.id);
+  } catch {}
+};
+$('slDel').onclick = async () => {
+  const name = $('setlist').selectedOptions[0]?.text;
+  if (!setlistId || !confirm(`Delete the setlist “${name}”? The songs stay in the band’s song list.`)) return;
+  try { await must(sb.from('setlists').update({ deleted_at: new Date().toISOString() }).eq('id', setlistId)); say('Setlist deleted'); $('menu').close(); closeGig(); openId = null; await loadBand(); } catch {}
+};
 
 // ---- the setlist screen
 function render() {
@@ -422,27 +456,45 @@ $('list').onclick = async (e) => {
   } catch { /* the error toast has already been shown */ }
 };
 
-// ---- add songs
-async function addToSetlist(songId) {
+// ---- song library: search, add to the setlist, delete
+let lib = [];
+async function addToSetlist(songId, keepOpen) {
   const last = await must(sb.from('setlist_songs').select('position').eq('setlist_id', setlistId).order('position', { ascending: false }).limit(1));
   await must(sb.from('setlist_songs').insert({ band_id: bandId, setlist_id: setlistId, song_id: songId, position: (last[0]?.position ?? 0) + 1 }));
-  $('addDlg').close(); await loadSetlist();
+  if (!keepOpen) $('addDlg').close();
+  await loadSetlist(); if (keepOpen) drawLib();
 }
-$('addBtn').onclick = async () => {
+function drawLib() {
+  const q = $('songSearch').value.trim().toLowerCase(), used = new Set(items.map((x) => x.songs.id));
+  const rows = lib.filter((x) => !q || `${x.title} ${x.artist}`.toLowerCase().includes(q));
+  $('libList').innerHTML = rows.map((x) => `<li><span><b>${esc(x.title)}</b><br><small>${esc([x.artist, x.bpm && x.bpm + ' bpm', x.musical_key].filter(Boolean).join(' · '))}</small></span><span>${used.has(x.id) ? '<span class="pill">In setlist</span>' : `<button data-add="${x.id}" class="primary">Add</button>`} <button data-del="${x.id}">Delete</button></span></li>`).join('') || '<li><small>No songs found</small></li>';
+}
+async function openLibrary() {
   try {
-    const lib = await must(sb.from('songs').select('id,title,artist').eq('band_id', bandId).is('deleted_at', null).order('title'));
-    const used = new Set(items.map((x) => x.songs.id));
-    $('libSel').replaceChildren(...lib.filter((s) => !used.has(s.id)).map((s) => new Option(s.title + (s.artist ? ' – ' + s.artist : ''), s.id)));
-    $('addDlg').showModal();
+    lib = await must(sb.from('songs').select('id,title,artist,bpm,musical_key').eq('band_id', bandId).is('deleted_at', null).order('title'));
+    $('songSearch').value = ''; drawLib(); $('addDlg').showModal();
+  } catch {}
+}
+$('addBtn').onclick = openLibrary;
+$('songSearch').oninput = drawLib;
+$('addClose').onclick = () => $('addDlg').close();
+$('libList').onclick = async (e) => {
+  const add = e.target.dataset.add, del = e.target.dataset.del;
+  try {
+    if (add) await addToSetlist(add, true);
+    else if (del) {
+      const x = lib.find((y) => y.id === del);
+      if (!x || !confirm(`Delete “${x.title}” from this band? It will disappear from every setlist.`)) return;
+      await must(sb.from('songs').update({ deleted_at: new Date().toISOString() }).eq('id', del));
+      lib = lib.filter((y) => y.id !== del); if (openId === del) openId = null; say('Song deleted'); drawLib(); await loadSetlist();
+    }
   } catch {}
 };
-$('addClose').onclick = () => $('addDlg').close();
-$('addExisting').onclick = () => $('libSel').value && addToSetlist($('libSel').value).catch(() => {});
 $('addNew').onclick = async () => {
   const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
   try {
-    const s = await must(sb.from('songs').insert({ band_id: bandId, title, artist: $('nArtist').value.trim(), bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, created_by: user.id }).select().single());
-    ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); await addToSetlist(s.id);
+    const x = await must(sb.from('songs').insert({ band_id: bandId, title, artist: $('nArtist').value.trim(), bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, created_by: user.id }).select().single());
+    ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); await addToSetlist(x.id);
   } catch {}
 };
 
