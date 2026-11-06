@@ -68,17 +68,33 @@ li select{width:auto}
 </head>
 <body>
 <header>
+  <img id="logoImg" alt="" hidden style="height:34px;width:34px;object-fit:contain;border-radius:6px;flex:none">
   <select id="band" aria-label="Band"></select>
   <select id="setlist" aria-label="Setlist"></select>
   <button id="menuBtn" aria-label="Menu">☰</button>
 </header>
 <main>
   <section id="auth" class="card">
-    <h2>Sign in</h2>
-    <label>Email<input id="email" type="email" autocomplete="username"></label>
-    <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
-    <label>Your name (sign up only)<input id="name"></label>
-    <div class="row"><button id="signIn" class="primary">Sign in</button><button id="signUp">Sign up</button></div>
+    <div id="pSign">
+      <h2>Sign in</h2>
+      <label>Email<input id="email" type="email" autocomplete="username"></label>
+      <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
+      <label>Your name (sign up only)<input id="name"></label>
+      <div class="row"><button id="signIn" class="primary">Sign in</button><button id="signUp">Sign up</button></div>
+      <div class="row"><button id="forgot">Forgot password?</button><button id="codeLogin">Email me a sign-in code</button></div>
+    </div>
+    <div id="pCode" hidden>
+      <h2 id="codeTitle">Enter the code</h2>
+      <p><small id="codeHelp"></small></p>
+      <label>Code from the email<input id="codeIn" inputmode="numeric" autocomplete="one-time-code"></label>
+      <div id="codePw" hidden><label>New password (at least 8 characters)<input id="codePw1" type="password" autocomplete="new-password"></label></div>
+      <div class="row"><button id="codeGo" class="primary">Continue</button><button id="codeCancel">Back</button></div>
+    </div>
+    <div id="pNew" hidden>
+      <h2>Choose a new password</h2>
+      <label>New password (at least 8 characters)<input id="newPw" type="password" autocomplete="new-password"></label>
+      <div class="row"><button id="newPwGo" class="primary">Save password</button></div>
+    </div>
   </section>
   <div id="app" hidden>
     <div id="nobands" class="card" hidden><b>No bands yet.</b><p>Create a band, or join one with an invite code.</p><button class="primary" data-open="menu">Create or join a band</button></div>
@@ -111,6 +127,8 @@ li select{width:auto}
   <div class="row"><select id="theme"><option value="auto">Light or dark: automatic</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
   <h3>Audio check</h3>
   <div class="row"><button id="tone">Test tone</button></div><pre id="dbg"></pre>
+  <h3>Account</h3>
+  <div class="row"><input id="chPw" type="password" placeholder="New password (8+ characters)" autocomplete="new-password"><button id="chPwGo">Change password</button></div>
   <div class="row"><button id="signOut">Sign out</button></div>
 </dialog>
 
@@ -128,6 +146,7 @@ li select{width:auto}
     <h3>Band settings</h3>
     <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
     <div class="row"><label style="margin:0;flex:2">Band colour<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
+    <div class="row"><img id="logoPrev" alt="Band logo" hidden style="height:56px;width:56px;object-fit:contain;flex:0 0 auto"><label style="margin:0;flex:2">Band logo (PNG, JPG or SVG)<input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label><button id="logoRemove" hidden>Remove logo</button></div>
     <div class="row" id="delBandRow" hidden><button id="delBand">Delete this band…</button></div>
   </div>
   <div class="row"><button id="leaveBand">Leave this band</button></div>
@@ -197,6 +216,38 @@ $('roles').onchange = async () => {
     say('Roles saved'); render();
   } catch { drawRoles(); }
 };
+
+// ---- band logo (stored on the band as a small image)
+const okLogo = (u) => /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(u || '');
+const fitSize = (w, h, max) => { const k = Math.min(1, max / Math.max(w, h)); return [Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))]; };
+const bandLogo = () => { const u = bandRows.find((x) => x.bands.id === bandId)?.bands?.logo; return okLogo(u) ? u : ''; };
+function drawLogo() {
+  const u = bandLogo();
+  [$('logoImg'), $('logoPrev')].forEach((i) => { i.hidden = !u; if (u) i.src = u; }); $('logoRemove').hidden = !u;
+}
+async function readLogo(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That file could not be read as an image')); i.src = url; });
+    const iw = img.naturalWidth || img.width || 256, ih = img.naturalHeight || img.height || 256;
+    for (const max of [256, 160, 96]) {
+      const [w, h] = fitSize(iw, ih, max), c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const out = c.toDataURL('image/png'); if (out.length <= 200000) return out;
+    }
+    throw new Error('That image is too detailed. Try a simpler logo.');
+  } finally { URL.revokeObjectURL(url); }
+}
+async function saveLogo(dataUrl) {
+  await must(sb.from('bands').update({ logo: dataUrl }).eq('id', bandId));
+  const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.bands.logo = dataUrl;
+  drawLogo(); say(dataUrl ? 'Logo saved' : 'Logo removed');
+}
+$('logoFile').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { await saveLogo(await readLogo(f)); } catch (err) { if (!err?.code) say(err.message); }
+};
+$('logoRemove').onclick = () => saveLogo(null).catch(() => {});
 
 // ---- access levels and band members
 const LEVELS = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
@@ -272,19 +323,66 @@ $('leaveBand').onclick = async () => {
 };
 
 // ---- account
-$('signUp').onclick = async () => { const d = await must(sb.auth.signUp({ email: $('email').value.trim(), password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } })); say(d.session ? 'Signed up' : 'Signed up. Check the email setting in Supabase.'); };
+// ---- sign-up codes, sign-in codes and password reset
+let codeMode = null, recovering = false, codeEmail = '';
+const showPanel = (p) => ['pSign', 'pCode', 'pNew'].forEach((id) => ($(id).hidden = id !== p));
+const emailVal = () => $('email').value.trim();
+const pwOk = (p) => (p || '').length >= 8 || (say('Use at least 8 characters for the password'), false);
+function askCode(mode, email) {
+  codeMode = mode; codeEmail = email; $('codeIn').value = ''; $('codePw1').value = ''; $('codePw').hidden = mode !== 'recovery';
+  $('codeTitle').textContent = mode === 'recovery' ? 'Reset your password' : mode === 'signup' ? 'Confirm your email' : 'Enter your sign-in code';
+  $('codeHelp').textContent = `We emailed a code to ${email}. It can take a minute to arrive, so check your spam folder too.`;
+  showPanel('pCode');
+}
+$('signUp').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first'); if (!pwOk($('pw').value)) return;
+  try {
+    const d = await must(sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } }));
+    if (d.session) say('Signed up');
+    else if (d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) say('That email already has an account. Use Sign in, or Forgot password.');
+    else askCode('signup', email);
+  } catch {}
+};
+$('forgot').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first');
+  try { await must(sb.auth.resetPasswordForEmail(email)); askCode('recovery', email); } catch {}
+};
+$('codeLogin').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first');
+  try { await must(sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })); askCode('email', email); } catch {}
+};
+$('codeGo').onclick = async () => {
+  const token = $('codeIn').value.replace(/\s/g, ''); if (!token) return say('Type the code from the email');
+  const pw = $('codePw1').value; if (codeMode === 'recovery' && !pwOk(pw)) return;
+  try {
+    await must(sb.auth.verifyOtp({ email: codeEmail, token, type: codeMode }));
+    if (codeMode === 'recovery') { await must(sb.auth.updateUser({ password: pw })); say('Password changed'); }
+    showPanel('pSign');
+  } catch {}
+};
+$('codeCancel').onclick = () => showPanel('pSign');
+$('newPwGo').onclick = async () => { // reached from a reset link opened in the browser
+  const pw = $('newPw').value; if (!pwOk(pw)) return;
+  try { await must(sb.auth.updateUser({ password: pw })); say('Password changed'); recovering = false; $('newPw').value = ''; showPanel('pSign'); render(); } catch {}
+};
+$('chPwGo').onclick = async () => {
+  const pw = $('chPw').value; if (!pwOk(pw)) return;
+  try { await must(sb.auth.updateUser({ password: pw })); $('chPw').value = ''; say('Password changed'); } catch {}
+};
 $('signIn').onclick = async () => { await must(sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value })); };
 $('signOut').onclick = async () => { Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
-sb.auth.onAuthStateChange((_e, s) => {
+sb.auth.onAuthStateChange((e, s) => {
   const before = user?.id || null; user = s?.user || null; $('who').textContent = user ? user.email : 'Menu';
+  if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
   if ((user?.id || null) !== before) setTimeout(loadBands, 0); // only when someone signs in or out, not when the same person returns to the tab
+  else if (e === 'PASSWORD_RECOVERY') setTimeout(render, 0);
 });
 
 // ---- bands and setlists
 async function loadBands() {
   if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
   try {
-    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme)').eq('user_id', user.id)));
+    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme,logo)').eq('user_id', user.id)));
     $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
     const last = localStorage.getItem('band'); if (last && bandRows.some((r) => r.bands.id === last)) $('band').value = last;
     await loadBand();
@@ -292,7 +390,7 @@ async function loadBands() {
 }
 async function loadBand() {
   bandId = $('band').value || null; localStorage.setItem('band', bandId || '');
-  const r = bandRows.find((x) => x.bands.id === bandId); setAccent(r?.bands?.theme?.accent || ''); $('accent').value = r?.bands?.theme?.accent || '#0f766e'; drawRoles();
+  const r = bandRows.find((x) => x.bands.id === bandId); setAccent(r?.bands?.theme?.accent || ''); $('accent').value = r?.bands?.theme?.accent || '#0f766e'; drawRoles(); drawLogo();
   try {
     const lists = bandId ? await cached(ck('sl:' + bandId), () => must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'))) : [];
     $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
@@ -349,7 +447,7 @@ $('slDel').onclick = async () => {
 
 // ---- the setlist screen
 function render() {
-  $('auth').hidden = !!user; $('app').hidden = !user; if (!user) return;
+  $('auth').hidden = !!user && !recovering; $('app').hidden = !user || recovering; if (!user) return;
   $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
   $('emptySl').hidden = items.length > 0;
   const ce = canEdit(); $('addBtn').hidden = !ce; $('slNew2').parentElement.hidden = !ce; $('slSec').hidden = !ce;
@@ -526,7 +624,7 @@ function renderGig() {
   if (has('bassist')) parts.push(panel('Root notes', s.root_notes, true));
   if (s.notes) parts.push(panel('Notes', s.notes));
   const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics, chords or root notes here.</small></p>';
-  $('gig').innerHTML = `<div class="gtop"><small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small><button id="gigClose">✕ Close</button></div>
+  $('gig').innerHTML = `<div class="gtop"><span style="display:flex;align-items:center;gap:8px">${bandLogo() ? `<img src="${bandLogo()}" alt="" style="height:30px;width:30px;object-fit:contain">` : ''}<small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small></span><button id="gigClose">✕ Close</button></div>
   <h1>${esc(s.title)}</h1><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small>
   <div class="tiles">${tile('BPM', s.bpm, drummer ? 'xl' : '')}${tile('Key', s.musical_key)}${drummer ? tile('Time', s.time_signature || '4/4') : ''}</div>
   ${hint}${parts.join('')}
