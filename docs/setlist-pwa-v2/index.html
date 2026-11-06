@@ -382,7 +382,7 @@ function detail(s) {
   <label>Notes<textarea data-f="notes" rows="3"${dis}>${esc(s.notes)}</textarea></label>
   ${ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`}
   ${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}
-  <div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button>`}</div>
+  <div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>
   <ul data-lookup></ul>
   ${ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>'}
   <h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>
@@ -399,7 +399,7 @@ async function loadLinks(sid) {
 $('list').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
-  if (['up', 'down', 'save', 'remove', 'lookup', 'usematch', 'addlink', 'dellink'].includes(a) && !canEdit()) return say('You have view-only access in this band');
+  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'usematch', 'addlink', 'dellink'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
     if (a === 'toggle') { openId = openId === sid ? null : sid; render(); }
     else if (a === 'up' || a === 'down') {
@@ -415,6 +415,12 @@ $('list').onclick = async (e) => {
       say('Saved'); await loadSetlist();
     }
     else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { await must(sb.from('setlist_songs').update({ deleted_at: new Date().toISOString() }).eq('id', id)); openId = null; await loadSetlist(); } }
+    else if (a === 'delsong') {
+      const t = items[i].songs.title;
+      if (!confirm(`Delete “${t}” from this band? It will disappear from every setlist.`)) return;
+      await must(sb.from('songs').update({ deleted_at: new Date().toISOString() }).eq('id', sid));
+      openId = null; say('Song deleted'); await loadSetlist();
+    }
     else if (a === 'hist') {
       const [rows, mem] = await Promise.all([
         must(sb.from('change_log').select('changed_at,changed_by,op,old_data,new_data,reason').eq('table_name', 'songs').eq('row_id', sid).order('changed_at', { ascending: false }).limit(20)),
