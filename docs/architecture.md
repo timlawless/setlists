@@ -162,10 +162,11 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - iPhone audio: with the ring/silent switch on, a plain web audio click is muted. The app sets the audio session to
   playback, loops a silent audio element, and resumes the audio on every tap and when the page becomes visible again.
 - A screen wake lock keeps the screen on, in gig mode and while the metronome runs.
-- Flash is an option for drummers who cannot hear the click. **Gap:** the earlier rule keeps flashing to three per
-  second or fewer (every beat up to 180 BPM, beat 1 only above that) and asks for a warning the first time Flash is
-  switched on. The web app does not apply either yet, so at 300 BPM it can flash five times a second. This is a safety
-  item and is first on the roadmap.
+- Flash is an option for drummers who cannot hear the click. The full-screen flash is limited to three per second or
+  fewer: every beat up to 180 BPM, beat 1 only above that, and no flash at all if even beat 1 would be too fast (for
+  example a 1/4 bar at 300 BPM). The small beat dot in the metronome bar still follows every beat. The first time Flash
+  is switched on, the app asks for confirmation with a photosensitivity warning. This is built and tested for every
+  tempo and time signature, but not yet on the site.
 
 ## Catalog lookup (original key and tempo)
 Server-side only (a Supabase Edge Function). The earlier plan, still the target:
@@ -257,7 +258,6 @@ delete-song update. `core/` has its own 23 tests.
 ## Known limitations and risks
 - The whole interface is one large file, which will become harder to change.
 - No automated tests are stored in the repository, and `core/` is not used by the web app.
-- The flash rule is not applied (see Metronome).
 - Offline editing is new and untested on real devices. Setlist, band and member changes still need a connection.
 - A browser may clear saved data on a rarely used iPhone, losing changes that were still waiting.
 - Email sign-in features depend on connecting an email service and editing three templates.

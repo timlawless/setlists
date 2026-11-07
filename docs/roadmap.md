@@ -13,7 +13,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 - The app has four access levels (owner, admin, editor, viewer) and instrument roles (singer, guitarist, bassist,
   drummer, keyboards) that change what gig mode puts first.
 - The installed iPhone test was reported good. The main items in flight are the email setup for password reset and
-  sign-in codes, the GetSongBPM key, and the live test of offline editing (built, not yet on the site).
+  sign-in codes, the GetSongBPM key, and the live test of offline editing and the flash limit (both built, not yet on the site).
 
 ## Done
 - [x] Interactive prototype (`prototype/`): bands, several setlists per band, song editing and reordering, original
@@ -37,6 +37,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Manage songs, setlists, bands | Song library with search and delete; delete song from its details; setlist rename, duplicate, delete; owner-only band delete | v6 | Done |
 | Sign-in codes, reset, logo | Forgot password by emailed code, sign-in code, sign-up confirmation, change password, band logo | v7 | Built, waiting on email setup |
 | Offline editing | Edits are saved on the device and sync when there is a connection; conflicts are shown for you to resolve; sync status in the header | none | Built, not yet on the site |
+| Flash safety | The full-screen flash never exceeds three flashes a second, and asks for confirmation the first time it is switched on | none | Built, not yet on the site |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -47,7 +48,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | 4. Milestone 1: solo app on the device | Replaced. The app went straight to a Supabase-backed version with a saved local copy for offline reading; editing offline is now built on top. The `core/` library is not used by the web app yet. |
 | 5. Sharing for testing | Done: sign-in, invite codes (typed), shared history. Sync is done by a queue in the app (see `architecture.md`), not by `core/`. |
 | 6. Catalog lookup | Partly done: GetSongBPM through an Edge Function with a link back on the site. Waiting for the API key. MusicBrainz versions, confidence merging and the cache table are not built. |
-| 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Not done: iPhone install guide, high-contrast mode, the flash safety rule and first-time warning. |
+| 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Flash safety rule and first-time warning built. Not done: iPhone install guide, high-contrast mode. |
 
 ## In progress and waiting
 1. **GetSongBPM API key.** The documentation confirms a key is required, and a visible link back (done). If no key arrives
@@ -57,12 +58,12 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
    (the built-in sender only reaches team members and allows about 2 emails an hour). Then paste in the three email
    templates and, last, switch Confirm email on.
 3. **Install the v7 update** (SQL v7 and the new page) and test reset, sign-in codes and the logo.
-4. **Install the offline editing update** and test it with the connection switched off.
+4. **Install the offline editing and flash safety update** (one `index.html`, no SQL) and test it with the connection switched off.
 
 ## Next up, in order
-1. [ ] **Flash safety (small, do first).** Gig mode and the metronome bar flash the whole screen on every beat when Flash
-       is on, up to 300 BPM, which is five flashes a second. The rule in the earlier design is no more than three a second:
-       every beat up to 180 BPM, beat 1 only above that. Apply it, and add a warning the first time Flash is switched on.
+1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
+       only above that, and not at all if even that would be too fast), with a warning the first time Flash is switched
+       on. Tested for every tempo and time signature. Still to do: upload it and try it on a device.
 2. [ ] **Finish the sign-in setup** (item 2 above) and test it in the installed iPhone app.
 3. [ ] **Test offline editing on real devices.** Airplane mode: edit a song, reorder, add and delete; reconnect; check
        the history, and create a deliberate conflict from a second account.
@@ -75,8 +76,9 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
        a cache table, and "Original" versus "Changed for your band" shown on each song.
 8. [ ] **History restore.** A Restore button on a history entry, recorded as a new change.
 9. [ ] **Housekeeping.** Keep the SQL files and the tests in the repository (`sql/` already exists), reuse `core/`
-       where it fits (link cleaner, flash rule, offline tests), show an app version number in the menu, and update
-       `README.md`, `AI_HANDOFF.MD` and `AGENTS.md` to describe the web app.
+       where it fits (link cleaner, offline tests), and show an app version number in the menu.
+       Also: apply `cleanLink` to every stored link, as `AGENTS.md` requires (the web app currently only checks for http
+       and https), and show a confidence level on looked-up tempo and key.
 
 ## Later and ideas
 Not committed. Move any of these up by saying so.
@@ -99,7 +101,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 
 | # | Change | Source | Notes | Priority | Status |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Flash limit and first-time warning | Earlier design | Found when comparing the old notes with the app. | Now | Planned |
+| 1 | Flash limit and first-time warning | Earlier design | Found when comparing the old notes with the app. | Now | Built |
 | 2 | Band logo on the app icon | You | Optional, can wait. | Later | Planned |
 | 3 | Google sign-in | You | Test in the installed iPhone app. | Next | Planned |
 | 4 | Backup source for key and BPM lookup | Claude | Only if the GetSongBPM key does not arrive. | Next | Planned |
