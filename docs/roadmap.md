@@ -13,7 +13,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 - The app has four access levels (owner, admin, editor, viewer) and instrument roles (singer, guitarist, bassist,
   drummer, keyboards) that change what gig mode puts first.
 - The installed iPhone test was reported good. The main items in flight are the email setup for password reset and
-  sign-in codes, the GetSongBPM key, and the live test of offline editing and the flash limit (both built, not yet on the site).
+  sign-in codes, and the live test of offline editing, the flash limit and the backup lookup (all built, not yet on the site).
 
 ## Done
 - [x] Interactive prototype (`prototype/`): bands, several setlists per band, song editing and reordering, original
@@ -30,6 +30,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Test build v2 | Email and password sign-in, bands, invite codes, songs, setlists, change history, iOS audio fix | v1 | Done |
 | Setlist screen | Song cards with title, artist, artist version, time signature, BPM, key, chords, notes, lyrics link, YouTube link, sheet music and tab links; reordering; metronome bar with flash; light and dark; offline reading | v1 | Done |
 | Key and BPM lookup | Look up button, picker of matches, Edge Function `lookup-song` calling GetSongBPM | none | Built, waiting for the API key |
+| Backup lookup source | The function falls back to Song Finder (no key needed) when there is no GetSongBPM key or it has no match; every match shows its source and a confidence level, with a warning when two readings disagree | none (redeploy the function) | Built, not yet on the site |
 | Change history with reasons | History per song: who, when, what changed, optional reason | v2 | Done |
 | Roles and gig mode | Instrument roles per band, full-screen gig mode with role-specific panels, root notes for bass | v3 | Done |
 | Access levels | Owner, admin, editor, viewer; band members screen; invite codes with a level; remove, leave, transfer ownership | v4 | Done |
@@ -47,13 +48,13 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | 3. Supabase schema and members-only rules | Done (SQL v1 to v7). Row-level security enforces membership and access level. Permission tests (97 checks for access levels, plus others) were run on a local copy of the database; they are not in the repository yet. |
 | 4. Milestone 1: solo app on the device | Replaced. The app went straight to a Supabase-backed version with a saved local copy for offline reading; editing offline is now built on top. The `core/` library is not used by the web app yet. |
 | 5. Sharing for testing | Done: sign-in, invite codes (typed), shared history. Sync is done by a queue in the app (see `architecture.md`), not by `core/`. |
-| 6. Catalog lookup | Partly done: GetSongBPM through an Edge Function with a link back on the site. Waiting for the API key. MusicBrainz versions, confidence merging and the cache table are not built. |
+| 6. Catalog lookup | Partly done: GetSongBPM through an Edge Function with a link back on the site (waiting for the API key), plus Song Finder as a backup that needs no key. Each match shows its source and a confidence level. MusicBrainz versions, merging two sources into one result and the cache table are not built. |
 | 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Flash safety rule and first-time warning built. Not done: iPhone install guide, high-contrast mode. |
 
 ## In progress and waiting
-1. **GetSongBPM API key.** The documentation confirms a key is required, and a visible link back (done). If no key arrives
-   in a day or two, add a backup source behind the same function (Song Finder is the candidate; check its HTTP docs,
-   test from your side, and mind its per-address rate limit).
+1. **GetSongBPM API key.** The documentation confirms a key is required, and a visible link back (done). The lookup no
+   longer depends on it: without a key, the function uses Song Finder. Song Finder is new, rate-limited per address and
+   covers less-known songs unevenly, so test it from your side and keep the GetSongBPM application going.
 2. **Email sending.** Password reset, sign-in codes and sign-up confirmation need a custom email service in Supabase
    (the built-in sender only reaches team members and allows about 2 emails an hour). Then paste in the three email
    templates and, last, switch Confirm email on.
@@ -72,13 +73,13 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 5. [ ] **Tablet two-pane layout.** Setlist on the left, selected song on the right, from about 768 px wide.
        The earlier design asks for it; the web app is still one column.
 6. [ ] **Google sign-in.** Needs a Google Cloud setup and a test in the installed iPhone app first.
-7. [ ] **Catalog improvements.** MusicBrainz to list well-known versions, confidence merging with half-time flags,
+7. [ ] **Catalog improvements.** MusicBrainz to list well-known versions, merging two sources into one confidence level,
        a cache table, and "Original" versus "Changed for your band" shown on each song.
 8. [ ] **History restore.** A Restore button on a history entry, recorded as a new change.
 9. [ ] **Housekeeping.** Keep the SQL files and the tests in the repository (`sql/` already exists), reuse `core/`
        where it fits (link cleaner, offline tests), and show an app version number in the menu.
        Also: apply `cleanLink` to every stored link, as `AGENTS.md` requires (the web app currently only checks for http
-       and https), and show a confidence level on looked-up tempo and key.
+       and https).
 
 ## Later and ideas
 Not committed. Move any of these up by saying so.
@@ -104,7 +105,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 1 | Flash limit and first-time warning | Earlier design | Found when comparing the old notes with the app. | Now | Built |
 | 2 | Band logo on the app icon | You | Optional, can wait. | Later | Planned |
 | 3 | Google sign-in | You | Test in the installed iPhone app. | Next | Planned |
-| 4 | Backup source for key and BPM lookup | Claude | Only if the GetSongBPM key does not arrive. | Next | Planned |
+| 4 | Backup source for key and BPM lookup | Claude | Song Finder, used when there is no GetSongBPM key or no match. | Now | Built |
 | 5 | Full lyrics text instead of a link | You | Said it may be added later. | Later | Idea |
 | 6 | iPhone install guide | Earlier design | You could not find the install option. | Next | Planned |
 | 7 | Tablet two-pane layout | Earlier design | Setlist left, song right. | Next | Planned |

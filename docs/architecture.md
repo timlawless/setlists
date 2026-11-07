@@ -33,7 +33,7 @@ Band member's phone, tablet or laptop (browser, or installed from the home scree
 Supabase project
   Auth            email and password, emailed codes (sign-up, sign-in, reset)
   Postgres        tables, row-level security, functions and triggers
-  Edge Function   lookup-song  ->  GetSongBPM API (key held as a secret)
+  Edge Function   lookup-song  ->  GetSongBPM API (key held as a secret), then Song Finder as the backup
   Realtime        enabled for song and setlist tables, not used by the app yet
 
 GitHub Pages serves the app files from docs/setlist-pwa-v2/.
@@ -45,8 +45,9 @@ An email service (SMTP) sends the sign-in, sign-up and reset emails.
 | Client app | One `index.html` module (interface, logic, metronome), `config.js`, `sw.js`, a manifest and three icons | Loads supabase-js version 2 from the jsDelivr CDN. The earlier `core/` library is not used yet. |
 | Hosting | GitHub Pages, from `docs/setlist-pwa-v2/` | Everything in `docs/` is public. Keep SQL files and secrets out of it. |
 | Database and auth | One Supabase project | The browser uses only the publishable key. |
-| Edge Function `lookup-song` | TypeScript on Deno; checks the caller is signed in, then asks GetSongBPM | Needs the secret `GETSONGBPM_API_KEY`. Verify JWT is off because the function checks sign-in itself. |
+| Edge Function `lookup-song` | TypeScript on Deno; checks the caller is signed in, then asks GetSongBPM (when its key is set) and falls back to Song Finder | Optional secret `GETSONGBPM_API_KEY`. Verify JWT is off because the function checks sign-in itself. |
 | GetSongBPM | Tempo, key and time signature | Needs an API key on each request and a visible link back. Key requested, not yet received. |
+| Song Finder (songfinder.dev) | Tempo, key and a second tempo reading, no key needed | Free, new (first release August 2026), rate-limited per address (about one call every one to five seconds), uneven coverage for less-known songs. Needs a descriptive User-Agent. Terms of use not reviewed. |
 | Email service | Any SMTP provider connected in Supabase | The built-in sender only reaches team members and allows about 2 emails an hour. |
 
 ## Data model
@@ -178,13 +179,17 @@ Server-side only (a Supabase Edge Function). The earlier plan, still the target:
    Flag half-time ambiguity (for example 85 or 170 BPM).
 4. The band's own values are stored separately and always win ("Original" vs "Changed for your band").
 
-**Built so far:** the Edge Function calls GetSongBPM with a title and artist (or a title alone, which lists matches by
-different artists). The person picks a match, the values fill the song form, and nothing is saved until they save.
-Not built: MusicBrainz, confidence levels, the cache table, and the original-versus-changed display.
+**Built so far:** the Edge Function tries GetSongBPM when its key is set, and otherwise (or when GetSongBPM has no match
+or errors) uses Song Finder: it searches by title and artist and reads tempo and key for up to three distinct
+recordings, spaced to respect the rate limit. With a title alone it lists matches by different artists. Each match
+shows its source and a confidence level: high when Song Finder's two readings agree, medium for a single source, and
+check when they disagree by more than 3 BPM (usually half or double time), with the second reading shown. Answers are
+kept for ten minutes. The person picks a match, the values fill the song form, and nothing is saved until they save.
+Not built: MusicBrainz, merging two sources into one result, a stored cache table, and the original-versus-changed
+display.
 
 Not usable: Spotify audio features (closed to new apps since 27 Nov 2024) and AcousticBrainz (frozen since 2022).
-Chords stay manual. Later options: a backup tempo source (Song Finder is the candidate, with its per-address rate limit
-and uneven coverage), band corrections, and analysing a band's own recording with Essentia.
+Chords stay manual. Later options: band corrections, and analysing a band's own recording with Essentia.
 
 Providers sit behind a small interface so one can be swapped if its terms change. Check each provider's terms on
 caching before storing results. Source accuracy varies, so values should be checked against the recording.
@@ -235,7 +240,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 
 ## Security notes
 - The publishable key in `config.js` is meant to be public. The secret or service-role key must never be in the app or repository.
-- The GetSongBPM key lives only as an Edge Function secret.
+- The GetSongBPM key lives only as an Edge Function secret. Song Finder needs no key.
 - All text from the database is escaped before display, links are accepted only if they start with http or https, and
   the band logo is checked again before it is shown.
 - Emails contain codes, not links, and codes expire. Passwords must be at least 8 characters.
@@ -262,7 +267,7 @@ delete-song update. `core/` has its own 23 tests.
 - A browser may clear saved data on a rarely used iPhone, losing changes that were still waiting.
 - Email sign-in features depend on connecting an email service and editing three templates.
 - Google sign-in is not built; sign-in could be lost on iPhone when redirected through Safari.
-- Key and BPM lookup waits on a GetSongBPM key, and the data is incomplete for some songs.
+- Key and BPM lookup works without a GetSongBPM key through Song Finder, which is new, rate-limited and untested from the live site. Data is incomplete for some songs and can be half or double time.
 - History cannot be restored with a button, and membership changes are not in the history.
 - Invite codes can be reused until they expire.
 - The home-screen icon is the same for every band.
