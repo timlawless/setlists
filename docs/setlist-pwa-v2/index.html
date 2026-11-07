@@ -48,6 +48,7 @@ pre{margin:6px 0;white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace
 #toast{position:fixed;left:12px;right:12px;bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
 dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);max-width:560px;width:calc(100% - 24px);padding:14px}
 dialog::backdrop{background:#0008}
+#syncChip{flex:none;padding:6px 10px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);font-size:13px;white-space:nowrap}
 input:disabled,textarea:disabled,select:disabled{opacity:1;color:var(--ink)}
 li select{width:auto}
 .rl{margin-top:6px;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -71,6 +72,7 @@ li select{width:auto}
   <img id="logoImg" alt="" hidden style="height:34px;width:34px;object-fit:contain;border-radius:6px;flex:none">
   <select id="band" aria-label="Band"></select>
   <select id="setlist" aria-label="Setlist"></select>
+  <button id="syncChip" hidden>Offline</button>
   <button id="menuBtn" aria-label="Menu">☰</button>
 </header>
 <main>
@@ -132,6 +134,14 @@ li select{width:auto}
   <div class="row"><button id="signOut">Sign out</button></div>
 </dialog>
 
+<dialog id="syncDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Sync</b><button id="syncClose">Close</button></div>
+  <p><small id="syncState"></small></p>
+  <h3>Waiting to sync</h3><ul id="syncPending"></ul>
+  <h3>Needs your attention</h3><ul id="syncIssues"></ul>
+  <div class="row"><button id="syncNow" class="primary">Sync now</button></div>
+</dialog>
+
 <dialog id="memDlg">
   <div class="row" style="margin:0"><b style="flex:3">Band members</b><button id="memClose">Close</button></div>
   <p><small id="myLevel"></small></p>
@@ -171,15 +181,123 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const safe = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
 const norm = (u) => { u = (u || '').trim(); return !u ? null : /^https?:\/\//i.test(u) ? u : 'https://' + u; };
 const say = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(say.t); say.t = setTimeout(() => t.classList.remove('on'), 3500); };
-const must = async (p) => { const r = await p; if (r.error) { say('Error: ' + r.error.message); throw r.error; } return r.data; };
+const must = async (p) => {
+  const r = await p;
+  if (r.error) { say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message); throw r.error; }
+  return r.data;
+};
 
 let user = null, bandId = null, setlistId = null, items = [], openId = null, bandRows = [];
 let matches = [], forcePick = null;
 const ck = (k) => `c:${user.id}:${k}`;
 async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
+  if (queue.length) { const mine = localStorage.getItem(k); if (mine) return JSON.parse(mine); } // changes are waiting to sync: show the local copy
   try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); return v; }
   catch (e) { const c = localStorage.getItem(k); if (c) { say('Offline: showing the saved copy'); return JSON.parse(c); } throw e; }
 }
+
+// ---- offline editing: changes are saved on the device first and sent when there is a connection
+let queue = [], issues = [], flushing = false, pendingReload = false;
+const qk = () => `q:${user.id}`, ik = () => `qi:${user.id}`;
+const uuid = () => crypto.randomUUID();
+const same = (a, b) => String(a ?? '') === String(b ?? '');
+function loadQ() { try { queue = JSON.parse(localStorage.getItem(qk()) || '[]'); issues = JSON.parse(localStorage.getItem(ik()) || '[]'); } catch { queue = []; issues = []; } updateChip(); }
+function saveQ() { try { localStorage.setItem(qk(), JSON.stringify(queue)); localStorage.setItem(ik(), JSON.stringify(issues)); } catch {} updateChip(); }
+function enqueue(...ops) {
+  const now = new Date().toISOString();
+  ops.forEach((o) => queue.push({ ...o, qid: uuid(), at: now, offline: !navigator.onLine }));
+  saveQ(); flush();
+}
+const persist = (key, v) => { try { localStorage.setItem(ck(key), JSON.stringify(v)); } catch {} };
+const persistItems = () => persist('items:' + setlistId, items);
+const transient = (e) => !e.code || e.code === 'PGRST301' || /jwt/i.test(e.message || '');
+const verdict = (e, dupOk) => (!e ? 'done' : dupOk && e.code === '23505' ? 'done' : transient(e) ? 'retry' : { fail: e.message });
+async function upd(table, vals, col, val) {
+  const r = await sb.from(table).update(vals).eq(col, val).select('id');
+  if (r.error) return verdict(r.error);
+  return r.data.length ? 'done' : { fail: 'That item no longer exists, or you no longer have permission to change it' };
+}
+async function runSongEdit(op) {
+  for (let tries = 0; tries < 3; tries++) {
+    const cur = await sb.from('songs').select('*').eq('id', op.sid).maybeSingle();
+    if (cur.error) return verdict(cur.error);
+    const row = cur.data;
+    if (!row || row.deleted_at) return { fail: 'This song was deleted by someone else' };
+    const apply = {}, conflicts = [];
+    for (const [k, v] of Object.entries(op.set)) {
+      if (same(row[k], v)) continue;
+      if (same(row[k], op.base[k])) apply[k] = v; else conflicts.push({ field: k, mine: v, theirs: row[k] });
+    }
+    if (Object.keys(apply).length) {
+      const r = await sb.from('songs').update({ ...apply, change_note: op.note || (op.offline ? 'Edited offline' : null) }).eq('id', op.sid).eq('updated_at', row.updated_at).select('id');
+      if (r.error) return verdict(r.error);
+      if (!r.data.length) continue; // someone changed the song meanwhile: merge again
+    }
+    return conflicts.length ? { conflicts } : 'done';
+  }
+  return 'retry';
+}
+async function runOp(op) {
+  switch (op.t) {
+    case 'songNew': return verdict((await sb.from('songs').insert(op.row)).error, true);
+    case 'slAdd': return verdict((await sb.from('setlist_songs').insert(op.row)).error, true);
+    case 'linkAdd': return verdict((await sb.from('song_links').insert(op.row)).error, true);
+    case 'slPos': return upd('setlist_songs', { position: op.position }, 'id', op.id);
+    case 'slRemove': return upd('setlist_songs', { deleted_at: op.at }, 'id', op.id);
+    case 'songDel': return upd('songs', { deleted_at: op.at }, 'id', op.sid);
+    case 'linkDel': return upd('song_links', { deleted_at: op.at }, 'id', op.id);
+    case 'song': return runSongEdit(op);
+  }
+  return { fail: 'Unknown change' };
+}
+async function flush(reload = true) {
+  if (flushing || !user || !queue.length) return;
+  flushing = true; let did = false;
+  try {
+    while (queue.length) {
+      let r; try { r = await runOp(queue[0]); } catch { r = 'retry'; }
+      if (r === 'retry') break; // no connection: try again later
+      const op = queue.shift(); did = true;
+      if (r !== 'done') issues.push({ ...op, ...r });
+      saveQ();
+    }
+  } finally { flushing = false; saveQ(); }
+  if (did && !queue.length && reload) reloadSoon();
+}
+function reloadSoon() { // refresh from the server, but not while someone is typing in a song
+  if ($('list').contains(document.activeElement)) { pendingReload = true; return; }
+  pendingReload = false; if (user && setlistId) loadSetlist();
+}
+function describe(o) {
+  const t = `“${o.label || 'song'}”`;
+  return ({ song: `Edit ${t}: ${Object.keys(o.set || {}).join(', ')}`, songNew: `New song ${t}`, songDel: `Delete ${t}`, slAdd: `Add ${t} to the setlist`, slPos: `Move ${t} in the setlist`, slRemove: `Remove ${t} from the setlist`, linkAdd: `Add a link to ${t}`, linkDel: `Remove a link from ${t}` })[o.t] || 'Change';
+}
+function updateChip() {
+  const c = $('syncChip'); if (!c) return;
+  c.hidden = !user || !(queue.length || issues.length || !navigator.onLine);
+  c.textContent = issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
+}
+function drawSync() {
+  $('syncState').textContent = !navigator.onLine ? 'You are offline. Changes are saved on this device and will sync when you are back online.' : queue.length ? 'Changes are waiting to sync.' : 'Everything is synced.';
+  $('syncPending').innerHTML = queue.map((o) => `<li><small>${esc(describe(o))}</small></li>`).join('') || '<li><small>Nothing waiting</small></li>';
+  $('syncIssues').innerHTML = issues.map((o) => (o.conflicts
+    ? `<li><span>${esc(describe(o))}<br>${o.conflicts.map((c) => `<small>${esc(c.field)}: yours “${esc(String(c.mine ?? ''))}”, theirs “${esc(String(c.theirs ?? ''))}”</small>`).join('<br>')}</span><span><button data-mine="${o.qid}">Use mine</button> <button data-theirs="${o.qid}">Keep theirs</button></span></li>`
+    : `<li><span>${esc(describe(o))}<br><small>Not saved: ${esc(o.fail || 'unknown problem')}</small></span><button data-dis="${o.qid}">Dismiss</button></li>`)).join('') || '<li><small>No problems</small></li>';
+}
+$('syncChip').onclick = () => { drawSync(); $('syncDlg').showModal(); };
+$('syncClose').onclick = () => $('syncDlg').close();
+$('syncNow').onclick = async () => { await flush(); drawSync(); };
+$('syncIssues').onclick = (e) => {
+  const d = e.target.dataset, o = issues.find((x) => x.qid === (d.mine || d.theirs || d.dis)); if (!o) return;
+  issues = issues.filter((x) => x !== o);
+  if (d.mine) queue.push({ t: 'song', sid: o.sid, label: o.label, qid: uuid(), at: new Date().toISOString(), offline: false, note: 'Offline edit kept over a conflicting change', base: Object.fromEntries(o.conflicts.map((c) => [c.field, c.theirs])), set: Object.fromEntries(o.conflicts.map((c) => [c.field, c.mine])) });
+  saveQ(); drawSync(); if (d.mine) flush(); else reloadSoon();
+};
+window.addEventListener('online', () => { updateChip(); flush(); });
+window.addEventListener('offline', updateChip);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flush(); });
+setInterval(() => { updateChip(); if (queue.length) flush(); }, 20000);
+$('list').addEventListener('focusout', () => setTimeout(() => { if (pendingReload && !$('list').contains(document.activeElement)) reloadSoon(); }, 300));
 
 // ---- appearance
 const root = document.documentElement;
@@ -370,7 +488,8 @@ $('chPwGo').onclick = async () => {
   try { await must(sb.auth.updateUser({ password: pw })); $('chPw').value = ''; say('Password changed'); } catch {}
 };
 $('signIn').onclick = async () => { await must(sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value })); };
-$('signOut').onclick = async () => { Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
+$('signOut').onclick = async () => {
+  if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
 sb.auth.onAuthStateChange((e, s) => {
   const before = user?.id || null; user = s?.user || null; $('who').textContent = user ? user.email : 'Menu';
   if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
@@ -381,6 +500,7 @@ sb.auth.onAuthStateChange((e, s) => {
 // ---- bands and setlists
 async function loadBands() {
   if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
+  loadQ(); await flush(false);
   try {
     bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme,logo)').eq('user_id', user.id)));
     $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
@@ -432,6 +552,7 @@ $('slRenameBtn').onclick = async () => {
 };
 $('slDup').onclick = async () => {
   if (!setlistId) return say('Pick a setlist first');
+  if (queue.length) return say('Wait for your changes to finish syncing first.');
   const name = ($('setlist').selectedOptions[0]?.text || 'Setlist') + ' (copy)';
   try {
     const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
@@ -501,23 +622,29 @@ $('list').onclick = async (e) => {
   try {
     if (a === 'toggle') { openId = openId === sid ? null : sid; render(); }
     else if (a === 'up' || a === 'down') {
-      const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j];
-      await Promise.all([must(sb.from('setlist_songs').update({ position: y.position }).eq('id', x.id)), must(sb.from('setlist_songs').update({ position: x.position }).eq('id', y.id))]);
-      await loadSetlist();
+      const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
+      x.position = py; y.position = px; items.sort((m, n) => m.position - n.position);
+      persistItems(); enqueue({ t: 'slPos', id: x.id, position: py, label: x.songs.title }, { t: 'slPos', id: y.id, position: px, label: y.songs.title }); render();
     }
     else if (a === 'play') { await toggleClick(items[i].songs); }
     else if (a === 'save') {
       const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
       if (!p.title) return say('A title is needed');
-      await must(sb.from('songs').update({ title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}), change_note: art.querySelector('[data-r="reason"]').value.trim() || null }).eq('id', sid));
-      say('Saved'); await loadSetlist();
+      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
+      const song = items[i].songs, set = {}, base = {};
+      Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
+      if (!Object.keys(set).length) return say('Nothing has changed');
+      Object.assign(song, set); const l = libFor === bandId ? lib.find((x) => x.id === sid) : null; if (l) Object.assign(l, set);
+      persistItems(); persistLib();
+      enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null });
+      say(navigator.onLine ? 'Saved' : 'Saved on this device. It will sync when you are back online.'); render();
     }
-    else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { await must(sb.from('setlist_songs').update({ deleted_at: new Date().toISOString() }).eq('id', id)); openId = null; await loadSetlist(); } }
+    else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { const x = items[i]; items.splice(i, 1); openId = null; persistItems(); enqueue({ t: 'slRemove', id: x.id, label: x.songs.title }); render(); } }
     else if (a === 'delsong') {
       const t = items[i].songs.title;
       if (!confirm(`Delete “${t}” from this band? It will disappear from every setlist.`)) return;
-      await must(sb.from('songs').update({ deleted_at: new Date().toISOString() }).eq('id', sid));
-      openId = null; say('Song deleted'); await loadSetlist();
+      items = items.filter((x) => x.songs.id !== sid); if (libFor === bandId) lib = lib.filter((x) => x.id !== sid);
+      persistItems(); persistLib(); enqueue({ t: 'songDel', sid, label: t }); openId = null; say('Song deleted'); render();
     }
     else if (a === 'hist') {
       const [rows, mem] = await Promise.all([
@@ -553,20 +680,30 @@ $('list').onclick = async (e) => {
     }
     else if (a === 'addlink') {
       const g = (k) => art.querySelector(`[data-l="${k}"]`).value.trim(), url = norm(g('url')); if (!url) return say('Add a link first');
-      await must(sb.from('song_links').insert({ band_id: bandId, song_id: sid, kind: g('kind'), label: g('label'), url, added_by: user.id }));
-      art.querySelector('[data-l="url"]').value = ''; art.querySelector('[data-l="label"]').value = ''; localStorage.removeItem(ck('links:' + sid)); loadLinks(sid);
+      const row = { id: uuid(), band_id: bandId, song_id: sid, kind: g('kind'), label: g('label'), url, added_by: user.id };
+      const lk = ck('links:' + sid), have = localStorage.getItem(lk);
+      if (have) persist('links:' + sid, [...JSON.parse(have), { id: row.id, kind: row.kind, label: row.label, url }]);
+      enqueue({ t: 'linkAdd', row, label: items[i].songs.title });
+      art.querySelector('[data-l="url"]').value = ''; art.querySelector('[data-l="label"]').value = ''; loadLinks(sid);
     }
-    else if (a === 'dellink') { await must(sb.from('song_links').update({ deleted_at: new Date().toISOString() }).eq('id', b.dataset.lid)); loadLinks(sid); }
+    else if (a === 'dellink') {
+      const lk = ck('links:' + sid), have = localStorage.getItem(lk);
+      if (have) persist('links:' + sid, JSON.parse(have).filter((x) => x.id !== b.dataset.lid));
+      enqueue({ t: 'linkDel', id: b.dataset.lid, label: items[i].songs.title }); loadLinks(sid);
+    }
   } catch { /* the error toast has already been shown */ }
 };
 
 // ---- song library: search, add to the setlist, delete
-let lib = [];
-async function addToSetlist(songId, keepOpen) {
-  const last = await must(sb.from('setlist_songs').select('position').eq('setlist_id', setlistId).order('position', { ascending: false }).limit(1));
-  await must(sb.from('setlist_songs').insert({ band_id: bandId, setlist_id: setlistId, song_id: songId, position: (last[0]?.position ?? 0) + 1 }));
+let lib = [], libFor = null;
+const persistLib = () => { if (libFor === bandId) persist('lib:' + bandId, lib); };
+function addToSetlist(song, keepOpen) {
+  const position = (items.length ? Math.max(...items.map((x) => x.position)) : 0) + 1;
+  const row = { id: uuid(), band_id: bandId, setlist_id: setlistId, song_id: song.id, position };
+  items.push({ id: row.id, position, songs: song }); items.sort((m, n) => m.position - n.position);
+  persistItems(); enqueue({ t: 'slAdd', row, label: song.title });
   if (!keepOpen) $('addDlg').close();
-  await loadSetlist(); if (keepOpen) drawLib();
+  render(); if (keepOpen) drawLib();
 }
 function drawLib() {
   const q = $('songSearch').value.trim().toLowerCase(), used = new Set(items.map((x) => x.songs.id));
@@ -574,32 +711,32 @@ function drawLib() {
   $('libList').innerHTML = rows.map((x) => `<li><span><b>${esc(x.title)}</b><br><small>${esc([x.artist, x.bpm && x.bpm + ' bpm', x.musical_key].filter(Boolean).join(' · '))}</small></span><span>${used.has(x.id) ? '<span class="pill">In setlist</span>' : `<button data-add="${x.id}" class="primary">Add</button>`} <button data-del="${x.id}">Delete</button></span></li>`).join('') || '<li><small>No songs found</small></li>';
 }
 async function openLibrary() {
+  if (!setlistId) return say('Create or pick a setlist first');
   try {
-    lib = await must(sb.from('songs').select('id,title,artist,bpm,musical_key').eq('band_id', bandId).is('deleted_at', null).order('title'));
-    $('songSearch').value = ''; drawLib(); $('addDlg').showModal();
+    lib = await cached(ck('lib:' + bandId), () => must(sb.from('songs').select('*').eq('band_id', bandId).is('deleted_at', null).order('title')));
+    libFor = bandId; $('songSearch').value = ''; drawLib(); $('addDlg').showModal();
   } catch {}
 }
 $('addBtn').onclick = openLibrary;
 $('songSearch').oninput = drawLib;
 $('addClose').onclick = () => $('addDlg').close();
-$('libList').onclick = async (e) => {
+$('libList').onclick = (e) => {
   const add = e.target.dataset.add, del = e.target.dataset.del;
-  try {
-    if (add) await addToSetlist(add, true);
-    else if (del) {
-      const x = lib.find((y) => y.id === del);
-      if (!x || !confirm(`Delete “${x.title}” from this band? It will disappear from every setlist.`)) return;
-      await must(sb.from('songs').update({ deleted_at: new Date().toISOString() }).eq('id', del));
-      lib = lib.filter((y) => y.id !== del); if (openId === del) openId = null; say('Song deleted'); drawLib(); await loadSetlist();
-    }
-  } catch {}
+  if (add) { const song = lib.find((y) => y.id === add); if (song) addToSetlist(song, true); }
+  else if (del) {
+    const x = lib.find((y) => y.id === del);
+    if (!x || !confirm(`Delete “${x.title}” from this band? It will disappear from every setlist.`)) return;
+    lib = lib.filter((y) => y.id !== del); items = items.filter((y) => y.songs.id !== del); if (openId === del) openId = null;
+    persistLib(); persistItems(); enqueue({ t: 'songDel', sid: del, label: x.title }); say('Song deleted'); drawLib(); render();
+  }
 };
-$('addNew').onclick = async () => {
+$('addNew').onclick = () => {
   const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
-  try {
-    const x = await must(sb.from('songs').insert({ band_id: bandId, title, artist: $('nArtist').value.trim(), bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, created_by: user.id }).select().single());
-    ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); await addToSetlist(x.id);
-  } catch {}
+  if (!setlistId) return say('Create or pick a setlist first');
+  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', root_notes: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
+  enqueue({ t: 'songNew', label: title, row: { id: song.id, band_id: bandId, title, artist: song.artist, bpm: song.bpm, musical_key: song.musical_key, created_by: user.id } });
+  if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); persistLib(); }
+  ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); addToSetlist(song);
 };
 
 // ---- gig mode
