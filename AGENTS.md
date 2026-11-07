@@ -36,7 +36,7 @@ offline use. Used on iPhone, Android and tablets. Backend is Supabase. The live 
 ## Known gaps against these rules (as of November 2026)
 These are being worked on. Do not copy the gap into new code.
 - **Links:** the web app only checks for http and https. It does not yet unwrap Google redirect links or strip tracking.
-- **Confidence:** looked-up tempo and key are shown without a confidence level.
+- **Confidence:** looked-up matches show a confidence level (high, medium, check), but two sources are not yet merged into one result.
 - **History restore:** history is recorded, but there is no Restore button.
 - **Tests:** the permission tests and the sync tests were run on a local Postgres and in Node, but are not in the repository.
 - **`core/`:** the web app does not use it yet; the metronome scheduler, queue and flash rule were rewritten in the page.

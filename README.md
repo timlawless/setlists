@@ -17,7 +17,7 @@ Live app: https://timlawless.github.io/setlists/setlist-pwa-v2/
 - Metronome with click and an optional screen flash (limited to three flashes a second), tuned to work on iPhone.
 - Works without signal: saved data can be read offline, and edits made offline sync when the connection returns.
 - Band colour and logo, light and dark mode.
-- Key and BPM lookup through an Edge Function (needs a GetSongBPM key, not yet received).
+- Key and BPM lookup through an Edge Function: GetSongBPM when its key is set, otherwise Song Finder (no key). Each match shows its source and a confidence level.
 
 ## Layout
 | Folder | What it is |
@@ -58,4 +58,4 @@ The database and screen tests used during development are not in the repository 
 
 ## Not built yet
 Google sign-in, the iPhone install guide, the tablet two-pane layout, restore from history, the MusicBrainz and
-confidence parts of the catalog lookup, full lyrics text, and a per-band app icon. See `docs/roadmap.md`.
+merging of lookup sources, full lyrics text, and a per-band app icon. See `docs/roadmap.md`.

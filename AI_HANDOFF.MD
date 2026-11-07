@@ -30,9 +30,9 @@ limited flash, offline reading, offline editing with sync.
 - **Built, not yet confirmed on the site:** the sign-in codes, reset and logo update (SQL v7; needs an email service
   connected in Supabase first), and the offline editing and flash limit update (one `index.html`, no SQL).
 - **Waiting:** the GetSongBPM API key (the documentation says a key is required, and a link back, which is in place).
-  If it does not arrive, add Song Finder as a backup behind the same function.
+  The lookup no longer depends on it: the Edge Function falls back to Song Finder (built, not yet tested from the live site).
 - **Not built:** Google sign-in, iPhone install guide, tablet two-pane layout, history restore, MusicBrainz and
-  confidence levels, full lyrics text, per-band app icon, band links, high-contrast mode.
+  merging lookup sources, full lyrics text, per-band app icon, band links, high-contrast mode.
 
 ## 4. Next tasks, in order
 1. Help Tim finish the email setup and test reset and sign-in codes in the installed iPhone app.
