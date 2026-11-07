@@ -2,44 +2,133 @@
 
 Tick items off as they are done. Read `architecture.md` first: it records the decisions and the reasons.
 
+Last updated: November 2026. This version replaces the earlier plan, which was written before the web app was built.
+The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so nothing from it is lost.
+
 ## Where things stand
 - Free, never commercial. Devices: iPhone, Android, tablets. Backend: Supabase.
-- Target is a PWA for band members. **PWA first or Expo first is still open** (step 2 decides it).
-- Sharing is not needed at first but should arrive early so it can be tested with bandmates.
+- **PWA first is decided and built.** The app is an installable web app served from `docs/setlist-pwa-v2/` on GitHub Pages.
+  The Expo (native) option is parked and can be revisited if a native feature is ever needed.
+- Sharing is built and can be tested with bandmates: sign-in, invite codes, shared songs and setlists, shared history.
+- The app has four access levels (owner, admin, editor, viewer) and instrument roles (singer, guitarist, bassist,
+  drummer, keyboards) that change what gig mode puts first.
+- The installed iPhone test was reported good. The main items in flight are the email setup for password reset and
+  sign-in codes, the GetSongBPM key, and the live test of offline editing (built, not yet on the site).
 
 ## Done
 - [x] Interactive prototype (`prototype/`): bands, several setlists per band, song editing and reordering, original
-      key/tempo with a version picker, YouTube link, lyrics link and lyrics text, sheet music and tab links, change history with restore,
-      offline demo, light and dark themes, metronome with sound and flash.
+      key/tempo with a version picker, YouTube link, lyrics link and lyrics text, sheet music and tab links, change
+      history with restore, offline demo, light and dark themes, metronome with sound and flash.
 - [x] `core/`: change history, offline queue, metronome scheduler and flash rule, link cleaner, sheet music link list. 23 tests.
 - [x] Architecture notes and decisions.
 - [x] Repo on GitHub.
+- [x] PWA test page and device tests (Android phone and tablet; iPhone browser and home-screen app).
+- [x] Web app, built in these releases (each SQL file is run once, in order, in the Supabase SQL Editor):
 
-## Next, in order
-1. [ ] **PWA test page.** Built: `docs/pwa-test/` (see its README for hosting and the test script). It still has to be
-       hosted and run on real devices. Open it on an iPhone, an Android phone and a tablet and check:
-       - install flow (iOS: Add to Home Screen; Android: install prompt);
-       - works offline after install;
-       - metronome click timing using the browser audio clock and `BeatScheduler`;
-       - screen wake lock, and whether the click keeps going when the screen locks;
-       - flash on screen, and the ring/silent switch on iPhone muting sound;
-       - tablet layout and landscape.
-2. [ ] **Decide PWA first or Expo first** from step 1's results. Update `architecture.md`.
-3. [ ] **Supabase schema and members-only rules.** Tables: users, bands, memberships (role), setlists, entries,
-       changes (append-only), catalog cache. Row-level security so only members of a band can read or write its data.
-       Write tests that prove an outsider cannot read or write anything, a member can, and only admins manage members.
-4. [ ] **Milestone 1: solo app on the device** (PWA or Expo, per step 2). Screens from the prototype; data stored on
-       the device; use `core/` for history, queue and metronome; tablet two-pane layout; lyrics section.
-       Use random UUIDs for all ids and record every edit as a change with its author.
-5. [ ] **Sharing for testing.** Sign-in, invite by typed code, sync by pushing the queue and pulling changes in
-       server order, history shared across members. Test with real bandmates.
-6. [ ] **Catalog lookup.** Provider interface and confidence merging in `core/` with tests, then an Edge Function
-       using MusicBrainz (find versions) and GetSongBPM (tempo, key; link back required). Cache results.
-7. [ ] **Polish.** Install guide for iPhone, wake lock on stage, "Auto" theme following the phone, high-contrast mode,
-       stage view with large lyrics and chords, first-time warning for the Flash option.
+| Release | What it added | SQL | Status |
+| --- | --- | --- | --- |
+| Test build v2 | Email and password sign-in, bands, invite codes, songs, setlists, change history, iOS audio fix | v1 | Done |
+| Setlist screen | Song cards with title, artist, artist version, time signature, BPM, key, chords, notes, lyrics link, YouTube link, sheet music and tab links; reordering; metronome bar with flash; light and dark; offline reading | v1 | Done |
+| Key and BPM lookup | Look up button, picker of matches, Edge Function `lookup-song` calling GetSongBPM | none | Built, waiting for the API key |
+| Change history with reasons | History per song: who, when, what changed, optional reason | v2 | Done |
+| Roles and gig mode | Instrument roles per band, full-screen gig mode with role-specific panels, root notes for bass | v3 | Done |
+| Access levels | Owner, admin, editor, viewer; band members screen; invite codes with a level; remove, leave, transfer ownership | v4 | Done |
+| Quality of life | Click button also stops the metronome; app reopens on the last-used setlist; no reload when returning to the tab | v5 | Done |
+| Manage songs, setlists, bands | Song library with search and delete; delete song from its details; setlist rename, duplicate, delete; owner-only band delete | v6 | Done |
+| Sign-in codes, reset, logo | Forgot password by emailed code, sign-in code, sign-up confirmation, change password, band logo | v7 | Built, waiting on email setup |
+| Offline editing | Edits are saved on the device and sync when there is a connection; conflicts are shown for you to resolve; sync status in the header | none | Built, not yet on the site |
+
+## The earlier plan: what happened to each step
+| Earlier step | Outcome |
+| --- | --- |
+| 1. PWA test page | Done. Android passed. The iPhone browser click was silent with the ring/silent switch on, fixed by switching the audio to the playback channel with a looping silent element. iPhone home-screen test reported good. |
+| 2. Decide PWA first or Expo first | Done: PWA first. |
+| 3. Supabase schema and members-only rules | Done (SQL v1 to v7). Row-level security enforces membership and access level. Permission tests (97 checks for access levels, plus others) were run on a local copy of the database; they are not in the repository yet. |
+| 4. Milestone 1: solo app on the device | Replaced. The app went straight to a Supabase-backed version with a saved local copy for offline reading; editing offline is now built on top. The `core/` library is not used by the web app yet. |
+| 5. Sharing for testing | Done: sign-in, invite codes (typed), shared history. Sync is done by a queue in the app (see `architecture.md`), not by `core/`. |
+| 6. Catalog lookup | Partly done: GetSongBPM through an Edge Function with a link back on the site. Waiting for the API key. MusicBrainz versions, confidence merging and the cache table are not built. |
+| 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Not done: iPhone install guide, high-contrast mode, the flash safety rule and first-time warning. |
+
+## In progress and waiting
+1. **GetSongBPM API key.** The documentation confirms a key is required, and a visible link back (done). If no key arrives
+   in a day or two, add a backup source behind the same function (Song Finder is the candidate; check its HTTP docs,
+   test from your side, and mind its per-address rate limit).
+2. **Email sending.** Password reset, sign-in codes and sign-up confirmation need a custom email service in Supabase
+   (the built-in sender only reaches team members and allows about 2 emails an hour). Then paste in the three email
+   templates and, last, switch Confirm email on.
+3. **Install the v7 update** (SQL v7 and the new page) and test reset, sign-in codes and the logo.
+4. **Install the offline editing update** and test it with the connection switched off.
+
+## Next up, in order
+1. [ ] **Flash safety (small, do first).** Gig mode and the metronome bar flash the whole screen on every beat when Flash
+       is on, up to 300 BPM, which is five flashes a second. The rule in the earlier design is no more than three a second:
+       every beat up to 180 BPM, beat 1 only above that. Apply it, and add a warning the first time Flash is switched on.
+2. [ ] **Finish the sign-in setup** (item 2 above) and test it in the installed iPhone app.
+3. [ ] **Test offline editing on real devices.** Airplane mode: edit a song, reorder, add and delete; reconnect; check
+       the history, and create a deliberate conflict from a second account.
+4. [ ] **iPhone install guide in the app.** There is no install button on iPhone; people must use Share, then Add to
+       Home Screen, and it was hard to find during testing. Show a short guide with a picture.
+5. [ ] **Tablet two-pane layout.** Setlist on the left, selected song on the right, from about 768 px wide.
+       The earlier design asks for it; the web app is still one column.
+6. [ ] **Google sign-in.** Needs a Google Cloud setup and a test in the installed iPhone app first.
+7. [ ] **Catalog improvements.** MusicBrainz to list well-known versions, confidence merging with half-time flags,
+       a cache table, and "Original" versus "Changed for your band" shown on each song.
+8. [ ] **History restore.** A Restore button on a history entry, recorded as a new change.
+9. [ ] **Housekeeping.** Keep the SQL files and the tests in the repository (`sql/` already exists), reuse `core/`
+       where it fits (link cleaner, flash rule, offline tests), show an app version number in the menu, and update
+       `README.md`, `AI_HANDOFF.MD` and `AGENTS.md` to describe the web app.
+
+## Later and ideas
+Not committed. Move any of these up by saying so.
+- Band logo on the app icon (the home-screen icon is fixed when the app is installed, so a per-band icon needs extra handling).
+- Band links such as `#band-name`, once the web address is settled. Domain and hosting are undecided.
+- High-contrast mode.
+- Full lyrics text stored in the app, members only (the earlier prototype had a lyrics text box; the web app has a lyrics link only).
+- Remember the last-used band across devices, as is done for setlists.
+- Gig date and venue on setlists (the columns exist; nothing shows them yet).
+- A printable or PDF setlist, and drag-and-drop reordering.
+- Link cleaning on paste (unwrap Google redirect links, strip tracking), using the `cleanLink` rule from `core/`.
+- Default label for a link (the site name) and adding a typed link on save.
+- A setlist note shown large in gig mode.
+- Membership changes (promotions, removals) in the history.
+- Single-use invite codes and cancelling an unused code.
+- Pruning of removed songs and old history (open question).
+
+## Backlog: changes you want to make
+Add a row for each change. Source says who suggested it. Priority is Now, Next or Later. Status is Idea, Planned, Built or Done.
+
+| # | Change | Source | Notes | Priority | Status |
+| --- | --- | --- | --- | --- | --- |
+| 1 | Flash limit and first-time warning | Earlier design | Found when comparing the old notes with the app. | Now | Planned |
+| 2 | Band logo on the app icon | You | Optional, can wait. | Later | Planned |
+| 3 | Google sign-in | You | Test in the installed iPhone app. | Next | Planned |
+| 4 | Backup source for key and BPM lookup | Claude | Only if the GetSongBPM key does not arrive. | Next | Planned |
+| 5 | Full lyrics text instead of a link | You | Said it may be added later. | Later | Idea |
+| 6 | iPhone install guide | Earlier design | You could not find the install option. | Next | Planned |
+| 7 | Tablet two-pane layout | Earlier design | Setlist left, song right. | Next | Planned |
+| 8 | History restore | Earlier design | Recorded as a new change. | Later | Planned |
+| 9 | App version number in the menu | Claude | Helps spot stale copies. | Next | Idea |
+| 10 | (add your next change here) |  |  |  |  |
+
+## Decisions since the earlier plan
+- **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
+  were built and then removed at your request; their database columns remain but are unused.
+- **Access levels replace admin and member:** owner, admin, editor, viewer. New people join as editors, or viewers if
+  the invite says so. Editors can delete songs and setlists (kept in the history). Only the owner can delete the band
+  or hand it on.
+- **Instrument roles are separate from access levels** and are stored per band.
+- **Band colour is a band setting** set by owners and admins. Light or dark mode stays personal.
+- **Two people changing the same field offline is shown to the person syncing, who picks Use mine or Keep theirs.** The
+  earlier design said the later change wins. This is different on purpose, so a change is never overwritten without
+  anyone seeing it. If you prefer the earlier rule, it is a small change.
+- **Emails carry codes, not links.** Links open in Safari rather than the installed iPhone app.
+- **Lyrics stay a link for now.**
+- **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
 ## Notes for whoever picks this up
-- Run `cd core && npm install && npm test` before and after changes. Keep `core/` free of platform code.
+- Run `cd core && npm install && npm test` before and after changes to `core/`. Keep `core/` free of platform code.
+- For any change that includes SQL: run the SQL first, then upload the new `index.html`. Upload to `docs/setlist-pwa-v2/`
+  and leave `config.js` alone. Open the app in a private window to avoid a stale copy.
 - Lyrics: never ship or fetch lyrics. See "Lyrics and links" in `architecture.md`.
 - Source accuracy for tempo and key varies. Show a confidence level and let the band's own values win.
 - Open questions are listed at the bottom of `architecture.md`.
