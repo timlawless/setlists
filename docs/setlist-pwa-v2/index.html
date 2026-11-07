@@ -103,7 +103,7 @@ li select{width:auto}
     <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
     <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
   </div>
-<p style="text-align:center"><small>BPM and key data from <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM</a></small></p>
+<p style="text-align:center"><small>BPM and key data from <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM</a> and <a href="https://songfinder.dev" target="_blank" rel="noopener">Song Finder</a></small></p>
 </main>
 
 <div id="bar">
@@ -669,7 +669,8 @@ $('list').onclick = async (e) => {
       const { data, error } = await sb.functions.invoke('lookup-song', { body: { title, artist } });
       if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch {} ul.innerHTML = ''; return say('Lookup failed: ' + m); }
       matches = data?.results || [];
-      ul.innerHTML = matches.length ? matches.map((m, k) => `<li><span>${esc(m.artist)} – ${esc(m.title)}<br><small>${m.tempo || '?'} bpm · ${esc(m.key_of || '?')} · ${esc(m.time_sig || '?')}</small></span><button data-a="usematch" data-k="${k}">Use</button></li>`).join('') : '<li><small>No matches. Try fewer words, or fill in the artist.</small></li>';
+      const CONF = { high: 'confidence: high', medium: 'confidence: medium', check: 'check this tempo' };
+      ul.innerHTML = matches.length ? matches.map((m, k) => `<li><span>${esc(m.artist)} – ${esc(m.title)}<br><small>${m.tempo || '?'} bpm · ${esc(m.key_of || '?')}${m.time_sig ? ' · ' + esc(m.time_sig) : ''} · ${esc(m.source || '')} · ${esc(CONF[m.confidence] || '')}</small>${m.note ? `<br><small>${esc(m.note)}</small>` : ''}</span><button data-a="usematch" data-k="${k}">Use</button></li>`).join('') + '<li><small>These values come from recordings. Check them against how your band plays the song; your own values always win.</small></li>' : '<li><small>No matches. Try fewer words, or fill in the artist.</small></li>';
     }
     else if (a === 'usematch') {
       const m = matches[+b.dataset.k]; if (!m) return;
