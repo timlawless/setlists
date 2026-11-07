@@ -798,18 +798,27 @@ function beep(t, f, len, vol) {
   g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
   o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + len);
 }
-function flash() {
-  $('dot').classList.add('on'); if ($('fl').checked) $('fx').classList.add('on');
+// The full-screen flash never goes above three flashes a second: every beat up to 180 BPM, above that only beat 1 of the bar
+// (and not at all if even that would be more than three a second).
+const flashAllowed = (bpm, beatInBar, perBar) => bpm <= 180 || (beatInBar === 0 && bpm / 60 / perBar <= 3);
+function flash(full) {
+  $('dot').classList.add('on'); if (full && $('fl').checked) $('fx').classList.add('on');
   setTimeout(() => { $('dot').classList.remove('on'); $('fx').classList.remove('on'); }, 90);
 }
 function tick() {
   const bpm = Math.min(300, Math.max(20, +$('bpm').value || 120));
   while (nextT < ctx.currentTime + 0.15) {
     beep(nextT, beat % perBar === 0 ? 1500 : 1000, 0.06, 0.5);
-    setTimeout(flash, Math.max(0, (nextT - ctx.currentTime) * 1000));
+    const full = flashAllowed(bpm, beat % perBar, perBar);
+    setTimeout(() => flash(full), Math.max(0, (nextT - ctx.currentTime) * 1000));
     nextT += 60 / bpm; beat++;
   }
 }
+$('fl').onchange = () => { // first-time warning before the screen flash is switched on
+  if ($('fl').checked && !localStorage.getItem('flashOk')) {
+    if (confirm('Flashing lights can trigger seizures in some people with photosensitive epilepsy. The flash is limited to three per second. Turn the flash on?')) localStorage.setItem('flashOk', '1'); else $('fl').checked = false;
+  }
+};
 async function getLock() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch {} }
 async function start() { if (running) return; await unlock(); running = true; beat = 0; nextT = ctx.currentTime + 0.05; timer = setInterval(tick, 25); $('go').textContent = 'Stop'; getLock(); syncPlay(); }
 function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; syncPlay(); }
