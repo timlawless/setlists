@@ -1,76 +1,88 @@
-# Go-live and test checklist
+# Alpha go-live checklist (first band, Tuesday)
 
-For the updates that are built but not yet confirmed on the live site: sign-in codes and reset, the band logo, offline
-editing, the flash limit, and the backup key and BPM lookup. Tick each box as you go. Test on a real phone as well as a laptop.
+This is a to-do list, not a program. There is nothing to run. Work through it from the top, do each step by hand, and
+tick the box when it is done. Parts A and B are the install and the tests; part C is the last jobs before you invite anyone.
 
-## A. Install, in this order
-- [ ] **1. SQL.** Supabase, SQL Editor, new query: paste all of `schema_v7_band_logo.sql`, Run. (Safe to run twice.)
-- [ ] **2. Email sending.** Authentication, SMTP Settings: connect your email service and send a test to an address that is
-      not on your Supabase team.
-- [ ] **3. Email templates.** Authentication, Email Templates: paste in the three templates from `supabase_email_templates.txt`.
-- [ ] **4. Confirm email.** Authentication, Providers, Email: switch **Confirm email** on. Do this last, and only after step 2 works.
-- [ ] **5. Edge Function.** Edge Functions, `lookup-song`: replace the code with the new `lookup-song.ts` and Deploy.
-      Leave the secret as it is. Verify JWT stays off. (You do not need a GetSongBPM key for it to work now.)
-- [ ] **6. App.** GitHub: upload the new `index.html` to `docs/setlist-pwa-v2/`. Leave `config.js` alone. Commit.
-- [ ] **7. Check the new page loaded.** Open the app in a private window. The line at the bottom of the page should say
-      "BPM and key data from GetSongBPM and Song Finder". If it does not, the old copy is still showing.
+Decisions for the alpha: **no email setup** (the "Forgot password?" and "Email me a sign-in code" buttons stay, and you
+tell testers they are in development), **Confirm email stays off**, and testers send problems to you on WhatsApp.
+
+## A. Install (skip any step you have already done)
+- [ ] **A1. SQL.** Supabase, SQL Editor, new query: paste all of `schema_v7_band_logo.sql`, Run. (Safe to run twice.)
+      Do this before A3, because the new page asks for the logo column.
+- [ ] **A2. Edge Function.** Supabase, Edge Functions, `lookup-song`: replace the code with the new `lookup-song.ts` and Deploy.
+      Verify JWT stays off. A GetSongBPM key is not needed.
+- [ ] **A3. App.** GitHub: upload the new `index.html` to `docs/setlist-pwa-v2/`. Leave `config.js` alone. Commit.
+- [ ] **A4. Check the new page loaded.** Open the app in a private window. The line at the bottom of the page should say
+      "BPM and key data from GetSongBPM and Song Finder". If not, the old copy is still showing.
+- [ ] **A5. Leave email alone.** Authentication, Providers, Email: **Confirm email must stay off**, and do not connect SMTP.
+      If Confirm email were on without working email, nobody could sign up.
+- [ ] **A6. (Optional) Database check.** Run `check_schema.sql` as a new query. Every row should say true except the v5 and
+      later rows you have not installed.
 
 ## B. Tests
-Write down what you see for each one. A short note is enough.
+Write down what you see. A short note is enough. Use a real phone for the first four.
 
 ### 1. Offline editing (phone, installed app)
-- [ ] Open a setlist while online. Turn on airplane mode. A chip saying **Offline** appears at the top.
-- [ ] Open a song, change its BPM, tap Save. Message says it was saved on this device. Chip says **1 waiting**.
+- [ ] Open a setlist online, then turn on airplane mode. A chip saying **Offline** appears at the top.
+- [ ] Change a song's BPM and tap Save. The message says it was saved on this device. The chip says **1 waiting**.
 - [ ] Move a song down, then add a new song with + Add song, Create and add. The screen updates straight away.
-- [ ] Close the app completely and open it again, still offline. Your changes are still shown. Chip still says waiting.
+- [ ] Close the app completely and open it again, still offline. Your changes are still shown.
 - [ ] Turn airplane mode off. Within about 20 seconds the chip disappears. (Or tap the chip, then Sync now.)
-- [ ] Open the song's History: the BPM change is listed, with the reason "Edited offline" if you typed none.
+- [ ] Open that song's History: the change is listed, with the reason "Edited offline" if you typed none.
 - [ ] On a laptop, check the changes are there too.
 
-### 2. Conflict (needs two accounts: A on the phone, B on the laptop)
-- [ ] A goes offline. A changes song X's BPM to 140 and adds a note.
+### 2. Conflict (two accounts: A on the phone, B on the laptop)
+- [ ] A goes offline and changes song X's BPM to 140 and adds a note.
 - [ ] B (online) changes song X's BPM to 130.
-- [ ] A reconnects. Chip says **Check sync (1)**. Tap it: it shows BPM, yours 140, theirs 130. The note has been saved.
-- [ ] Tap **Use mine**: BPM becomes 140 and the History reason says an offline edit was kept over a conflicting change.
-- [ ] Repeat the conflict and tap **Keep theirs**: BPM stays as B set it.
+- [ ] A reconnects. The chip says **Check sync (1)**. Tap it: it shows BPM, yours 140, theirs 130. The note was saved.
+- [ ] Tap **Use mine**: BPM becomes 140. Repeat the conflict and tap **Keep theirs**: BPM stays as B set it.
 
 ### 3. Flash limit
 - [ ] Tick **Flash** in the metronome bar. A warning appears the first time. Cancel: the box unticks. Tick again and accept.
-- [ ] At 120 BPM the screen flashes on every beat.
-- [ ] Set 200 BPM: the screen flashes only once per bar of four, not on every beat. (The small dot still beats every time.)
+- [ ] At 120 BPM the screen flashes on every beat. At 200 BPM it flashes only once per bar of four.
 
-### 4. Sign-in codes and reset (needs the email setup)
-- [ ] Sign out. Tap **Forgot password?** with your email. A code arrives by email. Enter it with a new password. You are signed in.
-- [ ] Sign out. Tap **Email me a sign-in code**, enter the code. You are signed in.
-- [ ] Sign up a new test account. A confirmation code arrives. Enter it.
-- [ ] Menu, Change password: works, and you can sign in with the new one.
-- [ ] Repeat the first two in the installed iPhone app.
+### 4. Install and join as a new tester (do this on both an iPhone and an Android phone)
+- [ ] Follow `tester-guide.md` exactly with a brand-new account: install the app, sign up, join with an invite code.
+- [ ] Note anything in the guide that was unclear or wrong, and fix the guide.
 
-### 5. Band logo
-- [ ] As owner or admin: Band members and access, Band settings, upload a PNG or JPG. It appears beside the band name and at the top of gig mode.
-- [ ] As an editor or viewer: you see the logo but have no upload control.
-- [ ] Remove the logo: it disappears.
+### 5. Access checks on the live site
+- [ ] Make a **Viewer** invite code and join with a second account. That account sees the songs but has no Add, Save or reorder buttons.
+- [ ] Sign up a third account and do not give it a code. It sees "No bands yet", and no songs or setlists.
 
-### 6. Key and BPM lookup
-- [ ] Open a song's Details, type a title (for example Walk This Way), tap **Look up key and BPM**. It can take 3 to 8 seconds.
-- [ ] Matches appear, each showing the source (Song Finder or GetSongBPM) and a confidence level. Tap **Use**, then Save changes.
-- [ ] Look up the same song again within ten minutes: the answer is instant.
-- [ ] Try a song with only a title and then with the artist as well.
-- [ ] If you see "Song Finder is busy", wait a few seconds and try again. If you see a message like "Song Finder answered 403",
-      send it to me: it would mean their bot protection is blocking the Supabase servers.
+### 6. Band logo
+- [ ] As owner: Band members and access, Band settings, upload a PNG or JPG. It shows beside the band name and in gig mode.
+- [ ] Remove it again if you do not want one.
 
-### 7. Quick check that nothing else broke
+### 7. Key and BPM lookup
+- [ ] On a song's Details, type a title (for example Walk This Way) and tap **Look up key and BPM**. It can take 3 to 8 seconds.
+- [ ] Matches show the source and a confidence level. Tap **Use**, then Save changes.
+- [ ] If you see a message like "Song Finder answered 403", send it to me. "Song Finder is busy" means wait a few seconds.
+
+### 8. Quick check that nothing else broke
 - [ ] Sign in, switch band, switch setlist (the last-used one opens), open gig mode, start the metronome and hear the click.
 
-## C. Report back
-```
-Installed all steps A1 to A7: yes / no (which failed:)
-1 Offline editing: pass / fail (notes:)
-2 Conflict: pass / fail
-3 Flash limit: pass / fail
-4 Sign-in codes and reset: pass / fail / not tested
-5 Logo: pass / fail
-6 Lookup: pass / fail (source shown:, time taken:)
-7 Quick check: pass / fail
-Anything odd:
-```
+## C. Before you invite anyone
+- [ ] **Back up the data.** The free Supabase plan has no automatic backups. If you have Postgres tools, run `pg_dump` with
+      the connection string from Project settings, Database. Otherwise open each table in the Table Editor and use Export
+      as CSV (bands, band_members, band_invites, songs, song_links, setlists, setlist_songs, change_log, profiles).
+      Repeat before every later update.
+- [ ] **Keep a way back.** Keep the previous `index.html`. To roll back, re-upload it, or open the file's history on GitHub
+      and restore the earlier version.
+- [ ] **Create the band** with your own account (you become the owner). Add a few songs and a setlist so testers land on something.
+- [ ] **Make the invite code on Tuesday morning.** Codes last 7 days and can be used by several people. Make an Editor code
+      for the band and, if you want, a Viewer code for anyone who should only look.
+- [ ] **Dry run.** One more pass through `tester-guide.md` with a fresh account on a phone that is not yours.
+- [ ] **Send the guide** on WhatsApp, with the invite code.
+
+## D. During the alpha
+- **Problems arrive on WhatsApp.** Paste them to me with the phone model, what the person did and what happened. A screenshot helps.
+- **A forgotten password** (the reset buttons need email, which is off): in the SQL Editor run
+  `update auth.users set encrypted_password = extensions.crypt('TempPass-123', extensions.gen_salt('bf')) where email = 'their@email.com';`
+  and tell them the temporary password, then ask them to change it in the menu. I could not test this against Supabase
+  itself, so try it first on a throwaway account of your own. If it says the function does not exist, tell me.
+- **Before any update:** back up, run any SQL first, then upload the page, and check it in a private window.
+- **Keep the project active.** A free Supabase project pauses after a week without use. An active band will not hit this.
+
+## E. Later (not for the alpha)
+Email sending with a domain you own, the three email templates, switching Confirm email on, and then testing sign-in
+codes, password reset and sign-up confirmation. `supabase_email_templates.txt` is ready for that.
