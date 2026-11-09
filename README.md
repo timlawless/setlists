@@ -4,7 +4,7 @@ A free, non-commercial web app (PWA) for bands: setlists with tempo, key, chords
 optional flash, a full-screen gig mode, several setlists per band, several bands per user, change history, and offline
 use. It works on iPhone, Android, tablets and laptops, and can be installed from the browser.
 
-Live app: https://timlawless.github.io/setlists/setlist-pwa-v2/
+Live app: https://timlawless.github.io/setlists/
 
 ## What it does today
 - Sign in with email and password, or with an emailed code. Reset a forgotten password with an emailed code.
@@ -16,13 +16,13 @@ Live app: https://timlawless.github.io/setlists/setlist-pwa-v2/
 - Instrument roles (singer, guitarist, bassist, drummer, keyboards) that change what gig mode shows first.
 - Metronome with click and an optional screen flash (limited to three flashes a second), tuned to work on iPhone.
 - Works without signal: saved data can be read offline, and edits made offline sync when the connection returns.
-- Band colour and logo, light and dark mode.
-- Key and BPM lookup through an Edge Function: GetSongBPM when its key is set, otherwise Song Finder (no key). Each match shows its source and a confidence level.
+- Band colour, logo and a short band link (for example `/#wc`) chosen by the owner or an admin. Light and dark mode.
+- Key and BPM lookup through an Edge Function: GetSongBPM when its key is set, otherwise Song Finder (no key). With Song Finder you pick the right recording from a ranked list, then get its tempo and key. Each match shows its source and a confidence level.
 
 ## Layout
 | Folder | What it is |
 |---|---|
-| `docs/setlist-pwa-v2/` | The app: `index.html` (interface and logic), `config.js` (Supabase URL and publishable key), `sw.js`, manifest and icons. Served by GitHub Pages. |
+| `docs/` (top-level files) | The app: `index.html` (interface and logic), `config.js` (Supabase URL and publishable key), `sw.js`, manifest and icons. GitHub Pages publishes this folder, so the app is at the root address. `docs/setlist-pwa-v2/` holds only a redirect page for the old address. |
 | `docs/architecture.md` | Decisions, data model, access control, offline, open questions. |
 | `docs/roadmap.md` | What is done, what is waiting, what to do next, and the backlog. |
 | `sql/` | Supabase SQL files, numbered in the order they are run. Add each new file here. |
@@ -40,7 +40,7 @@ Everything in `docs/` is published on the web by GitHub Pages. Do not put secret
    Switch Verify JWT off for it: the function checks sign-in itself.
 3. Connect an email service (Authentication, SMTP Settings) and paste in the three email templates (Authentication,
    Email Templates). Switch Confirm email on last.
-4. Put the project URL and the publishable key in `docs/setlist-pwa-v2/config.js`. Never use the secret or service-role key.
+4. Put the project URL and the publishable key in `docs/config.js`. Never use the secret or service-role key.
 5. Enable GitHub Pages for the `docs/` folder.
 
 ## Changing it

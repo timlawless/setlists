@@ -4,7 +4,7 @@
 A free, non-commercial web app (PWA) for bands: setlists with tempo, key, chords, notes, lyrics links and links, a
 metronome with an optional flash, gig mode, several setlists per band, several bands per user, change history, and
 offline use. Used on iPhone, Android and tablets. Backend is Supabase. The live app is a single page,
-`docs/setlist-pwa-v2/index.html`, served by GitHub Pages. PWA first is decided; Expo is parked.
+`docs/index.html`, served by GitHub Pages. PWA first is decided; Expo is parked.
 
 ## Start here
 1. Read `docs/architecture.md` (decisions and reasons) and `docs/roadmap.md` (what to do next).

@@ -11,8 +11,8 @@ parts were removed. If files like `useLiveSync.ts` or `SetlistManager.tsx` exist
 experiments, not as the live app, and check with Tim before building on them.
 
 ## 1. What exists
-- **Live app:** `docs/setlist-pwa-v2/` (`index.html`, `config.js`, `sw.js`, manifest, icons), served by GitHub Pages at
-  https://timlawless.github.io/setlists/setlist-pwa-v2/
+- **Live app:** `docs/` (`index.html`, `config.js`, `sw.js`, manifest, icons), served by GitHub Pages at
+  https://timlawless.github.io/setlists/
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and one Edge Function (`lookup-song`).
 - **Database files:** v1 to v7 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
