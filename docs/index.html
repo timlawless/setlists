@@ -1,0 +1,909 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Setlist</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16191f">
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#17191d;--mute:#667080;--line:#dcdfe4;--accent:#0f766e;--on:#fff;--flash:#f59e0b;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+header select{flex:1;min-width:0}
+main{max-width:820px;margin:0 auto;padding:12px 12px 190px}
+.card,article{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+input,select,textarea,button{font:inherit;color:var(--ink)}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+button{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
+button.primary{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.35}
+label{display:block;color:var(--mute);font-size:13px;margin-top:8px}
+label a{margin-left:8px}
+a{color:var(--accent)}
+.top{display:flex;align-items:center;gap:10px}
+.n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);font-weight:700;font-size:13px;flex:none}
+.t{flex:1;min-width:0}.t b{display:block}.t small{color:var(--mute)}
+.pill{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
+.btns,.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.btns>*{flex:1 1 70px}.row>*{flex:1 1 120px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 10px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+h2,h3{margin:14px 0 6px;font-size:15px}
+ul{list-style:none;margin:6px 0;padding:0}
+li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)}li button{flex:none}
+small{color:var(--mute)}
+pre{margin:6px 0;white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--mute)}
+#bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+.bt{display:flex;align-items:center;gap:8px;margin-bottom:6px}.bt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#dot{width:14px;height:14px;border-radius:50%;background:var(--line);flex:none}#dot.on{background:var(--flash)}
+.bc{display:flex;gap:6px;align-items:center}.bc input[type=number]{width:72px;text-align:center}.bc .fl{margin:0 0 0 auto;display:flex;gap:4px;align-items:center;color:var(--ink)}.fl input{width:auto}
+#fx{position:fixed;inset:0;z-index:40;background:var(--flash);opacity:0;pointer-events:none}#fx.on{opacity:.6}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);max-width:560px;width:calc(100% - 24px);padding:14px}
+dialog::backdrop{background:#0008}
+#syncChip{flex:none;padding:6px 10px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);font-size:13px;white-space:nowrap}
+input:disabled,textarea:disabled,select:disabled{opacity:1;color:var(--ink)}
+li select{width:auto}
+.rl{margin-top:6px;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gig{position:fixed;inset:0;z-index:15;background:var(--bg);overflow:auto;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 150px}
+#gig h1{font-size:clamp(28px,7vw,52px);line-height:1.1;margin:10px 0 2px}
+.gtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tiles{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
+.tile{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;text-align:center}
+.tile b{display:block;font-size:clamp(44px,14vw,96px);line-height:1.05;color:var(--accent)}
+.tile.xl{flex-basis:100%}.tile.xl b{font-size:clamp(80px,30vw,200px)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.panel h3{margin:0 0 6px;color:var(--mute)}
+.pbody{white-space:pre-wrap;font-size:clamp(18px,4.5vw,28px);line-height:1.5}
+.btnlink{display:inline-block;padding:14px 22px;border-radius:10px;background:var(--accent);color:var(--on);font-weight:700;text-decoration:none;font-size:20px}
+.next{margin:12px 0;font-size:18px;color:var(--mute)}.next b{color:var(--ink)}
+.gnav{display:flex;gap:8px;margin-top:12px}.gnav button{flex:1;padding:16px;font-size:18px}
+</style>
+</head>
+<body>
+<header>
+  <img id="logoImg" alt="" hidden style="height:34px;width:34px;object-fit:contain;border-radius:6px;flex:none">
+  <select id="band" aria-label="Band"></select>
+  <select id="setlist" aria-label="Setlist"></select>
+  <button id="syncChip" hidden>Offline</button>
+  <button id="menuBtn" aria-label="Menu">☰</button>
+</header>
+<main>
+  <section id="auth" class="card">
+    <div id="pSign">
+      <h2>Sign in</h2>
+      <label>Email<input id="email" type="email" autocomplete="username"></label>
+      <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
+      <label>Your name (sign up only)<input id="name"></label>
+      <div class="row"><button id="signIn" class="primary">Sign in</button><button id="signUp">Sign up</button></div>
+      <div class="row"><button id="forgot">Forgot password?</button><button id="codeLogin">Email me a sign-in code</button></div>
+    </div>
+    <div id="pCode" hidden>
+      <h2 id="codeTitle">Enter the code</h2>
+      <p><small id="codeHelp"></small></p>
+      <label>Code from the email<input id="codeIn" inputmode="numeric" autocomplete="one-time-code"></label>
+      <div id="codePw" hidden><label>New password (at least 8 characters)<input id="codePw1" type="password" autocomplete="new-password"></label></div>
+      <div class="row"><button id="codeGo" class="primary">Continue</button><button id="codeCancel">Back</button></div>
+    </div>
+    <div id="pNew" hidden>
+      <h2>Choose a new password</h2>
+      <label>New password (at least 8 characters)<input id="newPw" type="password" autocomplete="new-password"></label>
+      <div class="row"><button id="newPwGo" class="primary">Save password</button></div>
+    </div>
+  </section>
+  <div id="app" hidden>
+    <div id="nobands" class="card" hidden><b>No bands yet.</b><p>Create a band, or join one with an invite code.</p><button class="primary" data-open="menu">Create or join a band</button></div>
+    <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
+    <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
+  </div>
+<p style="text-align:center"><small>BPM and key data from <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM</a> and <a href="https://songfinder.dev" target="_blank" rel="noopener">Song Finder</a></small></p>
+</main>
+
+<div id="bar">
+  <div class="bt"><span id="dot"></span><b id="now">Metronome</b></div>
+  <div class="bc"><button id="bpmDn">−</button><input id="bpm" type="number" value="120" min="20" max="300" inputmode="numeric" aria-label="BPM"><button id="bpmUp">+</button><button id="go" class="primary">Start</button><label class="fl"><input type="checkbox" id="fl"> Flash</label></div>
+</div>
+<div id="gig" hidden></div>
+<div id="fx"></div><div id="toast"></div>
+
+<dialog id="menu">
+  <div class="row" style="margin:0"><b id="who" style="flex:3">Menu</b><button id="menuClose">Close</button></div>
+  <h3>Bands</h3>
+  <div class="row"><input id="newBand" placeholder="New band name"><button id="mkBand" class="primary">Create band</button></div>
+  <div class="row"><input id="joinCode" placeholder="Invite code"><button id="joinBand" class="primary">Join band</button></div>
+  <div class="row"><button id="memBtn">Band members and access</button></div>
+  <div id="slSec"><h3>Setlists</h3>
+  <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div>
+  <div class="row"><input id="slRename" placeholder="Rename this setlist"><button id="slRenameBtn">Rename</button></div>
+  <div class="row"><button id="slDup">Duplicate this setlist</button><button id="slDel">Delete this setlist</button></div></div>
+  <h3>My roles in this band</h3>
+  <div id="roles" class="row"></div>
+  <h3>Appearance</h3>
+  <div class="row"><select id="theme"><option value="auto">Light or dark: automatic</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+  <h3>Audio check</h3>
+  <div class="row"><button id="tone">Test tone</button></div><pre id="dbg"></pre>
+  <h3>Account</h3>
+  <div class="row"><input id="chPw" type="password" placeholder="New password (8+ characters)" autocomplete="new-password"><button id="chPwGo">Change password</button></div>
+  <div class="row"><button id="signOut">Sign out</button></div>
+</dialog>
+
+<dialog id="syncDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Sync</b><button id="syncClose">Close</button></div>
+  <p><small id="syncState"></small></p>
+  <h3>Waiting to sync</h3><ul id="syncPending"></ul>
+  <h3>Needs your attention</h3><ul id="syncIssues"></ul>
+  <div class="row"><button id="syncNow" class="primary">Sync now</button></div>
+</dialog>
+
+<dialog id="memDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Band members</b><button id="memClose">Close</button></div>
+  <p><small id="myLevel"></small></p>
+  <div class="row" id="linkRow" hidden><small id="linkTxt" style="flex:3;word-break:break-all"></small><button id="linkCopy">Copy band link</button></div>
+  <ul id="memList"></ul>
+  <p><small>Owner and Admin: full control. Editor: edit songs and setlists. Viewer: view only, with the metronome and gig mode.</small></p>
+  <div id="invSec" hidden>
+    <h3>Invite someone</h3>
+    <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake" class="primary">New invite code</button></div>
+    <p id="invCode"></p>
+  </div>
+  <div id="bandSec" hidden>
+    <h3>Band settings</h3>
+    <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
+    <label>Band link ending<input id="slugIn" placeholder="e.g. wc" autocapitalize="none" autocomplete="off" maxlength="30"></label>
+    <div class="row"><small id="slugPrev" style="flex:3;word-break:break-all"></small><button id="slugSave">Save link</button><button id="slugCopy">Copy link</button></div>
+    <div class="row"><label style="margin:0;flex:2">Band colour<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
+    <div class="row"><img id="logoPrev" alt="Band logo" hidden style="height:56px;width:56px;object-fit:contain;flex:0 0 auto"><label style="margin:0;flex:2">Band logo (PNG, JPG or SVG)<input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label><button id="logoRemove" hidden>Remove logo</button></div>
+    <div class="row" id="delBandRow" hidden><button id="delBand">Delete this band…</button></div>
+  </div>
+  <div class="row"><button id="leaveBand">Leave this band</button></div>
+</dialog>
+
+<dialog id="addDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Songs in this band</b><button id="addClose">Close</button></div>
+  <input id="songSearch" placeholder="Search songs" style="margin-top:10px">
+  <ul id="libList"></ul>
+  <h3>Create a new song</h3>
+  <div class="grid"><label>Title<input id="nTitle"></label><label>Artist<input id="nArtist"></label><label>BPM<input id="nBpm" type="number" inputmode="numeric"></label><label>Key<input id="nKey"></label></div>
+  <div class="row"><button id="addNew" class="primary">Create and add</button></div>
+</dialog>
+
+<script type="module">
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safe = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
+const norm = (u) => { u = (u || '').trim(); return !u ? null : /^https?:\/\//i.test(u) ? u : 'https://' + u; };
+const say = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(say.t); say.t = setTimeout(() => t.classList.remove('on'), 3500); };
+const must = async (p) => {
+  const r = await p;
+  if (r.error) { say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message); throw r.error; }
+  return r.data;
+};
+
+let user = null, bandId = null, setlistId = null, items = [], openId = null, bandRows = [];
+let matches = [], cands = [], forcePick = null;
+const ck = (k) => `c:${user.id}:${k}`;
+async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
+  if (queue.length) { const mine = localStorage.getItem(k); if (mine) return JSON.parse(mine); } // changes are waiting to sync: show the local copy
+  try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); return v; }
+  catch (e) { const c = localStorage.getItem(k); if (c) { say('Offline: showing the saved copy'); return JSON.parse(c); } throw e; }
+}
+
+// ---- offline editing: changes are saved on the device first and sent when there is a connection
+let queue = [], issues = [], flushing = false, pendingReload = false;
+const qk = () => `q:${user.id}`, ik = () => `qi:${user.id}`;
+const uuid = () => crypto.randomUUID();
+const same = (a, b) => String(a ?? '') === String(b ?? '');
+function loadQ() { try { queue = JSON.parse(localStorage.getItem(qk()) || '[]'); issues = JSON.parse(localStorage.getItem(ik()) || '[]'); } catch { queue = []; issues = []; } updateChip(); }
+function saveQ() { try { localStorage.setItem(qk(), JSON.stringify(queue)); localStorage.setItem(ik(), JSON.stringify(issues)); } catch {} updateChip(); }
+function enqueue(...ops) {
+  const now = new Date().toISOString();
+  ops.forEach((o) => queue.push({ ...o, qid: uuid(), at: now, offline: !navigator.onLine }));
+  saveQ(); flush();
+}
+const persist = (key, v) => { try { localStorage.setItem(ck(key), JSON.stringify(v)); } catch {} };
+const persistItems = () => persist('items:' + setlistId, items);
+const transient = (e) => !e.code || e.code === 'PGRST301' || /jwt/i.test(e.message || '');
+const verdict = (e, dupOk) => (!e ? 'done' : dupOk && e.code === '23505' ? 'done' : transient(e) ? 'retry' : { fail: e.message });
+async function upd(table, vals, col, val) {
+  const r = await sb.from(table).update(vals).eq(col, val).select('id');
+  if (r.error) return verdict(r.error);
+  return r.data.length ? 'done' : { fail: 'That item no longer exists, or you no longer have permission to change it' };
+}
+async function runSongEdit(op) {
+  for (let tries = 0; tries < 3; tries++) {
+    const cur = await sb.from('songs').select('*').eq('id', op.sid).maybeSingle();
+    if (cur.error) return verdict(cur.error);
+    const row = cur.data;
+    if (!row || row.deleted_at) return { fail: 'This song was deleted by someone else' };
+    const apply = {}, conflicts = [];
+    for (const [k, v] of Object.entries(op.set)) {
+      if (same(row[k], v)) continue;
+      if (same(row[k], op.base[k])) apply[k] = v; else conflicts.push({ field: k, mine: v, theirs: row[k] });
+    }
+    if (Object.keys(apply).length) {
+      const r = await sb.from('songs').update({ ...apply, change_note: op.note || (op.offline ? 'Edited offline' : null) }).eq('id', op.sid).eq('updated_at', row.updated_at).select('id');
+      if (r.error) return verdict(r.error);
+      if (!r.data.length) continue; // someone changed the song meanwhile: merge again
+    }
+    return conflicts.length ? { conflicts } : 'done';
+  }
+  return 'retry';
+}
+async function runOp(op) {
+  switch (op.t) {
+    case 'songNew': return verdict((await sb.from('songs').insert(op.row)).error, true);
+    case 'slAdd': return verdict((await sb.from('setlist_songs').insert(op.row)).error, true);
+    case 'linkAdd': return verdict((await sb.from('song_links').insert(op.row)).error, true);
+    case 'slPos': return upd('setlist_songs', { position: op.position }, 'id', op.id);
+    case 'slRemove': return upd('setlist_songs', { deleted_at: op.at }, 'id', op.id);
+    case 'songDel': return upd('songs', { deleted_at: op.at }, 'id', op.sid);
+    case 'linkDel': return upd('song_links', { deleted_at: op.at }, 'id', op.id);
+    case 'song': return runSongEdit(op);
+  }
+  return { fail: 'Unknown change' };
+}
+async function flush(reload = true) {
+  if (flushing || !user || !queue.length) return;
+  flushing = true; let did = false;
+  try {
+    while (queue.length) {
+      let r; try { r = await runOp(queue[0]); } catch { r = 'retry'; }
+      if (r === 'retry') break; // no connection: try again later
+      const op = queue.shift(); did = true;
+      if (r !== 'done') issues.push({ ...op, ...r });
+      saveQ();
+    }
+  } finally { flushing = false; saveQ(); }
+  if (did && !queue.length && reload) reloadSoon();
+}
+function reloadSoon() { // refresh from the server, but not while someone is typing in a song
+  if ($('list').contains(document.activeElement)) { pendingReload = true; return; }
+  pendingReload = false; if (user && setlistId) loadSetlist();
+}
+function describe(o) {
+  const t = `“${o.label || 'song'}”`;
+  return ({ song: `Edit ${t}: ${Object.keys(o.set || {}).join(', ')}`, songNew: `New song ${t}`, songDel: `Delete ${t}`, slAdd: `Add ${t} to the setlist`, slPos: `Move ${t} in the setlist`, slRemove: `Remove ${t} from the setlist`, linkAdd: `Add a link to ${t}`, linkDel: `Remove a link from ${t}` })[o.t] || 'Change';
+}
+function updateChip() {
+  const c = $('syncChip'); if (!c) return;
+  c.hidden = !user || !(queue.length || issues.length || !navigator.onLine);
+  c.textContent = issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
+}
+function drawSync() {
+  $('syncState').textContent = !navigator.onLine ? 'You are offline. Changes are saved on this device and will sync when you are back online.' : queue.length ? 'Changes are waiting to sync.' : 'Everything is synced.';
+  $('syncPending').innerHTML = queue.map((o) => `<li><small>${esc(describe(o))}</small></li>`).join('') || '<li><small>Nothing waiting</small></li>';
+  $('syncIssues').innerHTML = issues.map((o) => (o.conflicts
+    ? `<li><span>${esc(describe(o))}<br>${o.conflicts.map((c) => `<small>${esc(c.field)}: yours “${esc(String(c.mine ?? ''))}”, theirs “${esc(String(c.theirs ?? ''))}”</small>`).join('<br>')}</span><span><button data-mine="${o.qid}">Use mine</button> <button data-theirs="${o.qid}">Keep theirs</button></span></li>`
+    : `<li><span>${esc(describe(o))}<br><small>Not saved: ${esc(o.fail || 'unknown problem')}</small></span><button data-dis="${o.qid}">Dismiss</button></li>`)).join('') || '<li><small>No problems</small></li>';
+}
+$('syncChip').onclick = () => { drawSync(); $('syncDlg').showModal(); };
+$('syncClose').onclick = () => $('syncDlg').close();
+$('syncNow').onclick = async () => { await flush(); drawSync(); };
+$('syncIssues').onclick = (e) => {
+  const d = e.target.dataset, o = issues.find((x) => x.qid === (d.mine || d.theirs || d.dis)); if (!o) return;
+  issues = issues.filter((x) => x !== o);
+  if (d.mine) queue.push({ t: 'song', sid: o.sid, label: o.label, qid: uuid(), at: new Date().toISOString(), offline: false, note: 'Offline edit kept over a conflicting change', base: Object.fromEntries(o.conflicts.map((c) => [c.field, c.theirs])), set: Object.fromEntries(o.conflicts.map((c) => [c.field, c.mine])) });
+  saveQ(); drawSync(); if (d.mine) flush(); else reloadSoon();
+};
+window.addEventListener('online', () => { updateChip(); flush(); });
+window.addEventListener('offline', updateChip);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flush(); });
+setInterval(() => { updateChip(); if (queue.length) flush(); }, 20000);
+$('list').addEventListener('focusout', () => setTimeout(() => { if (pendingReload && !$('list').contains(document.activeElement)) reloadSoon(); }, 300));
+
+// ---- appearance
+const root = document.documentElement;
+root.dataset.theme = localStorage.getItem('theme') || 'auto'; $('theme').value = root.dataset.theme;
+$('theme').onchange = () => { localStorage.setItem('theme', $('theme').value); root.dataset.theme = $('theme').value; };
+function setAccent(hex) {
+  if (!hex) { root.style.removeProperty('--accent'); root.style.removeProperty('--on'); return; }
+  const n = parseInt(hex.slice(1), 16), L = ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+  root.style.setProperty('--accent', hex); root.style.setProperty('--on', L > 150 ? '#111' : '#fff');
+}
+async function saveAccent(hex) {
+  try {
+    await must(sb.from('bands').update({ theme: hex ? { accent: hex } : {} }).eq('id', bandId));
+    const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.bands.theme = hex ? { accent: hex } : {};
+    setAccent(hex); say(hex ? 'Band colour saved' : 'Band colour reset');
+  } catch {}
+}
+$('accentSave').onclick = () => bandId && saveAccent($('accent').value);
+$('accentReset').onclick = () => bandId && saveAccent('');
+
+// ---- roles
+const ROLES = [['singer', 'Singer'], ['guitarist', 'Guitarist'], ['bassist', 'Bassist'], ['drummer', 'Drummer'], ['keyboards', 'Keyboards']];
+const myRoles = () => bandRows.find((x) => x.bands.id === bandId)?.roles || [];
+function drawRoles() {
+  const mine = myRoles();
+  $('roles').innerHTML = ROLES.map(([v, l]) => `<label style="display:flex;gap:6px;align-items:center;color:var(--ink);margin:0;flex:0 0 auto"><input type="checkbox" value="${v}" style="width:auto" ${mine.includes(v) ? 'checked' : ''}> ${l}</label>`).join('');
+}
+$('roles').onchange = async () => {
+  if (!bandId) return;
+  const roles = [...$('roles').querySelectorAll('input:checked')].map((i) => i.value);
+  try {
+    await must(sb.from('band_members').update({ roles }).eq('band_id', bandId).eq('user_id', user.id));
+    const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.roles = roles;
+    say('Roles saved'); render();
+  } catch { drawRoles(); }
+};
+
+// ---- band logo (stored on the band as a small image)
+const okLogo = (u) => /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(u || '');
+const fitSize = (w, h, max) => { const k = Math.min(1, max / Math.max(w, h)); return [Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))]; };
+const bandLogo = () => { const u = bandRows.find((x) => x.bands.id === bandId)?.bands?.logo; return okLogo(u) ? u : ''; };
+function drawLogo() {
+  const u = bandLogo();
+  [$('logoImg'), $('logoPrev')].forEach((i) => { i.hidden = !u; if (u) i.src = u; }); $('logoRemove').hidden = !u;
+}
+async function readLogo(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That file could not be read as an image')); i.src = url; });
+    const iw = img.naturalWidth || img.width || 256, ih = img.naturalHeight || img.height || 256;
+    for (const max of [256, 160, 96]) {
+      const [w, h] = fitSize(iw, ih, max), c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const out = c.toDataURL('image/png'); if (out.length <= 200000) return out;
+    }
+    throw new Error('That image is too detailed. Try a simpler logo.');
+  } finally { URL.revokeObjectURL(url); }
+}
+async function saveLogo(dataUrl) {
+  await must(sb.from('bands').update({ logo: dataUrl }).eq('id', bandId));
+  const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.bands.logo = dataUrl;
+  drawLogo(); say(dataUrl ? 'Logo saved' : 'Logo removed');
+}
+$('logoFile').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { await saveLogo(await readLogo(f)); } catch (err) { if (!err?.code) say(err.message); }
+};
+$('logoRemove').onclick = () => saveLogo(null).catch(() => {});
+
+// ---- band link: the address ending (for example #wc) is chosen by the owner or an admin
+const SLUG_OK = /^[a-z0-9][a-z0-9-]{1,29}$/;
+const SLUG_RESERVED = ['join', 'invite', 'admin', 'login', 'signin', 'signup', 'new', 'api', 'app', 'settings', 'help', 'null'];
+const hashSlug = () => { try { return decodeURIComponent((location.hash || '').replace(/^#/, '')).trim().toLowerCase(); } catch { return ''; } };
+const bandSlug = () => bandRows.find((x) => x.bands.id === bandId)?.bands?.slug || '';
+const bandUrl = (slug) => `${location.origin}${location.pathname}#${slug}`;
+function syncHash() { // keep the address bar showing the open band's link
+  try { const sl = bandSlug(); history.replaceState(null, '', sl ? '#' + sl : location.pathname + location.search); } catch {}
+}
+function pickBandFromHash() { // a link such as /#wc opens that band if you are a member of it
+  const want = hashSlug(); if (!want) return false;
+  const hit = bandRows.find((x) => x.bands.slug === want);
+  if (hit) { $('band').value = hit.bands.id; localStorage.setItem('band', hit.bands.id); return true; }
+  say(`You are not a member of a band with the link “#${want}”. Ask the band owner for an invite code.`);
+  try { history.replaceState(null, '', location.pathname + location.search); } catch {}
+  return false;
+}
+function drawSlug() {
+  const sl = bandSlug();
+  $('slugIn').value = sl; $('slugPrev').textContent = sl ? bandUrl(sl) : 'No link yet. Choose an ending, for example the band’s initials.';
+  $('linkRow').hidden = !sl; $('linkTxt').textContent = sl ? bandUrl(sl) : '';
+}
+async function copyText(t) { try { await navigator.clipboard.writeText(t); say('Link copied'); } catch { prompt('Copy this link', t); } }
+$('slugCopy').onclick = () => bandSlug() && copyText(bandUrl(bandSlug()));
+$('linkCopy').onclick = () => bandSlug() && copyText(bandUrl(bandSlug()));
+$('slugSave').onclick = async () => {
+  const v = $('slugIn').value.trim().toLowerCase().replace(/^#/, '');
+  if (v && !SLUG_OK.test(v)) return say('Use 2 to 30 lower-case letters, numbers or hyphens, starting with a letter or number.');
+  if (SLUG_RESERVED.includes(v)) return say('That ending is kept for the app. Please choose another.');
+  const r = await sb.from('bands').update({ slug: v || null }).eq('id', bandId).select('id');
+  if (r.error) return say(r.error.code === '23505' ? 'That link ending is already taken. Please choose another.' : !r.error.code ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
+  if (!r.data.length) return say('Only owners and admins can change the band link.');
+  const row = bandRows.find((x) => x.bands.id === bandId); if (row) row.bands.slug = v || null;
+  syncHash(); drawSlug(); say(v ? 'Band link saved' : 'Band link removed');
+};
+window.addEventListener('hashchange', () => { // someone edited the address by hand
+  const want = hashSlug(); if (!user || !want || want === bandSlug()) return;
+  if (pickBandFromHash()) { closeGig(); loadBand(); }
+});
+
+// ---- access levels and band members
+const LEVELS = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
+const myLevel = () => { const l = bandRows.find((x) => x.bands.id === bandId)?.role; return l === 'member' ? 'editor' : l || 'viewer'; };
+const canEdit = () => ['owner', 'admin', 'editor'].includes(myLevel());
+const isAdmin = () => ['owner', 'admin'].includes(myLevel());
+async function openMembers() {
+  if (!bandId) return say('Pick a band first');
+  const a = isAdmin();
+  $('invSec').hidden = !a; $('bandSec').hidden = !a; $('delBandRow').hidden = myLevel() !== 'owner'; $('leaveBand').hidden = myLevel() === 'owner';
+  $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = '';
+  $('myLevel').textContent = `You are ${LEVELS[myLevel()]} in this band.` + (a ? '' : ' Only owners and admins can change this list.');
+  $('memDlg').showModal(); await loadMembers();
+}
+async function loadMembers() {
+  try {
+    const rows = await cached(ck('members:' + bandId), () => must(sb.from('band_members').select('user_id,role,roles,profiles(display_name)').eq('band_id', bandId)));
+    const order = { owner: 0, admin: 1, editor: 2, viewer: 3 }, a = isAdmin();
+    rows.sort((x, y) => (order[x.role] ?? 2) - (order[y.role] ?? 2) || (x.profiles?.display_name || '').localeCompare(y.profiles?.display_name || ''));
+    $('memList').innerHTML = rows.map((m) => {
+      const mine = m.user_id === user.id, lv = m.role === 'member' ? 'editor' : m.role;
+      const inst = (m.roles || []).map((r) => ROLES.find((x) => x[0] === r)?.[1] || r).join(', ');
+      const ctl = a && !mine && lv !== 'owner'
+        ? `<select data-m="${m.user_id}">${['admin', 'editor', 'viewer'].map((v) => `<option value="${v}"${v === lv ? ' selected' : ''}>${LEVELS[v]}</option>`).join('')}</select> <button data-rm="${m.user_id}">Remove</button>${myLevel() === 'owner' ? ` <button data-own="${m.user_id}">Make owner</button>` : ''}`
+        : `<span class="pill">${esc(LEVELS[lv] || lv)}</span>`;
+      return `<li><span><b>${esc(m.profiles?.display_name || 'Unnamed')}</b>${mine ? ' (you)' : ''}<br><small>${esc(inst || 'No instrument chosen')}</small></span><span>${ctl}</span></li>`;
+    }).join('');
+  } catch { $('memList').innerHTML = '<li><small>Could not load the member list</small></li>'; }
+}
+$('memBtn').onclick = () => { $('menu').close(); openMembers(); };
+$('memClose').onclick = () => $('memDlg').close();
+$('memList').onchange = async (e) => {
+  const u = e.target.dataset.m; if (!u) return;
+  try { await must(sb.rpc('set_member_role', { p_band: bandId, p_user: u, p_role: e.target.value })); say('Access level changed'); } catch {}
+  loadMembers();
+};
+$('memList').onclick = async (e) => {
+  const own = e.target.dataset.own;
+  if (own) {
+    const who = e.target.closest('li').querySelector('b').textContent;
+    if (!confirm(`Make ${who} the owner of this band? You will become an admin, and only the new owner will be able to delete the band.`)) return;
+    try { await must(sb.rpc('transfer_ownership', { p_band: bandId, p_user: own })); say('Ownership transferred'); $('memDlg').close(); await loadBands(); openMembers(); } catch {}
+    return;
+  }
+  const u = e.target.dataset.rm; if (!u || !confirm('Remove this person from the band?')) return;
+  try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: u })); say('Removed from the band'); } catch {}
+  loadMembers();
+};
+$('invMake').onclick = async () => {
+  try {
+    const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id, role: $('invRole').value }).select().single());
+    $('invCode').textContent = `Invite code: ${d.code} (${LEVELS[d.role]} access, valid for 7 days)`;
+  } catch {}
+};
+$('bandRename').onclick = async () => {
+  const name = $('bandName').value.trim(); if (!name) return say('Type a band name');
+  try { await must(sb.from('bands').update({ name }).eq('id', bandId)); say('Band renamed'); await loadBands(); } catch {}
+};
+$('delBand').onclick = async () => {
+  const name = bandRows.find((x) => x.bands.id === bandId)?.bands.name || '', gone = bandId;
+  const typed = prompt(`This permanently deletes “${name}” with all its songs, setlists and history, and cannot be undone.\n\nType the band name to confirm:`);
+  if (typed === null) return; if (typed.trim() !== name) return say('The name did not match, so nothing was deleted');
+  try {
+    const d = await must(sb.from('bands').delete().eq('id', gone).select());
+    if (!d.length) return say('Only the owner can delete the band');
+    Object.keys(localStorage).filter((k) => k.includes(gone)).forEach((k) => localStorage.removeItem(k));
+    $('memDlg').close(); localStorage.removeItem('band'); say('Band deleted'); await loadBands();
+  } catch {}
+};
+$('leaveBand').onclick = async () => {
+  if (!confirm('Leave this band? You will lose access to its songs and setlists.')) return;
+  try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: user.id })); $('memDlg').close(); localStorage.removeItem('band'); await loadBands(); } catch {}
+};
+
+// ---- account
+// ---- sign-up codes, sign-in codes and password reset
+let codeMode = null, recovering = false, codeEmail = '';
+const showPanel = (p) => ['pSign', 'pCode', 'pNew'].forEach((id) => ($(id).hidden = id !== p));
+const emailVal = () => $('email').value.trim();
+const pwOk = (p) => (p || '').length >= 8 || (say('Use at least 8 characters for the password'), false);
+function askCode(mode, email) {
+  codeMode = mode; codeEmail = email; $('codeIn').value = ''; $('codePw1').value = ''; $('codePw').hidden = mode !== 'recovery';
+  $('codeTitle').textContent = mode === 'recovery' ? 'Reset your password' : mode === 'signup' ? 'Confirm your email' : 'Enter your sign-in code';
+  $('codeHelp').textContent = `We emailed a code to ${email}. It can take a minute to arrive, so check your spam folder too.`;
+  showPanel('pCode');
+}
+$('signUp').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first'); if (!pwOk($('pw').value)) return;
+  try {
+    const d = await must(sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } }));
+    if (d.session) say('Signed up');
+    else if (d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) say('That email already has an account. Use Sign in, or Forgot password.');
+    else askCode('signup', email);
+  } catch {}
+};
+$('forgot').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first');
+  try { await must(sb.auth.resetPasswordForEmail(email)); askCode('recovery', email); } catch {}
+};
+$('codeLogin').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first');
+  try { await must(sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })); askCode('email', email); } catch {}
+};
+$('codeGo').onclick = async () => {
+  const token = $('codeIn').value.replace(/\s/g, ''); if (!token) return say('Type the code from the email');
+  const pw = $('codePw1').value; if (codeMode === 'recovery' && !pwOk(pw)) return;
+  try {
+    await must(sb.auth.verifyOtp({ email: codeEmail, token, type: codeMode }));
+    if (codeMode === 'recovery') { await must(sb.auth.updateUser({ password: pw })); say('Password changed'); }
+    showPanel('pSign');
+  } catch {}
+};
+$('codeCancel').onclick = () => showPanel('pSign');
+$('newPwGo').onclick = async () => { // reached from a reset link opened in the browser
+  const pw = $('newPw').value; if (!pwOk(pw)) return;
+  try { await must(sb.auth.updateUser({ password: pw })); say('Password changed'); recovering = false; $('newPw').value = ''; showPanel('pSign'); render(); } catch {}
+};
+$('chPwGo').onclick = async () => {
+  const pw = $('chPw').value; if (!pwOk(pw)) return;
+  try { await must(sb.auth.updateUser({ password: pw })); $('chPw').value = ''; say('Password changed'); } catch {}
+};
+$('signIn').onclick = async () => { await must(sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value })); };
+$('signOut').onclick = async () => {
+  if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
+sb.auth.onAuthStateChange((e, s) => {
+  const before = user?.id || null; user = s?.user || null; $('who').textContent = user ? user.email : 'Menu';
+  if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
+  if ((user?.id || null) !== before) setTimeout(loadBands, 0); // only when someone signs in or out, not when the same person returns to the tab
+  else if (e === 'PASSWORD_RECOVERY') setTimeout(render, 0);
+});
+
+// ---- bands and setlists
+async function loadBands() {
+  if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
+  loadQ(); await flush(false);
+  try {
+    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme,logo,slug)').eq('user_id', user.id)));
+    $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
+    const last = localStorage.getItem('band'); if (last && bandRows.some((r) => r.bands.id === last)) $('band').value = last;
+    pickBandFromHash();
+    await loadBand();
+  } catch { render(); }
+}
+async function loadBand() {
+  bandId = $('band').value || null; localStorage.setItem('band', bandId || '');
+  const r = bandRows.find((x) => x.bands.id === bandId); setAccent(r?.bands?.theme?.accent || ''); $('accent').value = r?.bands?.theme?.accent || '#0f766e'; drawRoles(); drawLogo(); drawSlug(); syncHash();
+  try {
+    const lists = bandId ? await cached(ck('sl:' + bandId), () => must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'))) : [];
+    $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
+    const pick = [forcePick, r?.last_setlist_id, localStorage.getItem('sl' + bandId)].find((id) => id && lists.some((l) => l.id === id)); forcePick = null; if (pick) $('setlist').value = pick;
+    await loadSetlist();
+  } catch { render(); }
+}
+function rememberSetlist() { // save the last-used setlist for this band on your account
+  const r = bandRows.find((x) => x.bands.id === bandId); if (!r || !setlistId || r.last_setlist_id === setlistId) return;
+  r.last_setlist_id = setlistId;
+  sb.from('band_members').update({ last_setlist_id: setlistId }).eq('band_id', bandId).eq('user_id', user.id).then(() => {}, () => {});
+}
+async function loadSetlist() {
+  setlistId = $('setlist').value || null; if (bandId) localStorage.setItem('sl' + bandId, setlistId || ''); rememberSetlist();
+  try {
+    const rows = setlistId ? await cached(ck('items:' + setlistId), () => must(sb.from('setlist_songs').select('id,position,songs(*)').eq('setlist_id', setlistId).is('deleted_at', null).order('position'))) : [];
+    items = rows.filter((r) => r.songs && !r.songs.deleted_at);
+  } catch { items = []; }
+  render();
+}
+$('band').onchange = () => { closeGig(); loadBand(); }; $('setlist').onchange = () => { closeGig(); openId = null; loadSetlist(); };
+
+async function showSetlist(id) { forcePick = id; await loadBand(); }
+async function makeSetlist(inp) {
+  if (!canEdit()) return say('You have view-only access in this band');
+  const name = inp.value.trim(); if (!name || !bandId) return say('Pick a band and type a name');
+  const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
+  inp.value = ''; $('menu').close(); await showSetlist(d.id);
+}
+$('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
+$('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
+$('joinBand').onclick = async () => { const id = await must(sb.rpc('join_band', { p_code: $('joinCode').value })); $('joinCode').value = ''; localStorage.setItem('band', id); $('menu').close(); await loadBands(); };
+$('menuBtn').onclick = () => { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('menu').showModal(); }; $('menuClose').onclick = () => $('menu').close();
+document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
+
+$('slRenameBtn').onclick = async () => {
+  const name = $('slRename').value.trim(); if (!setlistId || !name) return say('Pick a setlist and type a new name');
+  try { await must(sb.from('setlists').update({ name }).eq('id', setlistId)); say('Setlist renamed'); $('menu').close(); await showSetlist(setlistId); } catch {}
+};
+$('slDup').onclick = async () => {
+  if (!setlistId) return say('Pick a setlist first');
+  if (queue.length) return say('Wait for your changes to finish syncing first.');
+  const name = ($('setlist').selectedOptions[0]?.text || 'Setlist') + ' (copy)';
+  try {
+    const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
+    if (items.length) await must(sb.from('setlist_songs').insert(items.map((it) => ({ band_id: bandId, setlist_id: d.id, song_id: it.songs.id, position: it.position }))));
+    say('Setlist duplicated'); $('menu').close(); await showSetlist(d.id);
+  } catch {}
+};
+$('slDel').onclick = async () => {
+  const name = $('setlist').selectedOptions[0]?.text;
+  if (!setlistId || !confirm(`Delete the setlist “${name}”? The songs stay in the band’s song list.`)) return;
+  try { await must(sb.from('setlists').update({ deleted_at: new Date().toISOString() }).eq('id', setlistId)); say('Setlist deleted'); $('menu').close(); closeGig(); openId = null; await loadBand(); } catch {}
+};
+
+// ---- the setlist screen
+function render() {
+  $('auth').hidden = !!user && !recovering; $('app').hidden = !user || recovering; if (!user) return;
+  $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
+  $('emptySl').hidden = items.length > 0;
+  const ce = canEdit(); $('addBtn').hidden = !ce; $('slNew2').parentElement.hidden = !ce; $('slSec').hidden = !ce;
+  $('list').innerHTML = items.map(card).join('');
+  if (openId) loadLinks(openId);
+  if (!$('gig').hidden) renderGig();
+}
+function roleLine(s) {
+  const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
+  if (r.includes('singer') && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
+  if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + first(s.chords));
+  if (r.includes('bassist') && s.root_notes) out.push('Root: ' + first(s.root_notes));
+  if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
+  return out.length ? `<div class="rl">${out.join(' · ')}</div>` : '';
+}
+function card(it, i) {
+  const s = it.songs, o = openId === s.id;
+  return `<article data-id="${it.id}" data-sid="${s.id}">
+  <div class="top"><span class="n">${i + 1}</span><div class="t"><b>${esc(s.title)}</b><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small></div><span class="pill">${s.bpm || '–'} bpm</span><span class="pill">${esc(s.musical_key || '–')}</span></div>
+  ${roleLine(s)}<div class="btns">${canEdit() ? `<button data-a="up" ${i ? '' : 'disabled'}>▲</button><button data-a="down" ${i < items.length - 1 ? '' : 'disabled'}>▼</button>` : ''}<button data-a="play" class="primary">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button><button data-a="toggle">${o ? 'Close' : 'Details'}</button></div>${o ? detail(s) : ''}</article>`;
+}
+function detail(s) {
+  const ro = !canEdit(), dis = ro ? ' disabled' : '';
+  const f = (k, l, t = 'text') => `<label>${l}<input data-f="${k}" type="${t}" value="${esc(s[k] ?? '')}"${dis}></label>`;
+  const lk = (k, l) => `<label>${l}${safe(s[k]) ? `<a href="${esc(s[k])}" target="_blank" rel="noopener">open</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"${dis}></label>`;
+  return `<div>
+  <div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>
+  <label>Chords<textarea data-f="chords" rows="4" class="mono"${dis}>${esc(s.chords)}</textarea></label>
+  <label>Root notes (for bass)<textarea data-f="root_notes" rows="2" class="mono" placeholder="e.g. E  A  B  E"${dis}>${esc(s.root_notes)}</textarea></label>
+  <label>Notes<textarea data-f="notes" rows="3"${dis}>${esc(s.notes)}</textarea></label>
+  ${ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`}
+  ${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}
+  <div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>
+  <ul data-lookup></ul>
+  ${ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>'}
+  <h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>
+  ${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
+  <div class="btns"><button data-a="addlink">Add link</button></div>`}<ul data-hist></ul></div>`;
+}
+const CONF = { high: 'confidence: high', medium: 'confidence: medium', check: 'check this tempo' };
+function drawLookup(ul) { // matches already have tempo and key; candidates are recordings to pick from
+  const found = matches.map((m, k) => `<li><span>${esc(m.artist)} – ${esc(m.title)}<br><small>${m.tempo || '?'} bpm · ${esc(m.key_of || '?')}${m.time_sig ? ' · ' + esc(m.time_sig) : ''} · ${esc(m.source || '')} · ${esc(CONF[m.confidence] || '')}</small>${m.note ? `<br><small>${esc(m.note)}</small>` : ''}</span><button data-a="usematch" data-k="${k}">Use</button></li>`);
+  const more = cands.map((c, k) => `<li><span>${esc(c.artist)} – ${esc(c.title)}<br><small>${esc([c.album, c.year].filter(Boolean).join(' · ') || 'Song Finder')}</small></span><button data-a="sfget" data-k="${k}">Get tempo and key</button></li>`);
+  ul.innerHTML = found.length || more.length
+    ? found.join('') + (more.length ? '<li><small>Pick the recording that matches your song. Adding the artist above narrows the list.</small></li>' + more.join('') : '') + '<li><small>These values come from recordings. Check them against how your band plays the song; your own values always win.</small></li>'
+    : '<li><small>No matches. Try fewer words, or fill in the artist.</small></li>';
+}
+async function loadLinks(sid) {
+  const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
+  try {
+    const rows = await cached(ck('links:' + sid), () => must(sb.from('song_links').select('id,kind,label,url').eq('song_id', sid).is('deleted_at', null).order('created_at')));
+    ul.innerHTML = rows.length ? rows.map((l) => `<li><a href="${esc(safe(l.url) || '#')}" target="_blank" rel="noopener">${esc(l.label || l.kind.replace('_', ' '))}</a>${canEdit() ? `<button data-a="dellink" data-lid="${l.id}">×</button>` : ''}</li>`).join('') : '<li><small>No links yet</small></li>';
+  } catch { ul.innerHTML = '<li><small>Could not load links</small></li>'; }
+}
+$('list').onclick = async (e) => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
+  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink'].includes(a) && !canEdit()) return say('You have view-only access in this band');
+  try {
+    if (a === 'toggle') { openId = openId === sid ? null : sid; render(); }
+    else if (a === 'up' || a === 'down') {
+      const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
+      x.position = py; y.position = px; items.sort((m, n) => m.position - n.position);
+      persistItems(); enqueue({ t: 'slPos', id: x.id, position: py, label: x.songs.title }, { t: 'slPos', id: y.id, position: px, label: y.songs.title }); render();
+    }
+    else if (a === 'play') { await toggleClick(items[i].songs); }
+    else if (a === 'save') {
+      const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
+      if (!p.title) return say('A title is needed');
+      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
+      const song = items[i].songs, set = {}, base = {};
+      Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
+      if (!Object.keys(set).length) return say('Nothing has changed');
+      Object.assign(song, set); const l = libFor === bandId ? lib.find((x) => x.id === sid) : null; if (l) Object.assign(l, set);
+      persistItems(); persistLib();
+      enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null });
+      say(navigator.onLine ? 'Saved' : 'Saved on this device. It will sync when you are back online.'); render();
+    }
+    else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { const x = items[i]; items.splice(i, 1); openId = null; persistItems(); enqueue({ t: 'slRemove', id: x.id, label: x.songs.title }); render(); } }
+    else if (a === 'delsong') {
+      const t = items[i].songs.title;
+      if (!confirm(`Delete “${t}” from this band? It will disappear from every setlist.`)) return;
+      items = items.filter((x) => x.songs.id !== sid); if (libFor === bandId) lib = lib.filter((x) => x.id !== sid);
+      persistItems(); persistLib(); enqueue({ t: 'songDel', sid, label: t }); openId = null; say('Song deleted'); render();
+    }
+    else if (a === 'hist') {
+      const [rows, mem] = await Promise.all([
+        must(sb.from('change_log').select('changed_at,changed_by,op,old_data,new_data,reason').eq('table_name', 'songs').eq('row_id', sid).order('changed_at', { ascending: false }).limit(20)),
+        must(sb.from('band_members').select('user_id,profiles(display_name)').eq('band_id', bandId)),
+      ]);
+      const who = Object.fromEntries(mem.map((m) => [m.user_id, m.profiles?.display_name || 'Someone']));
+      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', notes: 'notes', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', deleted_at: 'deleted' };
+      const short = (v) => { const t = v == null || v === '' ? 'empty' : String(v); return t.length > 30 ? t.slice(0, 30) + '…' : t; };
+      const diff = (r) => {
+        if (r.op === 'INSERT') return 'Song added';
+        const o = r.old_data || {}, n = r.new_data || {};
+        const ch = Object.keys(LABEL).filter((k) => JSON.stringify(o[k]) !== JSON.stringify(n[k]));
+        return ch.map((k) => (k === 'chords' || k === 'root_notes' || k === 'notes' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
+      };
+      art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><span>${esc(diff(r))}${r.reason ? `<br><small>Reason: ${esc(r.reason)}</small>` : ''}</span><small style="text-align:right">${esc(who[r.changed_by] || 'Someone')}<br>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
+    }
+    else if (a === 'lookup') {
+      const val = (k) => art.querySelector(`[data-f="${k}"]`).value.trim(), title = val('title'), artist = val('artist');
+      if (!title) return say('Type a title first');
+      const ul = art.querySelector('[data-lookup]'); ul.innerHTML = '<li><small>Searching…</small></li>';
+      const { data, error } = await sb.functions.invoke('lookup-song', { body: { title, artist } });
+      if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch {} ul.innerHTML = ''; return say('Lookup failed: ' + m); }
+      matches = data?.results || []; cands = data?.candidates || []; drawLookup(ul);
+    }
+    else if (a === 'sfget') {
+      const c = cands[+b.dataset.k]; if (!c) return;
+      b.disabled = true; b.textContent = 'Getting…';
+      const { data, error } = await sb.functions.invoke('lookup-song', { body: { isrc: c.id } });
+      if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch {} b.disabled = false; b.textContent = 'Get tempo and key'; return say('Lookup failed: ' + m); }
+      const m = data?.results?.[0];
+      if (!m) { b.disabled = false; b.textContent = 'Not available'; return say(data?.note || 'No tempo and key found for that recording.'); }
+      matches.push({ ...m, title: m.title || c.title, artist: m.artist || c.artist }); cands.splice(+b.dataset.k, 1);
+      drawLookup(art.querySelector('[data-lookup]'));
+    }
+    else if (a === 'usematch') {
+      const m = matches[+b.dataset.k]; if (!m) return;
+      const set = (k, v) => { if (v) art.querySelector(`[data-f="${k}"]`).value = v; };
+      set('bpm', m.tempo); set('musical_key', m.key_of); set('time_signature', m.time_sig); set('version_label', m.artist);
+      if (!art.querySelector('[data-f="artist"]').value.trim()) set('artist', m.artist);
+      art.dataset.ref = m.id || ''; say('Filled in. Tap Save changes to keep it.');
+    }
+    else if (a === 'addlink') {
+      const g = (k) => art.querySelector(`[data-l="${k}"]`).value.trim(), url = norm(g('url')); if (!url) return say('Add a link first');
+      const row = { id: uuid(), band_id: bandId, song_id: sid, kind: g('kind'), label: g('label'), url, added_by: user.id };
+      const lk = ck('links:' + sid), have = localStorage.getItem(lk);
+      if (have) persist('links:' + sid, [...JSON.parse(have), { id: row.id, kind: row.kind, label: row.label, url }]);
+      enqueue({ t: 'linkAdd', row, label: items[i].songs.title });
+      art.querySelector('[data-l="url"]').value = ''; art.querySelector('[data-l="label"]').value = ''; loadLinks(sid);
+    }
+    else if (a === 'dellink') {
+      const lk = ck('links:' + sid), have = localStorage.getItem(lk);
+      if (have) persist('links:' + sid, JSON.parse(have).filter((x) => x.id !== b.dataset.lid));
+      enqueue({ t: 'linkDel', id: b.dataset.lid, label: items[i].songs.title }); loadLinks(sid);
+    }
+  } catch { /* the error toast has already been shown */ }
+};
+
+// ---- song library: search, add to the setlist, delete
+let lib = [], libFor = null;
+const persistLib = () => { if (libFor === bandId) persist('lib:' + bandId, lib); };
+function addToSetlist(song, keepOpen) {
+  const position = (items.length ? Math.max(...items.map((x) => x.position)) : 0) + 1;
+  const row = { id: uuid(), band_id: bandId, setlist_id: setlistId, song_id: song.id, position };
+  items.push({ id: row.id, position, songs: song }); items.sort((m, n) => m.position - n.position);
+  persistItems(); enqueue({ t: 'slAdd', row, label: song.title });
+  if (!keepOpen) $('addDlg').close();
+  render(); if (keepOpen) drawLib();
+}
+function drawLib() {
+  const q = $('songSearch').value.trim().toLowerCase(), used = new Set(items.map((x) => x.songs.id));
+  const rows = lib.filter((x) => !q || `${x.title} ${x.artist}`.toLowerCase().includes(q));
+  $('libList').innerHTML = rows.map((x) => `<li><span><b>${esc(x.title)}</b><br><small>${esc([x.artist, x.bpm && x.bpm + ' bpm', x.musical_key].filter(Boolean).join(' · '))}</small></span><span>${used.has(x.id) ? '<span class="pill">In setlist</span>' : `<button data-add="${x.id}" class="primary">Add</button>`} <button data-del="${x.id}">Delete</button></span></li>`).join('') || '<li><small>No songs found</small></li>';
+}
+async function openLibrary() {
+  if (!setlistId) return say('Create or pick a setlist first');
+  try {
+    lib = await cached(ck('lib:' + bandId), () => must(sb.from('songs').select('*').eq('band_id', bandId).is('deleted_at', null).order('title')));
+    libFor = bandId; $('songSearch').value = ''; drawLib(); $('addDlg').showModal();
+  } catch {}
+}
+$('addBtn').onclick = openLibrary;
+$('songSearch').oninput = drawLib;
+$('addClose').onclick = () => $('addDlg').close();
+$('libList').onclick = (e) => {
+  const add = e.target.dataset.add, del = e.target.dataset.del;
+  if (add) { const song = lib.find((y) => y.id === add); if (song) addToSetlist(song, true); }
+  else if (del) {
+    const x = lib.find((y) => y.id === del);
+    if (!x || !confirm(`Delete “${x.title}” from this band? It will disappear from every setlist.`)) return;
+    lib = lib.filter((y) => y.id !== del); items = items.filter((y) => y.songs.id !== del); if (openId === del) openId = null;
+    persistLib(); persistItems(); enqueue({ t: 'songDel', sid: del, label: x.title }); say('Song deleted'); drawLib(); render();
+  }
+};
+$('addNew').onclick = () => {
+  const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
+  if (!setlistId) return say('Create or pick a setlist first');
+  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', root_notes: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
+  enqueue({ t: 'songNew', label: title, row: { id: song.id, band_id: bandId, title, artist: song.artist, bpm: song.bpm, musical_key: song.musical_key, created_by: user.id } });
+  if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); persistLib(); }
+  ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); addToSetlist(song);
+};
+
+// ---- gig mode
+let gigIdx = 0, gigLock = null;
+async function gigWake() { try { if ('wakeLock' in navigator && !$('gig').hidden) gigLock = await navigator.wakeLock.request('screen'); } catch {} }
+function openGig() {
+  if (!items.length) return say('Add a song to this setlist first');
+  const k = items.findIndex((x) => x.songs.id === openId); gigIdx = k >= 0 ? k : 0;
+  $('gig').hidden = false; gigWake(); renderGig(); loadSong(items[gigIdx].songs);
+}
+function closeGig() { $('gig').hidden = true; gigLock?.release?.(); gigLock = null; }
+function gigGo(d) { const n = gigIdx + d; if (n < 0 || n >= items.length) return; gigIdx = n; loadSong(items[n].songs); renderGig(); $('gig').scrollTop = 0; }
+function renderGig() {
+  if (!items.length) { closeGig(); return; }
+  gigIdx = Math.max(0, Math.min(items.length - 1, gigIdx));
+  const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), has = (r) => roles.includes(r), drummer = has('drummer');
+  const tile = (l, v, c = '') => `<div class="tile ${c}"><small>${l}</small><b>${esc(v || '–')}</b></div>`;
+  const panel = (t, body, mono) => `<section class="panel"><h3>${t}</h3>${body ? `<div class="pbody${mono ? ' mono' : ''}">${esc(body)}</div>` : '<small>Nothing entered yet. Add it under Details.</small>'}</section>`;
+  const parts = [];
+  if (has('singer')) parts.push(safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', ''));
+  if (has('guitarist') || has('keyboards')) parts.push(panel('Chords', s.chords, true));
+  if (has('bassist')) parts.push(panel('Root notes', s.root_notes, true));
+  if (s.notes) parts.push(panel('Notes', s.notes));
+  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics, chords or root notes here.</small></p>';
+  $('gig').innerHTML = `<div class="gtop"><span style="display:flex;align-items:center;gap:8px">${bandLogo() ? `<img src="${bandLogo()}" alt="" style="height:30px;width:30px;object-fit:contain">` : ''}<small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small></span><button id="gigClose">✕ Close</button></div>
+  <h1>${esc(s.title)}</h1><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small>
+  <div class="tiles">${tile('BPM', s.bpm, drummer ? 'xl' : '')}${tile('Key', s.musical_key)}${drummer ? tile('Time', s.time_signature || '4/4') : ''}</div>
+  ${hint}${parts.join('')}
+  <div class="next">${nx ? `Next: <b>${esc(nx.title)}</b> · ${nx.bpm || '–'} bpm · ${esc(nx.musical_key || '–')}` : 'Last song in the setlist'}</div>
+  <div class="gnav"><button id="gPrev" ${gigIdx ? '' : 'disabled'}>◀ Previous</button><button id="gPlay" class="primary">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button><button id="gNext" ${gigIdx < items.length - 1 ? '' : 'disabled'}>Next ▶</button></div>`;
+  $('gigClose').onclick = closeGig; $('gPrev').onclick = () => gigGo(-1); $('gNext').onclick = () => gigGo(1);
+  $('gPlay').onclick = () => toggleClick(items[gigIdx].songs);
+}
+$('gigBtn').onclick = openGig;
+document.addEventListener('keydown', (e) => { if ($('gig').hidden) return; if (e.key === 'ArrowRight') gigGo(1); else if (e.key === 'ArrowLeft') gigGo(-1); else if (e.key === 'Escape') closeGig(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('gig').hidden) gigWake(); });
+
+// ---- metronome (with the iOS audio fix)
+let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4, clickSong = null;
+function silentWavUrl() {
+  const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+async function unlock() {
+  ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+  try { if ('audioSession' in navigator) navigator.audioSession.type = 'playback'; } catch {}
+  if (!silentEl) { silentEl = new Audio(silentWavUrl()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); }
+  try { await silentEl.play(); } catch (e) { say('Silent audio blocked: ' + e.message); }
+  if (ctx.state !== 'running') await ctx.resume();
+  const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate); s.connect(ctx.destination); s.start(0);
+}
+function beep(t, f, len, vol) {
+  const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + len);
+}
+// The full-screen flash never goes above three flashes a second: every beat up to 180 BPM, above that only beat 1 of the bar
+// (and not at all if even that would be more than three a second).
+const flashAllowed = (bpm, beatInBar, perBar) => bpm <= 180 || (beatInBar === 0 && bpm / 60 / perBar <= 3);
+function flash(full) {
+  $('dot').classList.add('on'); if (full && $('fl').checked) $('fx').classList.add('on');
+  setTimeout(() => { $('dot').classList.remove('on'); $('fx').classList.remove('on'); }, 90);
+}
+function tick() {
+  const bpm = Math.min(300, Math.max(20, +$('bpm').value || 120));
+  while (nextT < ctx.currentTime + 0.15) {
+    beep(nextT, beat % perBar === 0 ? 1500 : 1000, 0.06, 0.5);
+    const full = flashAllowed(bpm, beat % perBar, perBar);
+    setTimeout(() => flash(full), Math.max(0, (nextT - ctx.currentTime) * 1000));
+    nextT += 60 / bpm; beat++;
+  }
+}
+$('fl').onchange = () => { // first-time warning before the screen flash is switched on
+  if ($('fl').checked && !localStorage.getItem('flashOk')) {
+    if (confirm('Flashing lights can trigger seizures in some people with photosensitive epilepsy. The flash is limited to three per second. Turn the flash on?')) localStorage.setItem('flashOk', '1'); else $('fl').checked = false;
+  }
+};
+async function getLock() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch {} }
+async function start() { if (running) return; await unlock(); running = true; beat = 0; nextT = ctx.currentTime + 0.05; timer = setInterval(tick, 25); $('go').textContent = 'Stop'; getLock(); syncPlay(); }
+function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; syncPlay(); }
+function loadSong(s) { $('bpm').value = s.bpm || 120; $('now').textContent = s.title; perBar = parseInt(s.time_signature) || 4; beat = 0; clickSong = s.id; syncPlay(); }
+async function toggleClick(s) { // the same song's button starts it, then stops it
+  if (running && clickSong === s.id) { stop(); return; }
+  loadSong(s); if (!running) await start();
+}
+function syncPlay() { // keep every Click button's label in step with the metronome
+  document.querySelectorAll('#list article').forEach((a) => { const b = a.querySelector('[data-a="play"]'); if (b) b.textContent = running && a.dataset.sid === clickSong ? '■ Stop' : '▶ Click'; });
+  const g = document.getElementById('gPlay'); if (g) g.textContent = running && clickSong === items[gigIdx]?.songs.id ? '■ Stop' : '▶ Click';
+}
+$('go').onclick = () => (running ? stop() : start());
+$('bpmDn').onclick = () => ($('bpm').value = Math.max(20, +$('bpm').value - 1));
+$('bpmUp').onclick = () => ($('bpm').value = Math.min(300, +$('bpm').value + 1));
+$('tone').onclick = async () => { await unlock(); beep(ctx.currentTime + 0.02, 440, 0.4, 0.4); say('Test tone sent'); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && running) { ctx?.resume(); silentEl?.play().catch(() => {}); getLock(); } });
+setInterval(() => {
+  $('dbg').textContent = ['audioSession: ' + ('audioSession' in navigator ? navigator.audioSession.type : 'unsupported'), 'audio: ' + (ctx ? ctx.state : 'not started'),
+    'silent element: ' + (silentEl ? (silentEl.paused ? 'paused' : 'playing') : 'none'), 'wake lock: ' + (lock && !lock.released ? 'on' : 'off'),
+    'installed: ' + (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches), 'online: ' + navigator.onLine].join('\n');
+}, 500);
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch((e) => say('Offline support failed: ' + e.message));
+</script>
+</body>
+</html>
