@@ -5,7 +5,7 @@
 > Hi [name]! I'd love your help testing a setlist app I've built for bands: songs with BPM, key and chords, a metronome,
 > and a stage view. It's an early test version.
 >
-> Open this link: https://timlawless.github.io/setlists/setlist-pwa-v2/
+> Open this link: https://timlawless.github.io/setlists/
 > **iPhone:** open it in Safari (not inside WhatsApp). **Android:** open it in Chrome.
 > Then follow the steps in the guide below. Your invite code to join the band is: **[CODE]**
 >

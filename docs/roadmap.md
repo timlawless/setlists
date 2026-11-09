@@ -7,7 +7,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 
 ## Where things stand
 - Free, never commercial. Devices: iPhone, Android, tablets. Backend: Supabase.
-- **PWA first is decided and built.** The app is an installable web app served from `docs/setlist-pwa-v2/` on GitHub Pages.
+- **PWA first is decided and built.** The app is an installable web app served from `docs/` on GitHub Pages.
   The Expo (native) option is parked and can be revisited if a native feature is ever needed.
 - Sharing is built and can be tested with bandmates: sign-in, invite codes, shared songs and setlists, shared history.
 - The app has four access levels (owner, admin, editor, viewer) and instrument roles (singer, guitarist, bassist,
@@ -37,8 +37,11 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Quality of life | Click button also stops the metronome; app reopens on the last-used setlist; no reload when returning to the tab | v5 | Done |
 | Manage songs, setlists, bands | Song library with search and delete; delete song from its details; setlist rename, duplicate, delete; owner-only band delete | v6 | Done |
 | Sign-in codes, reset, logo | Forgot password by emailed code, sign-in code, sign-up confirmation, change password, band logo | v7 | Built, waiting on email setup |
-| Offline editing | Edits are saved on the device and sync when there is a connection; conflicts are shown for you to resolve; sync status in the header | none | Built, not yet on the site |
-| Flash safety | The full-screen flash never exceeds three flashes a second, and asks for confirmation the first time it is switched on | none | Built, not yet on the site |
+| Offline editing | Edits are saved on the device and sync when there is a connection; conflicts are shown for you to resolve; sync status in the header | none | Done (checklist passed) |
+| Flash safety | The full-screen flash never exceeds three flashes a second, and asks for confirmation the first time it is switched on | none | Done (checklist passed) |
+| Better song lookup | Song Finder results are a ranked list of recordings (exact title and your artist first, karaoke and tribute last) and you pick one to get its tempo and key | none (redeploy the function) | Built, not yet on the site |
+| Band link | The owner or an admin chooses a link ending, for example `/#wc`, that opens the band | v8 | Built, not yet on the site |
+| App at the site root | The app moves to the top of `docs/`, so https://timlawless.github.io/setlists/ opens it; the old address redirects | none | Built, not yet on the site |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -130,7 +133,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 
 ## Notes for whoever picks this up
 - Run `cd core && npm install && npm test` before and after changes to `core/`. Keep `core/` free of platform code.
-- For any change that includes SQL: run the SQL first, then upload the new `index.html`. Upload to `docs/setlist-pwa-v2/`
+- For any change that includes SQL: run the SQL first, then upload the new `index.html`. Upload to `docs/`
   and leave `config.js` alone. Open the app in a private window to avoid a stale copy.
 - Lyrics: never ship or fetch lyrics. See "Lyrics and links" in `architecture.md`.
 - Source accuracy for tempo and key varies. Show a confidence level and let the band's own values win.

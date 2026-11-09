@@ -36,14 +36,14 @@ Supabase project
   Edge Function   lookup-song  ->  GetSongBPM API (key held as a secret), then Song Finder as the backup
   Realtime        enabled for song and setlist tables, not used by the app yet
 
-GitHub Pages serves the app files from docs/setlist-pwa-v2/.
+GitHub Pages serves the app files from the top of docs/, so the app is at https://timlawless.github.io/setlists/.
 An email service (SMTP) sends the sign-in, sign-up and reset emails.
 ```
 
 | Component | What it is | Notes |
 | --- | --- | --- |
 | Client app | One `index.html` module (interface, logic, metronome), `config.js`, `sw.js`, a manifest and three icons | Loads supabase-js version 2 from the jsDelivr CDN. The earlier `core/` library is not used yet. |
-| Hosting | GitHub Pages, from `docs/setlist-pwa-v2/` | Everything in `docs/` is public. Keep SQL files and secrets out of it. |
+| Hosting | GitHub Pages, from `docs/` | Everything in `docs/` is public. Keep SQL files and secrets out of it. |
 | Database and auth | One Supabase project | The browser uses only the publishable key. |
 | Edge Function `lookup-song` | TypeScript on Deno; checks the caller is signed in, then asks GetSongBPM (when its key is set) and falls back to Song Finder | Optional secret `GETSONGBPM_API_KEY`. Verify JWT is off because the function checks sign-in itself. |
 | GetSongBPM | Tempo, key and time signature | Needs an API key on each request and a visible link back. Key requested, not yet received. |
@@ -68,7 +68,7 @@ Band ──< ChangeLog   (filled by a database trigger)
 | Table | Purpose and key fields |
 | --- | --- |
 | profiles | One row per user: display name. Created automatically at sign-up. |
-| bands | name, theme (band colour), logo (a small validated image stored as text), created_by |
+| bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
 | band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles; last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), expiry (7 days). Reusable until it expires. |
 | songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes, notes, lyrics_url, youtube_url, catalog_ref, change_note, deleted_at |
@@ -180,13 +180,14 @@ Server-side only (a Supabase Edge Function). The earlier plan, still the target:
 4. The band's own values are stored separately and always win ("Original" vs "Changed for your band").
 
 **Built so far:** the Edge Function tries GetSongBPM when its key is set, and otherwise (or when GetSongBPM has no match
-or errors) uses Song Finder: it searches by title and artist and reads tempo and key for up to three distinct
-recordings, spaced to respect the rate limit. With a title alone it lists matches by different artists. Each match
-shows its source and a confidence level: high when Song Finder's two readings agree, medium for a single source, and
-check when they disagree by more than 3 BPM (usually half or double time), with the second reading shown. Answers are
-kept for ten minutes. The person picks a match, the values fill the song form, and nothing is saved until they save.
-Not built: MusicBrainz, merging two sources into one result, a stored cache table, and the original-versus-changed
-display.
+or errors) uses Song Finder in two steps. Step 1 searches by title and artist and returns up to eight recordings,
+ranked so the exact title and the artist you typed come first and karaoke, tribute and similar re-recordings come last,
+with album and year shown. Step 2 runs when the person taps a recording: it reads that recording's tempo and key. This
+keeps the person in charge of choosing the right recording and uses fewer calls against the rate limit. Each match shows
+its source and a confidence level: high when Song Finder's two readings agree, medium for a single source, check when
+they disagree by more than 3 BPM (usually half or double time), with the second reading shown. Answers are kept for ten
+minutes. Nothing is saved until the person saves the song. Not built: MusicBrainz, merging two sources into one result,
+a stored cache table, and the original-versus-changed display.
 
 Not usable: Spotify audio features (closed to new apps since 27 Nov 2024) and AcousticBrainz (frozen since 2022).
 Chords stay manual. Later options: band corrections, and analysing a band's own recording with Essentia.
@@ -194,6 +195,14 @@ Chords stay manual. Later options: band corrections, and analysing a band's own 
 Providers sit behind a small interface so one can be swapped if its terms change. Check each provider's terms on
 caching before storing results. Source accuracy varies, so values should be checked against the recording.
 YouTube links start as a search for the chosen version and can be replaced with a specific video.
+
+## Band links
+A band's owner or an admin can choose a short ending for the band (letters, numbers and hyphens, 2 to 30 characters, unique
+across all bands, a few words reserved). The link is the app address followed by `#ending`, for example
+`https://timlawless.github.io/setlists/#wc`. After sign-in the app opens that band if the person is a member. Switching
+band updates the address, and a link to a band you are not in shows a message that reveals nothing about the band.
+The ending is stored in `bands.slug`; only owners and admins can change it, and the database enforces the format and
+uniqueness. The hash is read in the browser, so it works on GitHub Pages without any server routing.
 
 ## Sign-in and email
 - Email and password, with password reset by an emailed 6-digit code entered in the app, an email sign-in code for people
@@ -234,6 +243,7 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `docs/` fo
 | v5 | Last-used setlist per member |
 | v6 | Cleans up a deleted band's history |
 | v7 | Band logo |
+| v8 | Band link ending (slug), unique across all bands |
 | check_schema | A read-only checklist of which updates are present |
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
@@ -255,7 +265,7 @@ delete-song update. `core/` has its own 23 tests.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
-2. Upload `index.html` to `docs/setlist-pwa-v2/` and leave `config.js` alone.
+2. Upload `index.html` to `docs/` and leave `config.js` alone.
 3. Redeploy the Edge Function only when `lookup-song.ts` changes.
 4. After a change, open the app in a private window to avoid a stale cached copy.
 5. If something looks wrong, run `check_schema` to see which updates the database has.
