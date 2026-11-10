@@ -27,6 +27,7 @@ button.primary{background:var(--accent);color:var(--on);border-color:var(--accen
 button:disabled{opacity:.35}
 label{display:block;color:var(--mute);font-size:13px;margin-top:8px}
 label a{margin-left:8px}
+.chk{display:flex;gap:6px;align-items:center}.chk input{width:auto}
 a{color:var(--accent)}
 .top{display:flex;align-items:center;gap:10px}
 .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);font-weight:700;font-size:13px;flex:none}
@@ -79,8 +80,11 @@ li select{width:auto}
   <section id="auth" class="card">
     <div id="pSign">
       <h2>Sign in</h2>
-      <label>Email<input id="email" type="email" autocomplete="username"></label>
+      <p id="invNote" class="card" hidden><b>You have been invited to join a band.</b> Sign up (if you are new) or sign in, and you will be added to the band automatically.</p>
+      <p><small>New here? Type your email, a password and your name, then tap <b>Sign up</b>. Already have an account? Tap <b>Sign in</b>.</small></p>
+      <label>Email<input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
       <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
+      <label class="chk"><input type="checkbox" id="showPw"> Show password</label>
       <label>Your name (sign up only)<input id="name"></label>
       <div class="row"><button id="signIn" class="primary">Sign in</button><button id="signUp">Sign up</button></div>
       <div class="row"><button id="forgot">Forgot password?</button><button id="codeLogin">Email me a sign-in code</button></div>
@@ -99,7 +103,7 @@ li select{width:auto}
     </div>
   </section>
   <div id="app" hidden>
-    <div id="nobands" class="card" hidden><b>No bands yet.</b><p>Create a band, or join one with an invite code.</p><button class="primary" data-open="menu">Create or join a band</button></div>
+    <div id="nobands" class="card" hidden><b>Welcome! You are not in a band yet.</b><p>Got an invite code from your band? Type it here.</p><div class="row"><input id="joinCode2" placeholder="Invite code" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"><button id="joinBand2" class="primary">Join band</button></div><p><small>Starting a band yourself?</small></p><button data-open="menu">Create a new band</button></div>
     <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
     <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
   </div>
@@ -152,6 +156,7 @@ li select{width:auto}
     <h3>Invite someone</h3>
     <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake" class="primary">New invite code</button></div>
     <p id="invCode"></p>
+    <div class="row" id="invCopyRow" hidden><button id="invCopyLink">Copy invite link</button><button id="invCopyCode">Copy code only</button></div>
   </div>
   <div id="bandSec" hidden>
     <h3>Band settings</h3>
@@ -373,7 +378,7 @@ $('logoRemove').onclick = () => saveLogo(null).catch(() => {});
 // ---- band link: the address ending (for example #wc) is chosen by the owner or an admin
 const SLUG_OK = /^[a-z0-9][a-z0-9-]{1,29}$/;
 const SLUG_RESERVED = ['join', 'invite', 'admin', 'login', 'signin', 'signup', 'new', 'api', 'app', 'settings', 'help', 'null'];
-const hashSlug = () => { try { return decodeURIComponent((location.hash || '').replace(/^#/, '')).trim().toLowerCase(); } catch { return ''; } };
+const hashSlug = () => { if (inviteFromHash(location.hash)) return ''; try { return decodeURIComponent((location.hash || '').replace(/^#/, '')).trim().toLowerCase(); } catch { return ''; } };
 const bandSlug = () => bandRows.find((x) => x.bands.id === bandId)?.bands?.slug || '';
 const bandUrl = (slug) => `${location.origin}${location.pathname}#${slug}`;
 function syncHash() { // keep the address bar showing the open band's link
@@ -383,7 +388,7 @@ function pickBandFromHash() { // a link such as /#wc opens that band if you are 
   const want = hashSlug(); if (!want) return false;
   const hit = bandRows.find((x) => x.bands.slug === want);
   if (hit) { $('band').value = hit.bands.id; localStorage.setItem('band', hit.bands.id); return true; }
-  say(`You are not a member of a band with the link “#${want}”. Ask the band owner for an invite code.`);
+  say(bandRows.length ? `You are not a member of a band with the link “#${want}”. Ask the band owner for an invite code.` : `You are not in the band “#${want}” yet. Type your invite code below to join it.`);
   try { history.replaceState(null, '', location.pathname + location.search); } catch {}
   return false;
 }
@@ -398,7 +403,7 @@ $('linkCopy').onclick = () => bandSlug() && copyText(bandUrl(bandSlug()));
 $('slugSave').onclick = async () => {
   const v = $('slugIn').value.trim().toLowerCase().replace(/^#/, '');
   if (v && !SLUG_OK.test(v)) return say('Use 2 to 30 lower-case letters, numbers or hyphens, starting with a letter or number.');
-  if (SLUG_RESERVED.includes(v)) return say('That ending is kept for the app. Please choose another.');
+  if (SLUG_RESERVED.includes(v) || v.startsWith('join-')) return say('That ending is kept for the app. Please choose another.');
   const r = await sb.from('bands').update({ slug: v || null }).eq('id', bandId).select('id');
   if (r.error) return say(r.error.code === '23505' ? 'That link ending is already taken. Please choose another.' : !r.error.code ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
   if (!r.data.length) return say('Only owners and admins can change the band link.');
@@ -419,7 +424,7 @@ async function openMembers() {
   if (!bandId) return say('Pick a band first');
   const a = isAdmin();
   $('invSec').hidden = !a; $('bandSec').hidden = !a; $('delBandRow').hidden = myLevel() !== 'owner'; $('leaveBand').hidden = myLevel() === 'owner';
-  $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = '';
+  $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = ''; $('invCopyRow').hidden = true;
   $('myLevel').textContent = `You are ${LEVELS[myLevel()]} in this band.` + (a ? '' : ' Only owners and admins can change this list.');
   $('memDlg').showModal(); await loadMembers();
 }
@@ -457,10 +462,14 @@ $('memList').onclick = async (e) => {
   try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: u })); say('Removed from the band'); } catch {}
   loadMembers();
 };
+let lastInvite = '';
+$('invCopyLink').onclick = () => lastInvite && copyText(`${location.origin}${location.pathname}#join-${lastInvite}`);
+$('invCopyCode').onclick = () => lastInvite && copyText(lastInvite);
 $('invMake').onclick = async () => {
   try {
     const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id, role: $('invRole').value }).select().single());
     $('invCode').textContent = `Invite code: ${d.code} (${LEVELS[d.role]} access, valid for 7 days)`;
+    lastInvite = d.code; $('invCopyRow').hidden = false;
   } catch {}
 };
 $('bandRename').onclick = async () => {
@@ -487,7 +496,7 @@ $('leaveBand').onclick = async () => {
 // ---- sign-up codes, sign-in codes and password reset
 let codeMode = null, recovering = false, codeEmail = '';
 const showPanel = (p) => ['pSign', 'pCode', 'pNew'].forEach((id) => ($(id).hidden = id !== p));
-const emailVal = () => $('email').value.trim();
+const emailVal = () => $('email').value.trim().toLowerCase();
 const pwOk = (p) => (p || '').length >= 8 || (say('Use at least 8 characters for the password'), false);
 function askCode(mode, email) {
   codeMode = mode; codeEmail = email; $('codeIn').value = ''; $('codePw1').value = ''; $('codePw').hidden = mode !== 'recovery';
@@ -495,11 +504,61 @@ function askCode(mode, email) {
   $('codeHelp').textContent = `We emailed a code to ${email}. It can take a minute to arrive, so check your spam folder too.`;
   showPanel('pCode');
 }
+// ---- invite links: https://.../#join-CODE
+const INVITE_HASH = /^#join-([A-Za-z0-9]{4,16})$/;
+function inviteFromHash(h) { const m = INVITE_HASH.exec(h || ''); return m ? m[1].toUpperCase() : ''; }
+const pendingInvite = () => { try { return localStorage.getItem('pendingInvite') || ''; } catch { return ''; } };
+function drawInviteNote() { $('invNote').hidden = !pendingInvite() || !!user; }
+function captureInvite() { // remember a code from the address bar, then take it out of the address
+  const c = inviteFromHash(location.hash); if (!c) return;
+  try { localStorage.setItem('pendingInvite', c); } catch {}
+  try { history.replaceState(null, '', location.pathname + location.search); } catch {}
+}
+let justJoined = null, joinOffline = false;
+async function joinWith(code) { // returns the band id, or null when it did not work
+  code = (code || '').replace(/\s/g, '').toUpperCase(); joinOffline = false;
+  if (!code) { say('Type the invite code first'); return null; }
+  const r = await sb.rpc('join_band', { p_code: code });
+  if (r.error) {
+    joinOffline = !r.error.code && /fetch|network/i.test(r.error.message || '');
+    say(joinOffline ? 'You seem to be offline. Try again when you have a connection.'
+      : /invalid or expired/i.test(r.error.message || '') ? 'That code did not work. Check it with the person who sent it. Codes last 7 days.' : 'Error: ' + r.error.message);
+    return null;
+  }
+  return r.data;
+}
+async function redeemPending() { // after sign-in, a code from an invite link joins the band by itself
+  const code = pendingInvite(); if (!code || !user) return;
+  const id = await joinWith(code);
+  if (id || !joinOffline) { try { localStorage.removeItem('pendingInvite'); } catch {} }
+  if (id) { localStorage.setItem('band', id); justJoined = id; }
+}
+async function joinFromInput(inp) {
+  const id = await joinWith(inp.value); if (!id) return;
+  inp.value = ''; localStorage.setItem('band', id); justJoined = id; $('menu').close(); await loadBands();
+}
+$('joinBand').onclick = () => joinFromInput($('joinCode'));
+$('joinBand2').onclick = () => joinFromInput($('joinCode2'));
+$('joinCode2').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBand2').click(); });
+window.addEventListener('hashchange', () => { captureInvite(); drawInviteNote(); if (user && pendingInvite()) loadBands(); });
+captureInvite(); drawInviteNote();
+
+// ---- sign-up helpers: a mistyped email cannot be recovered while email is off, so check it
+const TYPO_DOMAINS = { 'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmai.com': 'hotmail.com', 'hotmail.con': 'hotmail.com', 'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'yahoo.con': 'yahoo.com', 'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com', 'iclod.com': 'icloud.com', 'icloud.con': 'icloud.com' };
+const emailLooksOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+function emailFix(e) { const [u, d] = e.split('@'); const f = TYPO_DOMAINS[d]; return f ? u + '@' + f : ''; }
+$('showPw').onchange = () => { $('pw').type = $('showPw').checked ? 'text' : 'password'; };
+
 $('signUp').onclick = async () => {
-  const email = emailVal(); if (!email) return say('Type your email address first'); if (!pwOk($('pw').value)) return;
+  let email = emailVal(); if (!email) return say('Type your email address first');
+  if (!emailLooksOk(email)) return say('That email address does not look right. Please check it.');
+  const fix = emailFix(email);
+  if (fix && confirm(`Did you mean ${fix}?\n\nOK uses ${fix}. Cancel keeps ${email}.`)) { email = fix; $('email').value = fix; }
+  if (!pwOk($('pw').value)) return;
+  const nm = $('name').value.trim(); if (!nm) return say('Type your name so your bandmates know who you are');
   try {
-    const d = await must(sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: $('name').value.trim() } } }));
-    if (d.session) say('Signed up');
+    const d = await must(sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: nm } } }));
+    if (d.session) { if (!pendingInvite()) say('Account created. Now type your invite code to join your band.'); }
     else if (d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) say('That email already has an account. Use Sign in, or Forgot password.');
     else askCode('signup', email);
   } catch {}
@@ -530,7 +589,12 @@ $('chPwGo').onclick = async () => {
   const pw = $('chPw').value; if (!pwOk(pw)) return;
   try { await must(sb.auth.updateUser({ password: pw })); $('chPw').value = ''; say('Password changed'); } catch {}
 };
-$('signIn').onclick = async () => { await must(sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pw').value })); };
+$('signIn').onclick = async () => {
+  const email = emailVal(), pw = $('pw').value; if (!email || !pw) return say('Type your email and password');
+  const r = await sb.auth.signInWithPassword({ email, password: pw });
+  if (r.error) say(/invalid login/i.test(r.error.message || '') ? 'Email or password not recognised. If you are new, tap Sign up. If you forgot your password, ask the person who invited you.'
+    : !r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
+};
 $('signOut').onclick = async () => {
   if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
 sb.auth.onAuthStateChange((e, s) => {
@@ -543,13 +607,14 @@ sb.auth.onAuthStateChange((e, s) => {
 // ---- bands and setlists
 async function loadBands() {
   if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
-  loadQ(); await flush(false);
+  await redeemPending(); loadQ(); await flush(false);
   try {
     bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme,logo,slug)').eq('user_id', user.id)));
     $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
     const last = localStorage.getItem('band'); if (last && bandRows.some((r) => r.bands.id === last)) $('band').value = last;
     pickBandFromHash();
     await loadBand();
+    if (justJoined) { const nm = bandRows.find((x) => x.bands.id === justJoined)?.bands?.name; justJoined = null; if (nm) say(`You have joined “${nm}”`); }
   } catch { render(); }
 }
 async function loadBand() {
@@ -586,7 +651,6 @@ async function makeSetlist(inp) {
 }
 $('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
 $('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
-$('joinBand').onclick = async () => { const id = await must(sb.rpc('join_band', { p_code: $('joinCode').value })); $('joinCode').value = ''; localStorage.setItem('band', id); $('menu').close(); await loadBands(); };
 $('menuBtn').onclick = () => { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('menu').showModal(); }; $('menuClose').onclick = () => $('menu').close();
 document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
 
@@ -612,6 +676,7 @@ $('slDel').onclick = async () => {
 
 // ---- the setlist screen
 function render() {
+  drawInviteNote();
   $('auth').hidden = !!user && !recovering; $('app').hidden = !user || recovering; if (!user) return;
   $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
   $('emptySl').hidden = items.length > 0;

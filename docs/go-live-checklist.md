@@ -21,6 +21,7 @@ checks below focus on those and then repeat a quick sanity pass.
   3. Open `docs/setlist-pwa-v2/` and delete `sw.js`, `config.js`, `manifest.webmanifest` and the icons from it. Keep
      `index.html`: it is now a small page that sends old links to the new address.
   4. `config.js` in the zip holds the same Supabase address and key you used before. Compare it with your old one.
+- [ ] **A4b. Sign-up and invite update.** Upload the newer `index.html` over `docs/index.html` (Add file, Upload files, Commit). No SQL, and `config.js` and `sw.js` stay as they are. Do this after A4, then open the app in a private window.
 - [ ] **A5. Check the new address.** Open https://timlawless.github.io/setlists/ in a private window: the sign-in page appears,
       and the footer says "BPM and key data from GetSongBPM and Song Finder".
 - [ ] **A6. Your own phone and laptop.** The old home-screen icon points at the old address. Delete it, open the new address
@@ -50,12 +51,23 @@ checks below focus on those and then repeat a quick sanity pass.
 ### 4. Quick check that nothing else broke
 - [ ] Sign in, switch band and setlist, open gig mode, start the metronome (click is audible), make one offline edit and watch it sync.
 
+### 5. Sign-up and invite
+- [ ] As owner: Band members and access, choose Editor, tap **New invite code**. **Copy invite link** and **Copy code only** buttons appear. Paste the link somewhere to read it: it ends `#join-` and the 8-character code.
+- [ ] Open the invite link in a private window, signed out: the sign-in page says you have been invited to join a band.
+- [ ] Sign up with a fresh test email. The app adds you to the band by itself and says you have joined it. The code is gone from the address bar.
+- [ ] Sign up a second fresh account from the plain address. You see "Welcome! You are not in a band yet" with a code box. Type the code in lower case with a space in the middle: it still joins.
+- [ ] Type a wrong code: a friendly message, and nothing changes.
+- [ ] Sign up with `name@gmial.com`: the app asks "Did you mean gmail.com?". A blank name, a short password and an email with no `@` are each refused with a clear message.
+- [ ] Tick **Show password**: the password becomes visible. Sign in with a wrong password: the message says to tap Sign up if you are new.
+- [ ] On an iPhone: install first, sign up inside the installed app, then type the code on the card. (A code remembered in Safari does not reach the installed app.)
+- [ ] Try a band link ending that starts with `join-`: it is refused.
+
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).
 - [ ] Create the band with your account. Choose its link ending. Add a few songs and a setlist.
-- [ ] Make the invite code on Tuesday morning (codes last 7 days and can be used by several people).
+- [ ] Make the invite code on Tuesday morning (codes last 7 days and can be used by several people). In Band members and access tap **New invite code**, then **Copy code only** (and **Copy invite link** if you want the link).
 - [ ] Dry run `tester-guide.md` with a fresh account on a phone that is not yours.
-- [ ] Send the guide on WhatsApp with the invite code, and the band link if you want.
+- [ ] Send the two WhatsApp messages from `tester-guide.md` section 1: the link and install steps first, then the code on its own.
 
 ## D. During the alpha
 - **Problems arrive on WhatsApp.** Paste them to me with the phone model, what the person did and what happened.

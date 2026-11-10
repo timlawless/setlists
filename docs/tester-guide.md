@@ -1,15 +1,27 @@
 # Setlist app: tester guide
 
-## 1. WhatsApp invite message (copy, fill in the blanks, send)
+## 1. WhatsApp invite messages (send as two separate messages)
+
+**Message 1: the app and how to install it** (copy, fill in the blanks, send)
 
 > Hi [name]! I'd love your help testing a setlist app I've built for bands: songs with BPM, key and chords, a metronome,
 > and a stage view. It's an early test version.
 >
 > Open this link: https://timlawless.github.io/setlists/
 > **iPhone:** open it in Safari (not inside WhatsApp). **Android:** open it in Chrome.
-> Then follow the steps in the guide below. Your invite code to join the band is: **[CODE]**
+> Install it first (steps below), then open the app from your home screen and sign up there. I'll send your invite code in my next message.
 >
 > Please message me here with anything odd, confusing or broken. Thank you!
+
+**Message 2: the code on its own**, so it can be copied with a long press
+
+> Your invite code: **[CODE]**
+> After you sign up, type it in the box on the first screen and tap **Join band**.
+
+**Option: the invite link.** In Band members and access, tap **New invite code**, then **Copy invite link**. The link ends
+`#join-` and the code. Anyone who opens it, then signs up or signs in, is added to the band automatically. Use it for a
+tester who will use the app in a browser. On an iPhone the installed app and Safari keep separate sign-ins, so an
+iPhone tester who installs the app should type the code in the installed app instead.
 
 ## 2. Install it on your phone
 
@@ -28,8 +40,10 @@
 You can also just use it in the browser without installing, but the installed version is the one to test.
 
 ## 3. Sign up and join the band
-1. On the first screen, type your email, a password you will remember (at least 8 characters), and your name. Tap **Sign up**.
-2. You will see "No bands yet". Tap **Create or join a band**. In the menu, type the invite code under **Join band** and tap **Join band**.
+1. On the first screen, type your email (check the spelling: the app cannot email you while it is in testing), a password you will
+   remember (at least 8 characters) and your name. Tap **Show password** if you want to check it. Tap **Sign up**.
+2. You will see **Welcome! You are not in a band yet**. Type the invite code in the box and tap **Join band**.
+   If you opened an invite link, you are added to the band automatically and can skip this step.
 3. Your band appears at the top. Pick a setlist from the second drop-down.
 
 ## 4. Things to try

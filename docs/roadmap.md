@@ -41,6 +41,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Flash safety | The full-screen flash never exceeds three flashes a second, and asks for confirmation the first time it is switched on | none | Done (checklist passed) |
 | Better song lookup | Song Finder results are a ranked list of recordings (exact title and your artist first, karaoke and tribute last) and you pick one to get its tempo and key | none (redeploy the function) | Built, not yet on the site |
 | Band link | The owner or an admin chooses a link ending, for example `/#wc`, that opens the band | v8 | Built, not yet on the site |
+| Easier sign-up and invites | Join box on the "No bands yet" card; invite links ending `#join-CODE` that add the person after sign-up or sign-in; Copy invite link and Copy code only buttons; email typo check; show password; name required; clearer sign-in message | none | Built, not yet on the site; tested only with a stand-in database |
 | App at the site root | The app moves to the top of `docs/`, so https://timlawless.github.io/setlists/ opens it; the old address redirects | none | Built, not yet on the site |
 
 ## The earlier plan: what happened to each step
@@ -50,7 +51,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | 2. Decide PWA first or Expo first | Done: PWA first. |
 | 3. Supabase schema and members-only rules | Done (SQL v1 to v7). Row-level security enforces membership and access level. Permission tests (97 checks for access levels, plus others) were run on a local copy of the database; they are not in the repository yet. |
 | 4. Milestone 1: solo app on the device | Replaced. The app went straight to a Supabase-backed version with a saved local copy for offline reading; editing offline is now built on top. The `core/` library is not used by the web app yet. |
-| 5. Sharing for testing | Done: sign-in, invite codes (typed), shared history. Sync is done by a queue in the app (see `architecture.md`), not by `core/`. |
+| 5. Sharing for testing | Done: sign-in, invite codes (typed, or by invite link), shared history. Sync is done by a queue in the app (see `architecture.md`), not by `core/`. |
 | 6. Catalog lookup | Partly done: GetSongBPM through an Edge Function with a link back on the site (waiting for the API key), plus Song Finder as a backup that needs no key. Each match shows its source and a confidence level. MusicBrainz versions, merging two sources into one result and the cache table are not built. |
 | 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Flash safety rule and first-time warning built. Not done: iPhone install guide, high-contrast mode. |
 
@@ -63,6 +64,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
    templates and, last, switch Confirm email on.
 3. **Install the v7 update** (SQL v7 and the new page) and test reset, sign-in codes and the logo.
 4. **Install the offline editing and flash safety update** (one `index.html`, no SQL) and test it with the connection switched off.
+5. **Install the sign-up and invite update** (one `index.html`, no SQL) and run checklist section B5 before the first band starts.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -114,7 +116,8 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 7 | Tablet two-pane layout | Earlier design | Setlist left, song right. | Next | Planned |
 | 8 | History restore | Earlier design | Recorded as a new change. | Later | Planned |
 | 9 | App version number in the menu | Claude | Helps spot stale copies. | Next | Idea |
-| 10 | (add your next change here) |  |  |  |  |
+| 10 | Easier sign-up and invite for the first testers | You | Join box on the card, invite links, email typo check. Email stays off for the alpha. | Now | Built |
+| 11 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides

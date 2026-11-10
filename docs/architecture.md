@@ -204,6 +204,13 @@ band updates the address, and a link to a band you are not in shows a message th
 The ending is stored in `bands.slug`; only owners and admins can change it, and the database enforces the format and
 uniqueness. The hash is read in the browser, so it works on GitHub Pages without any server routing.
 
+## Sign-up and invite links
+- Invite codes are typed into a box on the "No bands yet" card, or in the menu. Spaces are removed and letters are upper-cased before the code is checked.
+- An invite link is the app address followed by `#join-` and the code. On load (and when the address changes) the app saves the code in the browser (`pendingInvite`), removes it from the address bar and shows a note on the sign-in page. After sign-in it calls `join_band` once, opens that band and clears the saved code. A code that fails is cleared too, so it cannot loop; one that failed only because the phone was offline is kept.
+- `join-` followed by letters is never read as a band link ending, and the band link setting refuses endings that start with `join-`.
+- Browser storage is separate for Safari and the installed iPhone app, so a code saved in Safari does not reach the installed app. That is why the typed box stays.
+- Sign-up checks that the email looks valid, offers a fix for common domain typos (for example `gmial.com`), lower-cases it and requires a name. This matters because with email off a mistyped address cannot be recovered.
+
 ## Sign-in and email
 - Email and password, with password reset by an emailed 6-digit code entered in the app, an email sign-in code for people
   who forget the password, sign-up confirmation by code, and change password from the menu.
@@ -259,7 +266,8 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 Database changes were tested on a local PostgreSQL 16 with a stand-in for Supabase's auth layer: 97 permission checks
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
-(run against real row-level security). Screen logic was tested in Node with stand-ins. None of these tests are in the
+(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 29 checks, not stored in the
+repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests.
 
@@ -280,6 +288,7 @@ delete-song update. `core/` has its own 23 tests.
 - Key and BPM lookup works without a GetSongBPM key through Song Finder, which is new, rate-limited and untested from the live site. Data is incomplete for some songs and can be half or double time.
 - History cannot be restored with a button, and membership changes are not in the history.
 - Invite codes can be reused until they expire.
+- An invite link remembered in Safari does not reach the installed iPhone app, so those testers type the code. A mistyped email at sign-up cannot be recovered while email is off; the app only catches common domain typos.
 - The home-screen icon is the same for every band.
 
 ## Open questions
