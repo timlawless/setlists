@@ -24,18 +24,21 @@ tester who will use the app in a browser. On an iPhone the installed app and Saf
 iPhone tester who installs the app should type the code in the installed app instead.
 
 ## 2. Install it on your phone
+When you open the link in a browser, the app shows an **Install** card at the top with the steps for your phone. You can follow
+the card or the steps below. Tap **Not now** to hide it. To bring it back, open the menu (☰) and tap **How to install on your phone**.
 
 **iPhone**
-1. Tapping a link in WhatsApp opens it inside WhatsApp, which hides the install option. Tap the link, then tap the compass
-   icon or "Open in Safari". Or copy the link and paste it into Safari.
-2. In Safari, tap the **Share** button (the square with an arrow pointing up).
+1. Open the link in **Safari**. Tapping a link in WhatsApp opens it inside WhatsApp, which hides the install option. If you do
+   not see **Add to Home Screen** in step 3, tap **Copy link** on the card, open Safari and paste the link into the address bar.
+2. Tap the **Share** button (the square with an arrow pointing up) at the bottom of Safari.
 3. Scroll down the list and tap **Add to Home Screen**, then **Add**.
-4. Close Safari and open the app from the new icon on your home screen. It opens full screen.
+4. Close Safari and open the app from the new icon on your home screen. It opens full screen. The installed app is separate
+   from Safari, so it asks you to sign in once. Sign up there, and type your invite code after you sign up.
 
 **Android**
 1. Open the link in Chrome.
-2. Tap the **three dots** at the top right, then **Install app** or **Add to Home screen**.
-3. Open the app from your home screen.
+2. Tap **Install app** on the card at the top. If you do not see the card, tap the **three dots** at the top right, then **Install app** or **Add to Home screen**.
+3. Open the app from your home screen and sign in there.
 
 You can also just use it in the browser without installing, but the installed version is the one to test.
 

@@ -42,6 +42,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Better song lookup | Song Finder results are a ranked list of recordings (exact title and your artist first, karaoke and tribute last) and you pick one to get its tempo and key | none (redeploy the function) | Built, not yet on the site |
 | Band link | The owner or an admin chooses a link ending, for example `/#wc`, that opens the band | v8 | Built, not yet on the site |
 | Easier sign-up and invites | Join box on the "No bands yet" card; invite links ending `#join-CODE` that add the person after sign-up or sign-in; Copy invite link and Copy code only buttons; email typo check; show password; name required; clearer sign-in message | none | Built, not yet on the site; tested only with a stand-in database |
+| iPhone install help | An Install card on the first screen (iPhone: Share, Add to Home Screen, with a Copy link button for people stuck in WhatsApp's browser; Android: Install app button); Not now, and a menu button to bring it back; the invite code is shown for retyping in the installed app | none | Built, not yet on the site; tested only in a simulated browser |
 | App at the site root | The app moves to the top of `docs/`, so https://timlawless.github.io/setlists/ opens it; the old address redirects | none | Built, not yet on the site |
 
 ## The earlier plan: what happened to each step
@@ -53,7 +54,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | 4. Milestone 1: solo app on the device | Replaced. The app went straight to a Supabase-backed version with a saved local copy for offline reading; editing offline is now built on top. The `core/` library is not used by the web app yet. |
 | 5. Sharing for testing | Done: sign-in, invite codes (typed, or by invite link), shared history. Sync is done by a queue in the app (see `architecture.md`), not by `core/`. |
 | 6. Catalog lookup | Partly done: GetSongBPM through an Edge Function with a link back on the site (waiting for the API key), plus Song Finder as a backup that needs no key. Each match shows its source and a confidence level. MusicBrainz versions, merging two sources into one result and the cache table are not built. |
-| 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Flash safety rule and first-time warning built. Not done: iPhone install guide, high-contrast mode. |
+| 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Flash safety rule and first-time warning built. iPhone install help built, not yet on the site. Not done: high-contrast mode. |
 
 ## In progress and waiting
 1. **GetSongBPM API key.** The documentation confirms a key is required, and a visible link back (done). The lookup no
@@ -64,7 +65,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
    templates and, last, switch Confirm email on.
 3. **Install the v7 update** (SQL v7 and the new page) and test reset, sign-in codes and the logo.
 4. **Install the offline editing and flash safety update** (one `index.html`, no SQL) and test it with the connection switched off.
-5. **Install the sign-up and invite update** (one `index.html`, no SQL) and run checklist section B5 before the first band starts.
+5. **Install the sign-up, invite and install-help update** (one `index.html`, no SQL) and run checklist sections B5 and B6 before the first band starts.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -73,7 +74,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 2. [ ] **Finish the sign-in setup** (item 2 above) and test it in the installed iPhone app.
 3. [ ] **Test offline editing on real devices.** Airplane mode: edit a song, reorder, add and delete; reconnect; check
        the history, and create a deliberate conflict from a second account.
-4. [ ] **iPhone install guide in the app.** There is no install button on iPhone; people must use Share, then Add to
+4. [x] **iPhone install guide in the app (built, not yet on the site).** There is no install button on iPhone; people must use Share, then Add to
        Home Screen, and it was hard to find during testing. Show a short guide with a picture.
 5. [ ] **Tablet two-pane layout.** Setlist on the left, selected song on the right, from about 768 px wide.
        The earlier design asks for it; the web app is still one column.
@@ -112,7 +113,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 3 | Google sign-in | You | Test in the installed iPhone app. | Next | Planned |
 | 4 | Backup source for key and BPM lookup | Claude | Song Finder, used when there is no GetSongBPM key or no match. | Now | Built |
 | 5 | Full lyrics text instead of a link | You | Said it may be added later. | Later | Idea |
-| 6 | iPhone install guide | Earlier design | You could not find the install option. | Next | Planned |
+| 6 | iPhone install guide | Earlier design | You could not find the install option. Built as an Install card; needs a test on real phones. | Now | Built |
 | 7 | Tablet two-pane layout | Earlier design | Setlist left, song right. | Next | Planned |
 | 8 | History restore | Earlier design | Recorded as a new change. | Later | Planned |
 | 9 | App version number in the menu | Claude | Helps spot stale copies. | Next | Idea |

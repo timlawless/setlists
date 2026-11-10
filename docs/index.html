@@ -28,6 +28,7 @@ button:disabled{opacity:.35}
 label{display:block;color:var(--mute);font-size:13px;margin-top:8px}
 label a{margin-left:8px}
 .chk{display:flex;gap:6px;align-items:center}.chk input{width:auto}
+#install ol{margin:6px 0 8px;padding-left:20px}#install li{margin:4px 0}
 a{color:var(--accent)}
 .top{display:flex;align-items:center;gap:10px}
 .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);font-weight:700;font-size:13px;flex:none}
@@ -77,6 +78,12 @@ li select{width:auto}
   <button id="menuBtn" aria-label="Menu">☰</button>
 </header>
 <main>
+  <section id="install" class="card" hidden>
+    <b id="instTitle">Install this app</b>
+    <ol id="instSteps"></ol>
+    <p id="instHint" hidden><small>Cannot see Add to Home Screen? You may be inside WhatsApp or another app's browser. Tap Copy link, then paste it into Safari.</small></p>
+    <div class="row"><button id="instBtn" class="primary" hidden>Install app</button><button id="instCopy" hidden>Copy link</button><button id="instHide">Not now</button></div>
+  </section>
   <section id="auth" class="card">
     <div id="pSign">
       <h2>Sign in</h2>
@@ -135,6 +142,7 @@ li select{width:auto}
   <div class="row"><button id="tone">Test tone</button></div><pre id="dbg"></pre>
   <h3>Account</h3>
   <div class="row"><input id="chPw" type="password" placeholder="New password (8+ characters)" autocomplete="new-password"><button id="chPwGo">Change password</button></div>
+  <div class="row"><button id="instHelp">How to install on your phone</button></div>
   <div class="row"><button id="signOut">Sign out</button></div>
 </dialog>
 
@@ -397,7 +405,7 @@ function drawSlug() {
   $('slugIn').value = sl; $('slugPrev').textContent = sl ? bandUrl(sl) : 'No link yet. Choose an ending, for example the band’s initials.';
   $('linkRow').hidden = !sl; $('linkTxt').textContent = sl ? bandUrl(sl) : '';
 }
-async function copyText(t) { try { await navigator.clipboard.writeText(t); say('Link copied'); } catch { prompt('Copy this link', t); } }
+async function copyText(t, done = 'Link copied') { try { await navigator.clipboard.writeText(t); say(done); } catch { prompt('Copy this', t); } }
 $('slugCopy').onclick = () => bandSlug() && copyText(bandUrl(bandSlug()));
 $('linkCopy').onclick = () => bandSlug() && copyText(bandUrl(bandSlug()));
 $('slugSave').onclick = async () => {
@@ -464,7 +472,7 @@ $('memList').onclick = async (e) => {
 };
 let lastInvite = '';
 $('invCopyLink').onclick = () => lastInvite && copyText(`${location.origin}${location.pathname}#join-${lastInvite}`);
-$('invCopyCode').onclick = () => lastInvite && copyText(lastInvite);
+$('invCopyCode').onclick = () => lastInvite && copyText(lastInvite, 'Code copied');
 $('invMake').onclick = async () => {
   try {
     const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id, role: $('invRole').value }).select().single());
@@ -548,6 +556,44 @@ const TYPO_DOMAINS = { 'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gamil
 const emailLooksOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 function emailFix(e) { const [u, d] = e.split('@'); const f = TYPO_DOMAINS[d]; return f ? u + '@' + f : ''; }
 $('showPw').onchange = () => { $('pw').type = $('showPw').checked ? 'text' : 'password'; };
+
+// ---- install help: iPhone has no install button, so the app explains the steps
+const UA = navigator.userAgent || '';
+const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isInstalled = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const inAppBrowser = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Snapchat|TikTok|GSA\//.test(UA);
+let installEvt = null;
+const installHidden = () => { try { return localStorage.getItem('installHidden') === '1'; } catch { return false; } };
+function drawInstall() {
+  const steps = [];
+  if (!isInstalled() && !installHidden()) {
+    if (isIOS) {
+      $('instTitle').textContent = inAppBrowser ? 'Open this page in Safari first' : 'Install this app on your iPhone';
+      steps.push('Tap the Share button (a square with an arrow pointing up) at the bottom of Safari.',
+        'Scroll down, tap Add to Home Screen, then tap Add.',
+        'Open Setlist from the new icon on your home screen and sign up or sign in there. The installed app asks you to sign in once.');
+      const code = pendingInvite(); if (code) steps.push(`Your invite code is ${code}. Type it in the installed app after you sign up.`);
+    } else if (installEvt) {
+      $('instTitle').textContent = 'Install this app';
+      steps.push('Tap Install app below.', 'Open Setlist from your home screen and sign in there.');
+    }
+  }
+  $('instSteps').replaceChildren(...steps.map((s) => Object.assign(document.createElement('li'), { textContent: s })));
+  $('install').hidden = !steps.length;
+  $('instHint').hidden = !(steps.length && isIOS); $('instCopy').hidden = !(steps.length && isIOS); $('instBtn').hidden = !(steps.length && !isIOS && installEvt);
+}
+$('instCopy').onclick = () => copyText(location.origin + location.pathname);
+$('instHide').onclick = () => { try { localStorage.setItem('installHidden', '1'); } catch {} drawInstall(); };
+$('instBtn').onclick = async () => { if (!installEvt) return; const e = installEvt; installEvt = null; try { e.prompt(); await e.userChoice; } catch {} drawInstall(); };
+$('instHelp').onclick = () => {
+  $('menu').close(); try { localStorage.removeItem('installHidden'); } catch {}
+  if (isInstalled()) return say('The app is already installed on this device.');
+  if (!isIOS && !installEvt) say('To install: open your browser menu (the three dots) and choose Install app or Add to Home screen.');
+  drawInstall(); window.scrollTo(0, 0);
+};
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; drawInstall(); });
+window.addEventListener('appinstalled', () => { installEvt = null; drawInstall(); });
+drawInstall();
 
 $('signUp').onclick = async () => {
   let email = emailVal(); if (!email) return say('Type your email address first');
@@ -676,7 +722,7 @@ $('slDel').onclick = async () => {
 
 // ---- the setlist screen
 function render() {
-  drawInviteNote();
+  drawInviteNote(); drawInstall();
   $('auth').hidden = !!user && !recovering; $('app').hidden = !user || recovering; if (!user) return;
   $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
   $('emptySl').hidden = items.length > 0;

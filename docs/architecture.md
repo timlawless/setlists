@@ -221,7 +221,7 @@ uniqueness. The hash is read in the browser, so it works on GitHub Pages without
 ## PWA notes (iPhone)
 Findings from testing on real devices are marked.
 - No automatic install prompt on iOS: users add the app to the Home Screen by hand (Share, then Add to Home Screen, from
-  Safari only). **Found in testing:** this is easy to miss; an in-app install guide is on the roadmap.
+  Safari only). **Found in testing:** this is easy to miss, so the app shows an Install card (see Install help below).
 - Web Push only works for installed apps.
 - Sound only plays after a tap (fine: the metronome has a Start button). **Found in testing:** the click was silent in
   the browser with the silent switch on until the audio fix described above.
@@ -229,6 +229,12 @@ Findings from testing on real devices are marked.
 - Installed apps have more stable storage. Shared data lives in Supabase, so a cleared cache costs a re-download, but any
   changes still waiting to sync would be lost, which is why the sync status is shown.
 - Links may not open an installed PWA, so invites work by typing a code.
+
+## Install help
+- An Install card sits at the top of the first screen. It is hidden when the app runs installed (`navigator.standalone` or `display-mode: standalone`), when the person tapped Not now (`installHidden` in browser storage), and on desktop.
+- iPhone and iPad: three steps (Share, Add to Home Screen, open the icon and sign in there) and a Copy link button. The app cannot detect WhatsApp's own browser, so the Copy link hint always shows; Facebook, Instagram, Line, WeChat, Snapchat, TikTok and Google app browsers are recognised and told to open Safari first. If an invite code is waiting, the card shows it, because the installed app has its own storage and cannot see the code saved in Safari.
+- Android: the browser's `beforeinstallprompt` event is held and an Install app button calls it; there is no card until the browser offers it.
+- The menu has How to install on your phone to bring the card back.
 
 ## Backend options (Supabase chosen)
 | Option | Good for | Watch out for |
@@ -266,7 +272,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 Database changes were tested on a local PostgreSQL 16 with a stand-in for Supabase's auth layer: 97 permission checks
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
-(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 29 checks, not stored in the
+(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 42 checks (29 for sign-up and invites, 13 for the install card), not stored in the
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests.
@@ -288,6 +294,7 @@ delete-song update. `core/` has its own 23 tests.
 - Key and BPM lookup works without a GetSongBPM key through Song Finder, which is new, rate-limited and untested from the live site. Data is incomplete for some songs and can be half or double time.
 - History cannot be restored with a button, and membership changes are not in the history.
 - Invite codes can be reused until they expire.
+- The install steps were written from how iOS and Android normally behave and have not been tried on a real phone yet; the wording of the iOS menus can change between versions.
 - An invite link remembered in Safari does not reach the installed iPhone app, so those testers type the code. A mistyped email at sign-up cannot be recovered while email is off; the app only catches common domain typos.
 - The home-screen icon is the same for every band.
 

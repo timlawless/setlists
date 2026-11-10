@@ -21,7 +21,7 @@ checks below focus on those and then repeat a quick sanity pass.
   3. Open `docs/setlist-pwa-v2/` and delete `sw.js`, `config.js`, `manifest.webmanifest` and the icons from it. Keep
      `index.html`: it is now a small page that sends old links to the new address.
   4. `config.js` in the zip holds the same Supabase address and key you used before. Compare it with your old one.
-- [ ] **A4b. Sign-up and invite update.** Upload the newer `index.html` over `docs/index.html` (Add file, Upload files, Commit). No SQL, and `config.js` and `sw.js` stay as they are. Do this after A4, then open the app in a private window.
+- [ ] **A4b. Sign-up, invite and install-help update.** Upload the newer `index.html` over `docs/index.html` (Add file, Upload files, Commit). No SQL, and `config.js` and `sw.js` stay as they are. Do this after A4, then open the app in a private window.
 - [ ] **A5. Check the new address.** Open https://timlawless.github.io/setlists/ in a private window: the sign-in page appears,
       and the footer says "BPM and key data from GetSongBPM and Song Finder".
 - [ ] **A6. Your own phone and laptop.** The old home-screen icon points at the old address. Delete it, open the new address
@@ -61,6 +61,14 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Tick **Show password**: the password becomes visible. Sign in with a wrong password: the message says to tap Sign up if you are new.
 - [ ] On an iPhone: install first, sign up inside the installed app, then type the code on the card. (A code remembered in Safari does not reach the installed app.)
 - [ ] Try a band link ending that starts with `join-`: it is refused.
+
+### 6. Install help (needs real phones)
+- [ ] iPhone, in Safari, app not installed: an Install card with three steps appears above the sign-in page. Follow it: Add to Home Screen works and the icon opens the app full screen.
+- [ ] iPhone, link opened from inside WhatsApp: see whether Add to Home Screen is missing. If it is, tap **Copy link** on the card, paste it in Safari: the page opens there. (The app cannot tell WhatsApp's own browser from Safari, so the Copy link hint always shows on iPhone.)
+- [ ] Open the installed app: no card. Sign in once. Menu, **How to install on your phone**: it says the app is already installed.
+- [ ] **Not now** hides the card, and it stays hidden after a reload. The menu button brings it back.
+- [ ] Android, Chrome: an **Install app** button appears on the card and installs the app. (It only appears when Chrome offers installation.)
+- [ ] On a laptop browser: no Install card.
 
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).
