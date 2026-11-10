@@ -18,10 +18,14 @@
 > Your invite code: **[CODE]**
 > After you sign up, type it in the box on the first screen and tap **Join band**.
 
-**Option: the invite link.** In Band members and access, tap **New invite code**, then **Copy invite link**. The link ends
-`#join-` and the code. Anyone who opens it, then signs up or signs in, is added to the band automatically. Use it for a
-tester who will use the app in a browser. On an iPhone the installed app and Safari keep separate sign-ins, so an
-iPhone tester who installs the app should type the code in the installed app instead.
+**Easiest way: let the app write the message.** In Band members and access, tap **New invite code**, then **Share invite**
+(on a phone this opens WhatsApp, Messages or Mail with the whole message ready) or **Email invite** (opens your mail app with the
+message filled in, and you choose who to send it to). The message holds the app address, the install steps, the code and the invite
+link. The app does not send any email itself. The two-message version above is still fine if you prefer it.
+
+**Option: the invite link.** Tap **Copy invite link**. The link ends `#join-` and the code. Anyone who opens it, then signs up
+or signs in, is added to the band automatically. Use it for a tester who will use the app in a browser. On an iPhone the installed
+app and Safari keep separate sign-ins, so an iPhone tester who installs the app should type the code in the installed app instead.
 
 ## 2. Install it on your phone
 When you open the link in a browser, the app shows an **Install** card at the top with the steps for your phone. You can follow

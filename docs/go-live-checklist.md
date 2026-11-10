@@ -59,6 +59,9 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Type a wrong code: a friendly message, and nothing changes.
 - [ ] Sign up with `name@gmial.com`: the app asks "Did you mean gmail.com?". A blank name, a short password and an email with no `@` are each refused with a clear message.
 - [ ] Tick **Show password**: the password becomes visible. Sign in with a wrong password: the message says to tap Sign up if you are new.
+- [ ] On the sign-in page type an email and password and press Enter: a known user signs in. Try an unknown email: the message asks you to type your name and the cursor jumps to the name box. Press Enter there to sign up.
+- [ ] After making a code tap **Share invite**. On a phone the share sheet opens with the whole message (app address, iPhone steps, code, invite link). On a laptop the message is copied: paste it somewhere to read it.
+- [ ] Tap **Email invite**: your mail app opens with a subject and body filled in and no recipient. (A laptop with no mail program set up may do nothing.)
 - [ ] On an iPhone: install first, sign up inside the installed app, then type the code on the card. (A code remembered in Safari does not reach the installed app.)
 - [ ] Try a band link ending that starts with `join-`: it is refused.
 

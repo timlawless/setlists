@@ -41,7 +41,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Flash safety | The full-screen flash never exceeds three flashes a second, and asks for confirmation the first time it is switched on | none | Done (checklist passed) |
 | Better song lookup | Song Finder results are a ranked list of recordings (exact title and your artist first, karaoke and tribute last) and you pick one to get its tempo and key | none (redeploy the function) | Built, not yet on the site |
 | Band link | The owner or an admin chooses a link ending, for example `/#wc`, that opens the band | v8 | Built, not yet on the site |
-| Easier sign-up and invites | Join box on the "No bands yet" card; invite links ending `#join-CODE` that add the person after sign-up or sign-in; Copy invite link and Copy code only buttons; email typo check; show password; name required; clearer sign-in message | none | Built, not yet on the site; tested only with a stand-in database |
+| Easier sign-up and invites | Join box on the "No bands yet" card; invite links ending `#join-CODE` that add the person after sign-up or sign-in; Copy invite link and Copy code only buttons; email typo check; show password; name required; clearer sign-in message; Enter key signs in and an unknown email is asked for a name; Share invite and Email invite buttons (they open your share sheet or mail app, the app sends no email itself) | none | Built, not yet on the site; tested only with a stand-in database |
 | iPhone install help | An Install card on the first screen (iPhone: Share, Add to Home Screen, with a Copy link button for people stuck in WhatsApp's browser; Android: Install app button); Not now, and a menu button to bring it back; the invite code is shown for retyping in the installed app | none | Built, not yet on the site; tested only in a simulated browser |
 | App at the site root | The app moves to the top of `docs/`, so https://timlawless.github.io/setlists/ opens it; the old address redirects | none | Built, not yet on the site |
 
@@ -117,8 +117,9 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 7 | Tablet two-pane layout | Earlier design | Setlist left, song right. | Next | Planned |
 | 8 | History restore | Earlier design | Recorded as a new change. | Later | Planned |
 | 9 | App version number in the menu | Claude | Helps spot stale copies. | Next | Idea |
-| 10 | Easier sign-up and invite for the first testers | You | Join box on the card, invite links, email typo check. Email stays off for the alpha. | Now | Built |
-| 11 | (add your next change here) |  |  |  |  |
+| 10 | Easier sign-up and invite for the first testers | You | Join box on the card, invite links, email typo check, Enter key, Share invite and Email invite buttons. Email stays off for the alpha. | Now | Built |
+| 11 | App sends invite emails itself | You | Needs an email sending service, a verified sender address and an Edge Function. After the alpha. | Later | Planned |
+| 12 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides

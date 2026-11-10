@@ -210,6 +210,8 @@ uniqueness. The hash is read in the browser, so it works on GitHub Pages without
 - `join-` followed by letters is never read as a band link ending, and the band link setting refuses endings that start with `join-`.
 - Browser storage is separate for Safari and the installed iPhone app, so a code saved in Safari does not reach the installed app. That is why the typed box stays.
 - Sign-up checks that the email looks valid, offers a fix for common domain typos (for example `gmial.com`), lower-cases it and requires a name. This matters because with email off a mistyped address cannot be recovered.
+- Enter in the email box moves to the password box, Enter in the password box signs in, and Enter in the name box signs up. Supabase gives the same reply for an unknown email and a wrong password, so the app cannot tell them apart: a failed sign-in says the email or password was not recognised, asks new people to type their name and tap Sign up, and moves the cursor to the name box.
+- In Band members and access, **Share invite** opens the phone's share sheet (`navigator.share`) with a ready message, or copies the message where there is no share sheet. **Email invite** opens the person's own mail app through a `mailto:` link. The message holds the app address, iPhone install steps, the code and the invite link. The app sends no email itself; sending from the app needs an email service and is on the roadmap for after the alpha.
 
 ## Sign-in and email
 - Email and password, with password reset by an emailed 6-digit code entered in the app, an email sign-in code for people
@@ -272,7 +274,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 Database changes were tested on a local PostgreSQL 16 with a stand-in for Supabase's auth layer: 97 permission checks
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
-(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 42 checks (29 for sign-up and invites, 13 for the install card), not stored in the
+(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 54 checks (29 for sign-up and invites, 13 for the install card, 12 for the Enter key and the Share and Email invite buttons), not stored in the
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests.

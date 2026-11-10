@@ -164,7 +164,10 @@ li select{width:auto}
     <h3>Invite someone</h3>
     <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake" class="primary">New invite code</button></div>
     <p id="invCode"></p>
-    <div class="row" id="invCopyRow" hidden><button id="invCopyLink">Copy invite link</button><button id="invCopyCode">Copy code only</button></div>
+    <div id="invCopyRow" hidden>
+      <div class="row"><button id="invShare" class="primary">Share invite</button><button id="invEmail">Email invite</button></div>
+      <div class="row"><button id="invCopyLink">Copy invite link</button><button id="invCopyCode">Copy code only</button></div>
+    </div>
   </div>
   <div id="bandSec" hidden>
     <h3>Band settings</h3>
@@ -473,6 +476,22 @@ $('memList').onclick = async (e) => {
 let lastInvite = '';
 $('invCopyLink').onclick = () => lastInvite && copyText(`${location.origin}${location.pathname}#join-${lastInvite}`);
 $('invCopyCode').onclick = () => lastInvite && copyText(lastInvite, 'Code copied');
+const bandNameNow = () => bandRows.find((x) => x.bands.id === bandId)?.bands.name || 'our band';
+const appUrl = () => location.origin + location.pathname;
+function inviteText() {
+  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Open the app: ${appUrl()}\n   iPhone: open it in Safari, tap Share, then Add to Home Screen, and open it from your home screen.\n2. Sign up with your email, a password and your name.\n3. Type this invite code when asked: ${lastInvite}\n\nUsing a browser instead of the installed app? This link adds you to the band automatically after you sign up: ${appUrl()}#join-${lastInvite}\n\nThe code works for 7 days.`;
+}
+$('invShare').onclick = async () => {
+  if (!lastInvite) return;
+  if (navigator.share) { try { await navigator.share({ title: `Join ${bandNameNow()} on Setlist`, text: inviteText() }); } catch {} } // closing the share sheet is not an error
+  else copyText(inviteText(), 'Invite message copied');
+};
+$('invEmail').onclick = () => {
+  if (!lastInvite) return;
+  const a = document.createElement('a');
+  a.href = 'mailto:?subject=' + encodeURIComponent(`Join ${bandNameNow()} on Setlist`) + '&body=' + encodeURIComponent(inviteText().replace(/\n/g, '\r\n'));
+  document.body.appendChild(a); a.click(); a.remove();
+};
 $('invMake').onclick = async () => {
   try {
     const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id, role: $('invRole').value }).select().single());
@@ -638,9 +657,15 @@ $('chPwGo').onclick = async () => {
 $('signIn').onclick = async () => {
   const email = emailVal(), pw = $('pw').value; if (!email || !pw) return say('Type your email and password');
   const r = await sb.auth.signInWithPassword({ email, password: pw });
-  if (r.error) say(/invalid login/i.test(r.error.message || '') ? 'Email or password not recognised. If you are new, tap Sign up. If you forgot your password, ask the person who invited you.'
-    : !r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
+  if (r.error) {
+    if (/invalid login/i.test(r.error.message || '')) { say('Email or password not recognised. New here? Type your name below and tap Sign up. Forgot your password? Ask the person who invited you.'); $('name').focus(); }
+    else say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
+  }
 };
+$('email').setAttribute('enterkeyhint', 'next'); $('pw').setAttribute('enterkeyhint', 'go'); $('name').setAttribute('enterkeyhint', 'go');
+$('email').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('pw').focus(); } });
+$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('signIn').click(); } });
+$('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('signUp').click(); } });
 $('signOut').onclick = async () => {
   if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
 sb.auth.onAuthStateChange((e, s) => {
