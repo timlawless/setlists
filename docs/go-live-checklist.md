@@ -76,6 +76,14 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Android, Chrome: an **Install app** button appears on the card and installs the app. (It only appears when Chrome offers installation.)
 - [ ] On a laptop browser: no Install card.
 
+### 7. Small-phone layout (needs a real phone)
+- [ ] Setlist: about four songs fit on the screen with the metronome bar showing, and each row is easy to read. BPM and key come first, then the artist.
+- [ ] Tap a song's title: its details open, with **Move up** and **Move down** at the top. Tap the title again to close them.
+- [ ] Every button and box is easy to hit with a thumb, with no mis-taps between neighbours.
+- [ ] Tap **▶ Click**: the metronome bar grows to show the song title and the button says **■ Stop**. Stop it: the bar shrinks again.
+- [ ] Open the menu (☰): it fills the screen. Scroll to the bottom: **Close** is still at the top. Try **Band members and access** and **+ Add song** the same way.
+- [ ] With one band the top bar shows the band name and the setlist picker. Turn the phone sideways: nothing is cut off or hidden behind the metronome bar.
+
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).
 - [ ] Create the band with your account. Choose its link ending. Add a few songs and a setlist.

@@ -232,6 +232,13 @@ Findings from testing on real devices are marked.
   changes still waiting to sync would be lost, which is why the sync status is shown.
 - Links may not open an installed PWA, so invites work by typing a code.
 
+## Small-phone layout
+- Each song is one grid row: number, a title button (`data-a="toggle"`, opens the details), and the Click button. Under the title come the BPM and key, then the artist (which shortens first). The details panel starts with Move up and Move down, which replace the arrows that used to sit on every row.
+- On touch screens (`pointer: coarse`) buttons, drop-downs and boxes are at least 44 px tall. The metronome bar shows its title row only while the click is running (the `on` class on `#bar`, set in `syncPlay`), so it is slim when idle. The page keeps 120 px of space at the bottom for it.
+- One band: the header shows the band name (`#bandTitle`) instead of the band picker, which leaves room for the setlist picker. Two or more bands show the picker as before. Note `#bandName` is the create-band box in the menu, so the header label must not reuse that id.
+- At 520 px wide or less the menu, band members and add-song screens fill the screen, with their Close row pinned at the top. The sync screen stays a small panel. Wider screens still get centred panels.
+- A page-wide rule `[hidden]{display:none!important}` keeps anything marked hidden out of sight even when another style gives it a display value.
+
 ## Install help
 - An Install card sits at the top of the first screen. It is hidden when the app runs installed (`navigator.standalone` or `display-mode: standalone`), when the person tapped Not now (`installHidden` in browser storage), and on desktop.
 - iPhone and iPad: three steps (Share, Add to Home Screen, open the icon and sign in there) and a Copy link button. The app cannot detect WhatsApp's own browser, so the Copy link hint always shows; Facebook, Instagram, Line, WeChat, Snapchat, TikTok and Google app browsers are recognised and told to open Safari first. If an invite code is waiting, the card shows it, because the installed app has its own storage and cannot see the code saved in Safari.
@@ -274,7 +281,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 Database changes were tested on a local PostgreSQL 16 with a stand-in for Supabase's auth layer: 97 permission checks
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
-(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 69 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, and the welcome screen with one-step sign-up), plus 24 layout checks in headless Chromium at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
+(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 69 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, and the welcome screen with one-step sign-up), plus 51 layout checks in headless Chromium at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests.

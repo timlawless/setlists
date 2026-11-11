@@ -57,10 +57,10 @@ You can also just use it in the browser without installing, but the installed ve
    person who invited you.
 
 ## 4. Things to try
-- Open a setlist and tap a song's **Details**. Change the BPM, key, chords or notes, and tap **Save changes**. Tap **History** to see the change.
+- Open a setlist and tap a song's title to open its details. Change the BPM, key, chords or notes, and tap **Save changes**. Tap **History** to see the change.
 - Tap **▶ Click** on a song to start the metronome. Tap it again to stop. Try the **Flash** tick box (it shows a warning first).
 - Open the menu (☰) and choose **your instrument role in this band**, then tap **Gig mode** and look at what it shows you.
-- Add a song with **+ Add song**, move songs up and down with the arrows, and remove a song from the setlist.
+- Add a song with **+ Add song**, open a song's details to move it **up** or **down**, and remove a song from the setlist.
 - Optional: switch your phone to airplane mode, change a song, then switch it back on. The change should sync by itself.
 
 ## 5. Things that don't work yet
