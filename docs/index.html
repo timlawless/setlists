@@ -14,7 +14,9 @@
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}}
 :root[data-theme=dark]{--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{padding-top:env(safe-area-inset-top,0px)}
+body.out header,body.out #bar{display:none}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
 header select{flex:1;min-width:0}
@@ -28,7 +30,9 @@ button:disabled{opacity:.35}
 label{display:block;color:var(--mute);font-size:13px;margin-top:8px}
 label a{margin-left:8px}
 .chk{display:flex;gap:6px;align-items:center}.chk input{width:auto}
-#install ol{margin:6px 0 8px;padding-left:20px}#install li{margin:4px 0}
+#install ol{margin:6px 0 8px;padding-left:20px}#install li{display:list-item;border-top:0;padding:0;margin:4px 0}
+button.big{display:block;width:100%;padding:16px 12px;font-size:16px;margin:10px 0}button.linkbtn{background:none;border:0;text-decoration:underline;padding:8px 0}
+#authForm label small{font-weight:normal;opacity:.75}#trouble{margin-top:10px}#trouble summary{cursor:pointer;padding:6px 0}
 a{color:var(--accent)}
 .top{display:flex;align-items:center;gap:10px}
 .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);font-weight:700;font-size:13px;flex:none}
@@ -69,7 +73,7 @@ li select{width:auto}
 .gnav{display:flex;gap:8px;margin-top:12px}.gnav button{flex:1;padding:16px;font-size:18px}
 </style>
 </head>
-<body>
+<body class="out">
 <header>
   <img id="logoImg" alt="" hidden style="height:34px;width:34px;object-fit:contain;border-radius:6px;flex:none">
   <select id="band" aria-label="Band"></select>
@@ -86,15 +90,29 @@ li select{width:auto}
   </section>
   <section id="auth" class="card">
     <div id="pSign">
-      <h2>Sign in</h2>
-      <p id="invNote" class="card" hidden><b>You have been invited to join a band.</b> Sign up (if you are new) or sign in, and you will be added to the band automatically.</p>
-      <p><small>New here? Type your email, a password and your name, then tap <b>Sign up</b>. Already have an account? Tap <b>Sign in</b>.</small></p>
-      <label>Email<input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
-      <label>Password<input id="pw" type="password" autocomplete="current-password"></label>
-      <label class="chk"><input type="checkbox" id="showPw"> Show password</label>
-      <label>Your name (sign up only)<input id="name"></label>
-      <div class="row"><button id="signIn" class="primary">Sign in</button><button id="signUp">Sign up</button></div>
-      <div class="row"><button id="forgot">Forgot password?</button><button id="codeLogin">Email me a sign-in code</button></div>
+      <p id="invNote" class="card" hidden><b>You have been invited to join a band.</b> Create your account (or sign in if you already have one) and you will be added to the band automatically.</p>
+      <div id="authChoose">
+        <h2>Welcome to Setlist</h2>
+        <p>Setlists with BPM, key and chords for your band.</p>
+        <button id="chooseNew" class="primary big">I am new: create my account</button>
+        <button id="chooseOld" class="big">I already have an account: sign in</button>
+      </div>
+      <div id="authForm" hidden>
+        <h2 id="authTitle">Create your account</h2>
+        <label id="nameLbl">Your name <small>(your bandmates will see this)</small><input id="name" autocomplete="name" autocapitalize="words"></label>
+        <label>Email <small id="emailHelp"></small><input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
+        <label>Password <small id="pwHelp"></small><input id="pw" type="password" autocomplete="current-password"></label>
+        <label class="chk"><input type="checkbox" id="showPw"> Show password</label>
+        <label id="codeLbl">Invite code <small>(from your band leader, you can add it later)</small><input id="inviteIn" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+        <button id="signUp" class="primary big">Create my account</button>
+        <button id="signIn" class="primary big">Sign in</button>
+        <p id="authMsg" class="card" hidden></p>
+        <p><button id="authSwitch" class="linkbtn"></button></p>
+        <details id="trouble"><summary>Trouble signing in?</summary>
+          <p><small>These two buttons are still in development. If they do not work, ask the person who invited you.</small></p>
+          <div class="row"><button id="forgot">Forgot password?</button><button id="codeLogin">Email me a sign-in code</button></div>
+        </details>
+      </div>
     </div>
     <div id="pCode" hidden>
       <h2 id="codeTitle">Enter the code</h2>
@@ -479,7 +497,7 @@ $('invCopyCode').onclick = () => lastInvite && copyText(lastInvite, 'Code copied
 const bandNameNow = () => bandRows.find((x) => x.bands.id === bandId)?.bands.name || 'our band';
 const appUrl = () => location.origin + location.pathname;
 function inviteText() {
-  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Open the app: ${appUrl()}\n   iPhone: open it in Safari, tap Share, then Add to Home Screen, and open it from your home screen.\n2. Sign up with your email, a password and your name.\n3. Type this invite code when asked: ${lastInvite}\n\nUsing a browser instead of the installed app? This link adds you to the band automatically after you sign up: ${appUrl()}#join-${lastInvite}\n\nThe code works for 7 days.`;
+  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Open the app: ${appUrl()}\n   iPhone: open it in Safari, tap Share, then Add to Home Screen, and open it from your home screen.\n2. Tap “I am new: create my account” and type your name, your email, a password and this invite code: ${lastInvite}\n\nUsing a browser instead of the installed app? This link fills in the code for you: ${appUrl()}#join-${lastInvite}\n\nThe code works for 7 days.`;
 }
 $('invShare').onclick = async () => {
   if (!lastInvite) return;
@@ -567,7 +585,7 @@ async function joinFromInput(inp) {
 $('joinBand').onclick = () => joinFromInput($('joinCode'));
 $('joinBand2').onclick = () => joinFromInput($('joinCode2'));
 $('joinCode2').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBand2').click(); });
-window.addEventListener('hashchange', () => { captureInvite(); drawInviteNote(); if (user && pendingInvite()) loadBands(); });
+window.addEventListener('hashchange', () => { captureInvite(); drawInviteNote(); if (authMode === 'new' && pendingInvite()) $('inviteIn').value = pendingInvite(); if (user && pendingInvite()) loadBands(); });
 captureInvite(); drawInviteNote();
 
 // ---- sign-up helpers: a mistyped email cannot be recovered while email is off, so check it
@@ -591,7 +609,7 @@ function drawInstall() {
       steps.push('Tap the Share button (a square with an arrow pointing up) at the bottom of Safari.',
         'Scroll down, tap Add to Home Screen, then tap Add.',
         'Open Setlist from the new icon on your home screen and sign up or sign in there. The installed app asks you to sign in once.');
-      const code = pendingInvite(); if (code) steps.push(`Your invite code is ${code}. Type it in the installed app after you sign up.`);
+      const code = pendingInvite(); if (code) steps.push(`Your invite code is ${code}. Type it in the Invite code box when you create your account in the installed app.`);
     } else if (installEvt) {
       $('instTitle').textContent = 'Install this app';
       steps.push('Tap Install app below.', 'Open Setlist from your home screen and sign in there.');
@@ -614,6 +632,26 @@ window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); inst
 window.addEventListener('appinstalled', () => { installEvt = null; drawInstall(); });
 drawInstall();
 
+// ---- welcome screen: choose, then one short form for the choice
+let authMode = 'choose';
+function setAuthMode(m) {
+  authMode = m; const isNew = m === 'new';
+  $('authChoose').hidden = m !== 'choose'; $('authForm').hidden = m === 'choose';
+  $('authTitle').textContent = isNew ? 'Create your account' : 'Sign in';
+  $('nameLbl').hidden = !isNew; $('codeLbl').hidden = !isNew; $('signUp').hidden = !isNew; $('signIn').hidden = isNew; $('trouble').hidden = isNew;
+  $('pw').setAttribute('autocomplete', isNew ? 'new-password' : 'current-password');
+  $('pwHelp').textContent = isNew ? '(at least 8 characters)' : '';
+  $('emailHelp').textContent = isNew ? '(use one you can check: the app cannot email you yet)' : '';
+  $('authSwitch').textContent = isNew ? 'I already have an account' : 'I am new: create my account';
+  $('authMsg').hidden = true;
+  if (isNew && !$('inviteIn').value) $('inviteIn').value = pendingInvite();
+}
+$('chooseNew').onclick = () => { setAuthMode('new'); $('name').focus(); };
+$('chooseOld').onclick = () => { setAuthMode('old'); $('email').focus(); };
+$('authSwitch').onclick = () => setAuthMode(authMode === 'new' ? 'old' : 'new');
+const hadAccount = () => { try { return localStorage.getItem('hadAccount') === '1'; } catch { return false; } };
+setAuthMode(pendingInvite() ? 'new' : hadAccount() ? 'old' : 'choose');
+
 $('signUp').onclick = async () => {
   let email = emailVal(); if (!email) return say('Type your email address first');
   if (!emailLooksOk(email)) return say('That email address does not look right. Please check it.');
@@ -621,6 +659,7 @@ $('signUp').onclick = async () => {
   if (fix && confirm(`Did you mean ${fix}?\n\nOK uses ${fix}. Cancel keeps ${email}.`)) { email = fix; $('email').value = fix; }
   if (!pwOk($('pw').value)) return;
   const nm = $('name').value.trim(); if (!nm) return say('Type your name so your bandmates know who you are');
+  const code = $('inviteIn').value.replace(/\s/g, '').toUpperCase(); if (code) { try { localStorage.setItem('pendingInvite', code); } catch {} }
   try {
     const d = await must(sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: nm } } }));
     if (d.session) { if (!pendingInvite()) say('Account created. Now type your invite code to join your band.'); }
@@ -658,18 +697,25 @@ $('signIn').onclick = async () => {
   const email = emailVal(), pw = $('pw').value; if (!email || !pw) return say('Type your email and password');
   const r = await sb.auth.signInWithPassword({ email, password: pw });
   if (r.error) {
-    if (/invalid login/i.test(r.error.message || '')) { say('Email or password not recognised. New here? Type your name below and tap Sign up. Forgot your password? Ask the person who invited you.'); $('name').focus(); }
+    if (/invalid login/i.test(r.error.message || '')) {
+      say('Email or password not recognised.');
+      $('authMsg').textContent = 'Email or password not recognised. If you are new, tap “I am new: create my account” below. If you forgot your password, open “Trouble signing in?” or ask the person who invited you.';
+      $('authMsg').hidden = false; $('trouble').open = true;
+    }
     else say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
   }
 };
-$('email').setAttribute('enterkeyhint', 'next'); $('pw').setAttribute('enterkeyhint', 'go'); $('name').setAttribute('enterkeyhint', 'go');
+$('email').setAttribute('enterkeyhint', 'next'); $('pw').setAttribute('enterkeyhint', 'go'); $('name').setAttribute('enterkeyhint', 'next'); $('inviteIn').setAttribute('enterkeyhint', 'go');
+$('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('email').focus(); } });
 $('email').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('pw').focus(); } });
-$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('signIn').click(); } });
-$('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('signUp').click(); } });
+$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (authMode === 'new') $('inviteIn').focus(); else $('signIn').click(); } });
+$('inviteIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('signUp').click(); } });
 $('signOut').onclick = async () => {
   if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
 sb.auth.onAuthStateChange((e, s) => {
   const before = user?.id || null; user = s?.user || null; $('who').textContent = user ? user.email : 'Menu';
+  if (user) { try { localStorage.setItem('hadAccount', '1'); } catch {} }
+  if (e === 'SIGNED_OUT') setAuthMode('old');
   if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
   if ((user?.id || null) !== before) setTimeout(loadBands, 0); // only when someone signs in or out, not when the same person returns to the tab
   else if (e === 'PASSWORD_RECOVERY') setTimeout(render, 0);
@@ -747,7 +793,7 @@ $('slDel').onclick = async () => {
 
 // ---- the setlist screen
 function render() {
-  drawInviteNote(); drawInstall();
+  drawInviteNote(); drawInstall(); document.body.classList.toggle('out', !user);
   $('auth').hidden = !!user && !recovering; $('app').hidden = !user || recovering; if (!user) return;
   $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
   $('emptySl').hidden = items.length > 0;

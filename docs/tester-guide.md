@@ -16,7 +16,7 @@
 **Message 2: the code on its own**, so it can be copied with a long press
 
 > Your invite code: **[CODE]**
-> After you sign up, type it in the box on the first screen and tap **Join band**.
+> When you create your account, type it in the **Invite code** box.
 
 **Easiest way: let the app write the message.** In Band members and access, tap **New invite code**, then **Share invite**
 (on a phone this opens WhatsApp, Messages or Mail with the whole message ready) or **Email invite** (opens your mail app with the
@@ -37,7 +37,7 @@ the card or the steps below. Tap **Not now** to hide it. To bring it back, open 
 2. Tap the **Share** button (the square with an arrow pointing up) at the bottom of Safari.
 3. Scroll down the list and tap **Add to Home Screen**, then **Add**.
 4. Close Safari and open the app from the new icon on your home screen. It opens full screen. The installed app is separate
-   from Safari, so it asks you to sign in once. Sign up there, and type your invite code after you sign up.
+   from Safari, so it asks you to sign in once. Create your account there and type your invite code in the **Invite code** box.
 
 **Android**
 1. Open the link in Chrome.
@@ -46,12 +46,15 @@ the card or the steps below. Tap **Not now** to hide it. To bring it back, open 
 
 You can also just use it in the browser without installing, but the installed version is the one to test.
 
-## 3. Sign up and join the band
-1. On the first screen, type your email (check the spelling: the app cannot email you while it is in testing), a password you will
-   remember (at least 8 characters) and your name. Tap **Show password** if you want to check it. Tap **Sign up**.
-2. You will see **Welcome! You are not in a band yet**. Type the invite code in the box and tap **Join band**.
-   If you opened an invite link, you are added to the band automatically and can skip this step.
-3. Your band appears at the top. Pick a setlist from the second drop-down.
+## 3. Create your account and join the band
+1. Open the app. Tap **I am new: create my account**.
+2. Fill in the boxes: your name (your bandmates will see it), your email (check the spelling: the app cannot email you while it is
+   in testing), a password you will remember (at least 8 characters) and the **Invite code** from your band leader. Tap
+   **Show password** if you want to check it. If you opened an invite link, the code is already filled in.
+3. Tap **Create my account**. You join the band straight away. If you did not type a code, you will see "Welcome! You are not in
+   a band yet" with a box: type the code there and tap **Join band**.
+4. Next time you open the app it goes straight to **Sign in**. Forgot your password? Tap **Trouble signing in?**, or message the
+   person who invited you.
 
 ## 4. Things to try
 - Open a setlist and tap a song's **Details**. Change the BPM, key, chords or notes, and tap **Save changes**. Tap **History** to see the change.

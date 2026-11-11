@@ -52,17 +52,20 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Sign in, switch band and setlist, open gig mode, start the metronome (click is audible), make one offline edit and watch it sync.
 
 ### 5. Sign-up and invite
-- [ ] As owner: Band members and access, choose Editor, tap **New invite code**. **Copy invite link** and **Copy code only** buttons appear. Paste the link somewhere to read it: it ends `#join-` and the 8-character code.
-- [ ] Open the invite link in a private window, signed out: the sign-in page says you have been invited to join a band.
-- [ ] Sign up with a fresh test email. The app adds you to the band by itself and says you have joined it. The code is gone from the address bar.
-- [ ] Sign up a second fresh account from the plain address. You see "Welcome! You are not in a band yet" with a code box. Type the code in lower case with a space in the middle: it still joins.
-- [ ] Type a wrong code: a friendly message, and nothing changes.
+- [ ] As owner: Band members and access, choose Editor, tap **New invite code**. **Share invite**, **Email invite**, **Copy invite link** and **Copy code only** appear. Paste the link somewhere to read it: it ends `#join-` and the 8-character code.
+- [ ] Open the plain address in a private window, signed out: you see "Welcome to Setlist" with two big buttons and no form yet.
+- [ ] Tap **I am new: create my account**: name, email, password and invite code boxes and one **Create my account** button. Tap **I already have an account** under it: the name and code boxes go, and one **Sign in** button and **Trouble signing in?** appear.
+- [ ] Fill in the create form with a fresh test email, the code typed in lower case with a space in the middle, and tap **Create my account**. You join the band in one go and see "You have joined ...".
+- [ ] Repeat with a second fresh email and the code box left empty: you land on "Welcome! You are not in a band yet" with a code box. Type the code there: it joins. Repeat once with a wrong code: a friendly message, the account is still made, and the code box stays.
+- [ ] Open the invite link in a private window, signed out: you go straight to the create form with the code already filled in and a note that you have been invited.
+- [ ] Reload the page after signing in once, then sign out: you land on the sign-in form, not the first-visit buttons.
+- [ ] On the sign-in form type an email and password and press Enter: a known user signs in. Try a wrong password or an unknown email: a message stays on screen, tells new people to tap **I am new: create my account**, and opens **Trouble signing in?**.
+- [ ] In the create form press Enter in each box: name goes to email, email to password, password to the invite code box, and the code box creates the account.
 - [ ] Sign up with `name@gmial.com`: the app asks "Did you mean gmail.com?". A blank name, a short password and an email with no `@` are each refused with a clear message.
-- [ ] Tick **Show password**: the password becomes visible. Sign in with a wrong password: the message says to tap Sign up if you are new.
-- [ ] On the sign-in page type an email and password and press Enter: a known user signs in. Try an unknown email: the message asks you to type your name and the cursor jumps to the name box. Press Enter there to sign up.
+- [ ] Tick **Show password**: the password becomes visible.
 - [ ] After making a code tap **Share invite**. On a phone the share sheet opens with the whole message (app address, iPhone steps, code, invite link). On a laptop the message is copied: paste it somewhere to read it.
 - [ ] Tap **Email invite**: your mail app opens with a subject and body filled in and no recipient. (A laptop with no mail program set up may do nothing.)
-- [ ] On an iPhone: install first, sign up inside the installed app, then type the code on the card. (A code remembered in Safari does not reach the installed app.)
+- [ ] On an iPhone: install first, then create your account inside the installed app and type the code in the **Invite code** box. (A code remembered in Safari does not reach the installed app.)
 - [ ] Try a band link ending that starts with `join-`: it is refused.
 
 ### 6. Install help (needs real phones)
