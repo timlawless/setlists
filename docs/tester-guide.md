@@ -49,11 +49,11 @@ You can also just use it in the browser without installing, but the installed ve
 ## 3. Create your account and join the band
 1. Open the app. Tap **I am new: create my account**.
 2. Fill in the boxes: your name (your bandmates will see it), your email (check the spelling: the app cannot email you while it is
-   in testing), a password you will remember (at least 8 characters) and the **Invite code** from your band leader. Tap
+   in testing), a password you will remember (at least 8 characters, typed twice) and the **Invite code** from your band leader. Tap
    **Show password** if you want to check it. If you opened an invite link, the code is already filled in.
 3. Tap **Create my account**. You join the band straight away. If you did not type a code, you will see "Welcome! You are not in
    a band yet" with a box: type the code there and tap **Join band**.
-4. Next time you open the app it goes straight to **Sign in**. Forgot your password? Tap **Trouble signing in?**, or message the
+4. Next time you open the app you stay signed in: it shows "Loading your setlists…" and then your setlist. If you were signed out it goes to **Sign in**. Forgot your password? Tap **Trouble signing in?**, or message the
    person who invited you.
 
 ## 4. Things to try
@@ -72,7 +72,7 @@ tap **Test tone** at the bottom, then tell me what the lines under it say.
 ## 5. Things that don't work yet
 - **"Forgot password?" and "Email me a sign-in code"** are still in development. Please remember your password. If you forget it, message me.
 - There is **no undo** for deleting. Ask me if you delete something by mistake.
-- Tablets show the phone layout for now.
+- On a **tablet or laptop** (a screen about 900 pixels wide or more) the setlist is on the left and the open song's details are on the right. Tap a song to see it. Gig mode still uses the single-column view.
 - The **key and BPM lookup** can take several seconds and may not find every song. Check its values against the recording.
 
 ## 6. If something goes wrong

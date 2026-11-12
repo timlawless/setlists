@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#16191f">
+<script>try{if(Object.keys(localStorage).some(function(k){return /^sb-.*-auth-token$/.test(k)}))document.documentElement.classList.add('booting')}catch(e){}</script>
 <style>
 :root{--bg:#f6f5f2;--card:#fff;--ink:#17191d;--mute:#667080;--line:#dcdfe4;--accent:#0f766e;--on:#fff;--flash:#f59e0b;color-scheme:light}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}}
@@ -91,6 +92,20 @@ body.run main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}body.
 @media (pointer:coarse){button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}input[type=checkbox]{width:22px;height:22px}}
 @media (max-width:520px){dialog#menu,dialog#memDlg,dialog#addDlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:0;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
 dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:first-child{position:sticky;top:0;z-index:2;background:var(--card,#fff);padding-bottom:8px}}
+@media (max-width:899px){#pane{display:none}}
+@media (min-width:900px){
+  body{font-size:17px}
+  main{max-width:1280px}
+  #split{display:grid;grid-template-columns:minmax(340px,5fr) minmax(400px,6fr);gap:16px;align-items:start}
+  #pane{position:sticky;top:76px;max-height:calc(100vh - 76px - 130px);overflow:auto;padding-right:2px}
+  #pane article.pane{margin:0}
+  #list article.open{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+  .chev{display:none}
+  .rt{font-size:1.06em}
+}
+#auth.new{border-top:6px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card))}
+#auth.new #authTitle{color:var(--accent)}#authIntro{margin:2px 0 10px;color:var(--mute);font-size:14px}
+html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28px 12px}html.booting #boot{display:block}
 </style>
 </head>
 <body class="out">
@@ -108,6 +123,7 @@ dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:f
     <p id="instHint" hidden><small>Cannot see Add to Home Screen? You may be inside WhatsApp or another app's browser. Tap Copy link, then paste it into Safari.</small></p>
     <div class="row"><button id="instBtn" class="primary" hidden>Install app</button><button id="instCopy" hidden>Copy link</button><button id="instHide">Not now</button></div>
   </section>
+  <section id="boot" class="card"><b>Loading your setlists…</b><p>Signing you in.</p></section>
   <section id="auth" class="card">
     <div id="pSign">
       <p id="invNote" class="card" hidden><b>You have been invited to join a band.</b> Create your account (or sign in if you already have one) and you will be added to the band automatically.</p>
@@ -117,22 +133,23 @@ dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:f
         <button id="chooseNew" class="primary big">I am new: create my account</button>
         <button id="chooseOld" class="big">I already have an account: sign in</button>
       </div>
-      <div id="authForm" hidden>
+      <form id="authForm" hidden novalidate>
         <h2 id="authTitle">Create your account</h2>
+        <p id="authIntro"></p>
         <label id="nameLbl">Your name <small>(your bandmates will see this)</small><input id="name" autocomplete="name" autocapitalize="words"></label>
         <label>Email <small id="emailHelp"></small><input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
         <label>Password <small id="pwHelp"></small><input id="pw" type="password" autocomplete="current-password"></label>
+        <label id="pw2Lbl">Confirm password <small>(type it again)</small><input id="pw2" type="password" autocomplete="new-password"></label>
         <label class="chk"><input type="checkbox" id="showPw"> Show password</label>
         <label id="codeLbl">Invite code <small>(from your band leader, you can add it later)</small><input id="inviteIn" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"></label>
-        <button id="signUp" class="primary big">Create my account</button>
-        <button id="signIn" class="primary big">Sign in</button>
+        <button id="authGo" type="submit" class="primary big">Create my account</button>
         <p id="authMsg" class="card" hidden></p>
-        <p><button id="authSwitch" class="linkbtn"></button></p>
+        <p><button id="authSwitch" type="button" class="linkbtn"></button></p>
         <details id="trouble"><summary>Trouble signing in?</summary>
           <p><small>These two buttons are still in development. If they do not work, ask the person who invited you.</small></p>
-          <div class="row"><button id="forgot">Forgot password?</button><button id="codeLogin">Email me a sign-in code</button></div>
+          <div class="row"><button id="forgot" type="button">Forgot password?</button><button id="codeLogin" type="button">Email me a sign-in code</button></div>
         </details>
-      </div>
+      </form>
     </div>
     <div id="pCode" hidden>
       <h2 id="codeTitle">Enter the code</h2>
@@ -150,7 +167,7 @@ dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:f
   <div id="app" hidden>
     <div id="nobands" class="card" hidden><b>Welcome! You are not in a band yet.</b><p>Got an invite code from your band? Type it here.</p><div class="row"><input id="joinCode2" placeholder="Invite code" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"><button id="joinBand2" class="primary">Join band</button></div><p><small>Starting a band yourself?</small></p><button data-open="menu">Create a new band</button></div>
     <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
-    <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
+    <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="split"><div id="list"></div><aside id="pane"></aside></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
   </div>
 <p style="text-align:center"><small>BPM and key data from <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM</a> and <a href="https://songfinder.dev" target="_blank" rel="noopener">Song Finder</a></small></p>
 </main>
@@ -323,7 +340,7 @@ async function flush(reload = true) {
   if (did && !queue.length && reload) reloadSoon();
 }
 function reloadSoon() { // refresh from the server, but not while someone is typing in a song
-  if ($('list').contains(document.activeElement)) { pendingReload = true; return; }
+  if ($('split').contains(document.activeElement)) { pendingReload = true; return; }
   pendingReload = false; if (user && setlistId) loadSetlist();
 }
 function describe(o) {
@@ -355,7 +372,7 @@ window.addEventListener('online', () => { updateChip(); flush(); });
 window.addEventListener('offline', updateChip);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flush(); });
 setInterval(() => { updateChip(); if (queue.length) flush(); }, 20000);
-$('list').addEventListener('focusout', () => setTimeout(() => { if (pendingReload && !$('list').contains(document.activeElement)) reloadSoon(); }, 300));
+$('split').addEventListener('focusout', () => setTimeout(() => { if (pendingReload && !$('split').contains(document.activeElement)) reloadSoon(); }, 300));
 
 // ---- appearance
 const root = document.documentElement;
@@ -613,7 +630,7 @@ captureInvite(); drawInviteNote();
 const TYPO_DOMAINS = { 'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmai.com': 'hotmail.com', 'hotmail.con': 'hotmail.com', 'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'yahoo.con': 'yahoo.com', 'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com', 'iclod.com': 'icloud.com', 'icloud.con': 'icloud.com' };
 const emailLooksOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 function emailFix(e) { const [u, d] = e.split('@'); const f = TYPO_DOMAINS[d]; return f ? u + '@' + f : ''; }
-$('showPw').onchange = () => { $('pw').type = $('showPw').checked ? 'text' : 'password'; };
+$('showPw').onchange = () => { $('pw').type = $('pw2').type = $('showPw').checked ? 'text' : 'password'; };
 
 // ---- install help: iPhone has no install button, so the app explains the steps
 const UA = navigator.userAgent || '';
@@ -659,7 +676,11 @@ function setAuthMode(m) {
   authMode = m; const isNew = m === 'new';
   $('authChoose').hidden = m !== 'choose'; $('authForm').hidden = m === 'choose';
   $('authTitle').textContent = isNew ? 'Create your account' : 'Sign in';
-  $('nameLbl').hidden = !isNew; $('codeLbl').hidden = !isNew; $('signUp').hidden = !isNew; $('signIn').hidden = isNew; $('trouble').hidden = isNew;
+  $('authIntro').textContent = isNew ? 'Welcome! Set up your account. It takes about a minute.' : 'Welcome back.';
+  $('auth').classList.toggle('new', isNew); $('authGo').textContent = isNew ? 'Create my account' : 'Sign in';
+  $('nameLbl').hidden = !isNew; $('pw2Lbl').hidden = !isNew; $('codeLbl').hidden = !isNew; $('trouble').hidden = isNew;
+  const hint = (id, h) => $(id).setAttribute('enterkeyhint', h);
+  hint('name', 'next'); hint('email', 'next'); hint('pw', isNew ? 'next' : 'go'); hint('pw2', 'next'); hint('inviteIn', 'go');
   $('pw').setAttribute('autocomplete', isNew ? 'new-password' : 'current-password');
   $('pwHelp').textContent = isNew ? '(at least 8 characters)' : '';
   $('emailHelp').textContent = isNew ? '(use one you can check: the app cannot email you yet)' : '';
@@ -673,12 +694,13 @@ $('authSwitch').onclick = () => setAuthMode(authMode === 'new' ? 'old' : 'new');
 const hadAccount = () => { try { return localStorage.getItem('hadAccount') === '1'; } catch { return false; } };
 setAuthMode(pendingInvite() ? 'new' : hadAccount() ? 'old' : 'choose');
 
-$('signUp').onclick = async () => {
+const doSignUp = async () => {
   let email = emailVal(); if (!email) return say('Type your email address first');
   if (!emailLooksOk(email)) return say('That email address does not look right. Please check it.');
   const fix = emailFix(email);
   if (fix && confirm(`Did you mean ${fix}?\n\nOK uses ${fix}. Cancel keeps ${email}.`)) { email = fix; $('email').value = fix; }
   if (!pwOk($('pw').value)) return;
+  if ($('pw').value !== $('pw2').value) { say('The two passwords do not match'); $('pw2').focus(); return; }
   const nm = $('name').value.trim(); if (!nm) return say('Type your name so your bandmates know who you are');
   const code = $('inviteIn').value.replace(/\s/g, '').toUpperCase(); if (code) { try { localStorage.setItem('pendingInvite', code); } catch {} }
   try {
@@ -714,7 +736,7 @@ $('chPwGo').onclick = async () => {
   const pw = $('chPw').value; if (!pwOk(pw)) return;
   try { await must(sb.auth.updateUser({ password: pw })); $('chPw').value = ''; say('Password changed'); } catch {}
 };
-$('signIn').onclick = async () => {
+const doSignIn = async () => {
   const email = emailVal(), pw = $('pw').value; if (!email || !pw) return say('Type your email and password');
   const r = await sb.auth.signInWithPassword({ email, password: pw });
   if (r.error) {
@@ -726,19 +748,48 @@ $('signIn').onclick = async () => {
     else say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
   }
 };
-$('email').setAttribute('enterkeyhint', 'next'); $('pw').setAttribute('enterkeyhint', 'go'); $('name').setAttribute('enterkeyhint', 'next'); $('inviteIn').setAttribute('enterkeyhint', 'go');
+// Enter and the phone keyboard's Go key: the boxes are a real form, so every keyboard submits it. On a computer, Enter in an early box moves on instead.
+$('authForm').addEventListener('submit', (e) => { e.preventDefault(); if (authMode === 'new') doSignUp(); else doSignIn(); });
 $('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('email').focus(); } });
-$('email').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('pw').focus(); } });
-$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (authMode === 'new') $('inviteIn').focus(); else $('signIn').click(); } });
-$('inviteIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('signUp').click(); } });
+$('email').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (authMode === 'new' || !$('pw').value)) { e.preventDefault(); $('pw').focus(); } });
+$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode === 'new') { e.preventDefault(); $('pw2').focus(); } });
+$('pw2').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('inviteIn').focus(); } });
 $('signOut').onclick = async () => {
   if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
+// ---- fast start: a sign-in saved on this device shows the saved copy at once; the server is checked afterwards
+let provisional = false, quietRefresh = false;
+function savedUser() { try { for (const k of Object.keys(localStorage)) { if (/^sb-.*-auth-token$/.test(k)) { const u = JSON.parse(localStorage.getItem(k))?.user; if (u?.id) return u; } } } catch {} return null; }
+function instantFromCache() {
+  try {
+    const get = (k) => { const v = localStorage.getItem(ck(k)); return v ? JSON.parse(v) : null; };
+    const rows = get('bands'); if (!rows?.length) return false;
+    bandRows = rows; $('band').replaceChildren(...rows.map((r) => new Option(r.bands.name, r.bands.id)));
+    const last = localStorage.getItem('band'); if (last && rows.some((r) => r.bands.id === last)) $('band').value = last;
+    bandId = $('band').value || null; const r0 = rows.find((x) => x.bands.id === bandId);
+    const lists = bandId ? get('sl:' + bandId) : []; if (!lists) return false;
+    $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
+    const pick = [r0?.last_setlist_id, localStorage.getItem('sl' + bandId)].find((id) => id && lists.some((l) => l.id === id)); if (pick) $('setlist').value = pick;
+    setlistId = $('setlist').value || null;
+    const raw = setlistId ? get('items:' + setlistId) : []; if (!raw) return false;
+    items = raw.filter((x) => x.songs && !x.songs.deleted_at);
+    setAccent(r0?.bands?.theme?.accent || ''); drawRoles(); drawLogo(); drawSlug();
+    render(); return true;
+  } catch { return false; }
+}
+setTimeout(() => { // after the page has finished loading its own code
+  if (user) return; const u = savedUser(); if (!u) return;
+  user = u; provisional = true; $('who').textContent = u.email || 'Menu'; loadQ(); instantFromCache();
+}, 0);
+
 sb.auth.onAuthStateChange((e, s) => {
+  const wasProvisional = provisional; provisional = false;
   const before = user?.id || null; user = s?.user || null; $('who').textContent = user ? user.email : 'Menu';
   if (user) { try { localStorage.setItem('hadAccount', '1'); } catch {} }
   if (e === 'SIGNED_OUT') setAuthMode('old');
   if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
-  if ((user?.id || null) !== before) setTimeout(loadBands, 0); // only when someone signs in or out, not when the same person returns to the tab
+  if (wasProvisional && !user) say('Your saved sign-in has expired. Please sign in again.');
+  if (wasProvisional && user && user.id === before) quietRefresh = true; // the saved copy is already on screen: only redraw if something changed
+  if ((user?.id || null) !== before || (e === 'INITIAL_SESSION' && user)) setTimeout(loadBands, 0); // when someone signs in or out, or the saved sign-in is confirmed, not when the same person returns to the tab
   else if (e === 'PASSWORD_RECOVERY') setTimeout(render, 0);
 });
 
@@ -774,8 +825,10 @@ async function loadSetlist() {
   setlistId = $('setlist').value || null; if (bandId) localStorage.setItem('sl' + bandId, setlistId || ''); rememberSetlist();
   try {
     const rows = setlistId ? await cached(ck('items:' + setlistId), () => must(sb.from('setlist_songs').select('id,position,songs(*)').eq('setlist_id', setlistId).is('deleted_at', null).order('position'))) : [];
-    items = rows.filter((r) => r.songs && !r.songs.deleted_at);
-  } catch { items = []; }
+    const fresh = rows.filter((r) => r.songs && !r.songs.deleted_at);
+    const same = quietRefresh && JSON.stringify(fresh) === JSON.stringify(items); quietRefresh = false;
+    items = fresh; if (same && $('split').contains(document.activeElement)) return; // nothing changed and you are typing: leave the screen alone
+  } catch { items = []; quietRefresh = false; }
   render();
 }
 $('band').onchange = () => { closeGig(); loadBand(); }; $('setlist').onchange = () => { closeGig(); openId = null; loadSetlist(); };
@@ -814,6 +867,7 @@ $('slDel').onclick = async () => {
 
 // ---- the setlist screen
 function render() {
+  document.documentElement.classList.remove('booting');
   drawInviteNote(); drawInstall(); document.body.classList.toggle('out', !user);
   $('auth').hidden = !!user && !recovering; $('app').hidden = !user || recovering; if (!user) return;
   $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
@@ -821,10 +875,18 @@ function render() {
   $('setlist').hidden = !$('setlist').options.length;
   $('emptySl').hidden = items.length > 0;
   const ce = canEdit(); $('addBtn').hidden = !ce; $('slNew2').parentElement.hidden = !ce; $('slSec').hidden = !ce;
+  if (wide() && !items.some((x) => x.songs.id === openId)) openId = items[0]?.songs.id ?? null; // a wide screen always shows one song
   $('list').innerHTML = items.map(card).join('');
+  drawPane();
   if (openId) loadLinks(openId);
   if (!$('gig').hidden) renderGig();
 }
+const wideQ = matchMedia('(min-width: 900px)'), wide = () => wideQ.matches;
+function drawPane() {
+  const it = items.find((x) => x.songs.id === openId);
+  $('pane').innerHTML = wide() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs)}</article>` : '';
+}
+wideQ.addEventListener?.('change', () => render());
 function roleLine(s) {
   const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
   if (r.includes('singer') && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
@@ -839,7 +901,7 @@ function card(it, i) {
   <span class="n">${i + 1}</span>
   <button data-a="toggle" class="rowmain" aria-expanded="${o}"><span class="rt">${esc(s.title)}</span><span class="rs"><span class="pill">${s.bpm || '–'} bpm</span><span class="pill">${esc(s.musical_key || '–')}</span><span class="ra">${esc(sub)}</span><span class="chev">${o ? '▴' : '▾'}</span></span></button>
   <button data-a="play" class="primary playbtn">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button>
-  ${roleLine(s)}${o ? detail(s) : ''}</article>`;
+  ${roleLine(s)}${o && !wide() ? detail(s) : ''}</article>`;
 }
 function detail(s) {
   const ro = !canEdit(), dis = ro ? ' disabled' : '', i = items.findIndex((x) => x.songs.id === s.id);
@@ -875,12 +937,12 @@ async function loadLinks(sid) {
     ul.innerHTML = rows.length ? rows.map((l) => `<li><a href="${esc(safe(l.url) || '#')}" target="_blank" rel="noopener">${esc(l.label || l.kind.replace('_', ' '))}</a>${canEdit() ? `<button data-a="dellink" data-lid="${l.id}">×</button>` : ''}</li>`).join('') : '<li><small>No links yet</small></li>';
   } catch { ul.innerHTML = '<li><small>Could not load links</small></li>'; }
 }
-$('list').onclick = async (e) => {
+$('split').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
   if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
-    if (a === 'toggle') { openId = openId === sid ? null : sid; render(); }
+    if (a === 'toggle') { openId = wide() ? sid : openId === sid ? null : sid; render(); }
     else if (a === 'up' || a === 'down') {
       const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
       x.position = py; y.position = px; items.sort((m, n) => m.position - n.position);

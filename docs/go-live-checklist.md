@@ -54,13 +54,13 @@ checks below focus on those and then repeat a quick sanity pass.
 ### 5. Sign-up and invite
 - [ ] As owner: Band members and access, choose Editor, tap **New invite code**. **Share invite**, **Email invite**, **Copy invite link** and **Copy code only** appear. Paste the link somewhere to read it: it ends `#join-` and the 8-character code.
 - [ ] Open the plain address in a private window, signed out: you see "Welcome to Setlist" with two big buttons and no form yet.
-- [ ] Tap **I am new: create my account**: name, email, password and invite code boxes and one **Create my account** button. Tap **I already have an account** under it: the name and code boxes go, and one **Sign in** button and **Trouble signing in?** appear.
+- [ ] Tap **I am new: create my account**: the card has a coloured top band, a welcome line, and name, email, password, confirm password and invite code boxes with one **Create my account** button. Tap **I already have an account** under it: the card turns plain, the name, confirm and code boxes go, and one **Sign in** button and **Trouble signing in?** appear.
 - [ ] Fill in the create form with a fresh test email, the code typed in lower case with a space in the middle, and tap **Create my account**. You join the band in one go and see "You have joined ...".
 - [ ] Repeat with a second fresh email and the code box left empty: you land on "Welcome! You are not in a band yet" with a code box. Type the code there: it joins. Repeat once with a wrong code: a friendly message, the account is still made, and the code box stays.
 - [ ] Open the invite link in a private window, signed out: you go straight to the create form with the code already filled in and a note that you have been invited.
 - [ ] Reload the page after signing in once, then sign out: you land on the sign-in form, not the first-visit buttons.
-- [ ] On the sign-in form type an email and password and press Enter: a known user signs in. Try a wrong password or an unknown email: a message stays on screen, tells new people to tap **I am new: create my account**, and opens **Trouble signing in?**.
-- [ ] In the create form press Enter in each box: name goes to email, email to password, password to the invite code box, and the code box creates the account.
+- [ ] On the sign-in form type an email and password and tap the keyboard's **Go** (or Enter): a known user signs in. Try a wrong password or an unknown email: a message stays on screen, tells new people to tap **I am new: create my account**, and opens **Trouble signing in?**. Do this on a real iPhone and a real Android phone, not only a laptop.
+- [ ] In the create form the keyboard key reads **Next** on every box except the invite code box, where it reads **Go**. Next moves down the form; Go creates the account. Type two different passwords and tap Go: it says the passwords do not match and nothing is created.
 - [ ] Sign up with `name@gmial.com`: the app asks "Did you mean gmail.com?". A blank name, a short password and an email with no `@` are each refused with a clear message.
 - [ ] Tick **Show password**: the password becomes visible.
 - [ ] After making a code tap **Share invite**. On a phone the share sheet opens with the whole message (app address, iPhone steps, code, invite link). On a laptop the message is copied: paste it somewhere to read it.
@@ -93,6 +93,21 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] iPhone: open the page inside WhatsApp and tap **▶ Click**. Either you hear it, or a warning appears above the dots and the dots keep flashing.
 - [ ] Menu, **Test tone**: you hear a beep, and the lines under it say `audio: running`.
 - [ ] Ask the tester who heard and saw nothing for their iPhone model, iOS version, browser, and what the `audio:` line says after **Test tone**.
+
+### 9. Tablet and laptop layout (needs a real tablet or laptop)
+- [ ] Tablet held sideways (about 1000 px wide or more) or a laptop: the setlist is on the left and the first song's details are on the right, with the metronome dots along the bottom.
+- [ ] Tap a different song: the right side switches to it and the chosen row has a green outline. Tap the chosen row again: the details stay.
+- [ ] Edit a field in the right side and tap **Save changes**: it saves. **Move up**, **Move down**, **Lookup** and **Remove from setlist** all work from there.
+- [ ] Scroll the list: the right side stays in view and scrolls by itself if it is tall. Nothing is hidden behind the metronome bar.
+- [ ] Turn a tablet from sideways to upright: the right side goes away and the open song's details appear inside its row. Turn it back: the right side returns.
+- [ ] Text is a little larger and easy to read from arm's length.
+
+### 10. Fast start and saved sign-in (needs real phones)
+- [ ] Sign in once, close the app completely, reopen it: you should see your setlist almost at once, and the sign-in card should never flash up. If your phone had to wait for the server you may see "Loading your setlists…" instead, never the sign-in card.
+- [ ] Switch on airplane mode, close and reopen the app: your saved setlist still shows.
+- [ ] Reopen the app on a slow connection: the setlist appears first and quietly refreshes a moment later. If you were typing in a song when the refresh arrived, your typing must not be wiped.
+- [ ] If the server no longer accepts your saved login (for example after a long time), you land on the sign-in screen with the message "Your saved sign-in has expired. Please sign in again."
+- [ ] Ask a tester who said "it looks like it's making me log in again" to try the new version and tell you if it still looks that way.
 
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).
