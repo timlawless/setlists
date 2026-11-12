@@ -232,6 +232,12 @@ Findings from testing on real devices are marked.
   changes still waiting to sync would be lost, which is why the sync status is shown.
 - Links may not open an installed PWA, so invites work by typing a code.
 
+## Metronome beat dots and sound rescue
+- The bar shows one dot per beat in the song's time signature (`perBar`, 4 for 4/4, 3 for 3/4, 6 for 6/8; up to 12). The current beat is lit until the next one, and beat 1 is green. On screens 700 px wide or more the dots sit between Start and Flash; on phones they are a full-width row above the controls and only show while the click is running. Gig mode sits underneath the bar, so the dots show there too.
+- One scheduler (`tick`) keeps time on either the sound clock (`ctx.currentTime`) or, when the audio engine is not running, the phone's own timer (`performance.now`). It switches clocks by itself, so the dots keep time when sound is blocked and the sound clock takes over again as soon as sound comes back.
+- `unlock()` starts the silent clip and `ctx.resume()` together inside the tap, waits at most 0.9 s, rebuilds the audio engine once and waits at most 0.7 s more, and returns whether sound is running. `start()` reacts at once (the button becomes Stop) and never waits forever. If sound is not running, a warning sits above the dots (silent switch, volume, open in Safari or Chrome) and the Test tone says the same. The debug lines under Test tone now include which clock the beat is using.
+- The full-screen flash is now only the optional Flash tick box (off by default, with its warning).
+
 ## Small-phone layout
 - Each song is one grid row: number, a title button (`data-a="toggle"`, opens the details), and the Click button. Under the title come the BPM and key, then the artist (which shortens first). The details panel starts with Move up and Move down, which replace the arrows that used to sit on every row.
 - On touch screens (`pointer: coarse`) buttons, drop-downs and boxes are at least 44 px tall. The metronome bar shows its title row only while the click is running (the `on` class on `#bar`, set in `syncPlay`), so it is slim when idle. The page keeps 120 px of space at the bottom for it.
@@ -281,7 +287,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 Database changes were tested on a local PostgreSQL 16 with a stand-in for Supabase's auth layer: 97 permission checks
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
-(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 69 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, and the welcome screen with one-step sign-up), plus 51 layout checks in headless Chromium at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
+(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 69 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, and the welcome screen with one-step sign-up), plus 84 checks in headless Chromium (layout, and the metronome with a real audio engine and with fake ones that refuse to start) at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests.

@@ -48,7 +48,6 @@ small{color:var(--mute)}
 pre{margin:6px 0;white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--mute)}
 #bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
 .bt{display:flex;align-items:center;gap:8px;margin-bottom:6px}.bt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#dot{width:14px;height:14px;border-radius:50%;background:var(--line);flex:none}#dot.on{background:var(--flash)}
 .bc{display:flex;gap:6px;align-items:center}.bc input[type=number]{width:72px;text-align:center}.bc .fl{margin:0 0 0 auto;display:flex;gap:4px;align-items:center;color:var(--ink)}.fl input{width:auto}
 #fx{position:fixed;inset:0;z-index:40;background:var(--flash);opacity:0;pointer-events:none}#fx.on{opacity:.6}
 #toast{position:fixed;left:12px;right:12px;bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
@@ -82,6 +81,13 @@ button.playbtn{min-width:74px;min-height:44px}
 #list article>.rl{grid-column:2/-1;margin:0 0 2px}
 #list article>div:not(.rl){grid-column:1/-1}
 #bar:not(.on) .bt{display:none}
+.dots{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;--d:44px}
+.dots i{flex:0 1 var(--d);aspect-ratio:1/1;border-radius:50%;background:var(--line);transition:background .05s,transform .05s}
+.dots i.on{background:var(--flash);transform:scale(1.08)}.dots i.on.one{background:var(--accent)}
+#aMsg{margin:0 0 6px;padding:6px 8px;font-size:13px;border:1px solid var(--flash);border-radius:8px}
+body.run main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}body.run #gig{padding-bottom:210px}
+@media (max-width:699px){#bar .bc{flex-wrap:wrap}#bar #dots{order:-1;flex:1 0 100%;margin-bottom:4px}#bar:not(.on) #dots{display:none}}
+@media (min-width:700px){.dots{--d:56px;padding:0 12px;flex:1 1 auto}}
 @media (pointer:coarse){button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}input[type=checkbox]{width:22px;height:22px}}
 @media (max-width:520px){dialog#menu,dialog#memDlg,dialog#addDlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:0;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
 dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:first-child{position:sticky;top:0;z-index:2;background:var(--card,#fff);padding-bottom:8px}}
@@ -150,8 +156,9 @@ dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:f
 </main>
 
 <div id="bar">
-  <div class="bt"><span id="dot"></span><b id="now">Metronome</b></div>
-  <div class="bc"><button id="bpmDn">−</button><input id="bpm" type="number" value="120" min="20" max="300" inputmode="numeric" aria-label="BPM"><button id="bpmUp">+</button><button id="go" class="primary">Start</button><label class="fl"><input type="checkbox" id="fl"> Flash</label></div>
+  <div class="bt"><b id="now">Metronome</b></div>
+  <p id="aMsg" hidden></p>
+  <div class="bc"><button id="bpmDn">−</button><input id="bpm" type="number" value="120" min="20" max="300" inputmode="numeric" aria-label="BPM"><button id="bpmUp">+</button><button id="go" class="primary">Start</button><div id="dots" class="dots" aria-hidden="true"></div><label class="fl"><input type="checkbox" id="fl"> Flash</label></div>
 </div>
 <div id="gig" hidden></div>
 <div id="fx"></div><div id="toast"></div>
@@ -1037,7 +1044,7 @@ document.addEventListener('keydown', (e) => { if ($('gig').hidden) return; if (e
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('gig').hidden) gigWake(); });
 
 // ---- metronome (with the iOS audio fix)
-let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4, clickSong = null;
+let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4, clickSong = null, clockKind = 'a';
 function silentWavUrl() {
   const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
   const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
@@ -1047,13 +1054,23 @@ function silentWavUrl() {
   w(36, 'data'); v.setUint32(40, n * 2, true);
   return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
 }
-async function unlock() {
-  ctx ||= new (window.AudioContext || window.webkitAudioContext)();
+async function unlock() { // returns true when the audio engine is running
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return false;
+  const wait = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+  try { ctx ||= new Ctor(); } catch { return false; }
   try { if ('audioSession' in navigator) navigator.audioSession.type = 'playback'; } catch {}
   if (!silentEl) { silentEl = new Audio(silentWavUrl()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); }
-  try { await silentEl.play(); } catch (e) { say('Silent audio blocked: ' + e.message); }
-  if (ctx.state !== 'running') await ctx.resume();
-  const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate); s.connect(ctx.destination); s.start(0);
+  // start both inside the tap itself: iPhones only allow this straight from a touch
+  const played = silentEl.play().catch(() => {});
+  const resumed = ctx.state === 'running' ? Promise.resolve() : Promise.resolve(ctx.resume()).catch(() => {});
+  await wait(Promise.all([played, resumed]), 900);
+  if (ctx.state !== 'running') { // one retry with a fresh audio engine
+    try { ctx.close(); } catch {}
+    try { ctx = new Ctor(); await wait(Promise.resolve(ctx.resume()).catch(() => {}), 700); } catch {}
+  }
+  if (ctx.state === 'running') { const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate); s.connect(ctx.destination); s.start(0); }
+  return ctx.state === 'running';
 }
 function beep(t, f, len, vol) {
   const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f;
@@ -1063,16 +1080,28 @@ function beep(t, f, len, vol) {
 // The full-screen flash never goes above three flashes a second: every beat up to 180 BPM, above that only beat 1 of the bar
 // (and not at all if even that would be more than three a second).
 const flashAllowed = (bpm, beatInBar, perBar) => bpm <= 180 || (beatInBar === 0 && bpm / 60 / perBar <= 3);
-function flash(full) {
-  $('dot').classList.add('on'); if (full && $('fl').checked) $('fx').classList.add('on');
-  setTimeout(() => { $('dot').classList.remove('on'); $('fx').classList.remove('on'); }, 90);
+const audioOk = () => !!ctx && ctx.state === 'running';
+const nowSec = () => (audioOk() ? ctx.currentTime : performance.now() / 1000); // the sound clock, or the phone's own timer when sound is blocked
+function setDots(n) { n = Math.max(1, Math.min(12, n || 4)); const d = $('dots'); if (d.children.length !== n) d.innerHTML = '<i></i>'.repeat(n); }
+function litDot(i) { [...$('dots').children].forEach((el, k) => { el.classList.toggle('on', k === i); el.classList.toggle('one', k === i && i === 0); }); }
+function lightBeat(i, full) {
+  if (!running) return;
+  litDot(i);
+  if (full && $('fl').checked) { $('fx').classList.add('on'); setTimeout(() => $('fx').classList.remove('on'), 90); }
+}
+function drawAudioMsg() {
+  const bad = running && !audioOk(); $('aMsg').hidden = !bad;
+  if (bad) $('aMsg').textContent = 'No sound yet. Check the silent switch and volume, and open the app in Safari or Chrome, not inside WhatsApp. The dots keep time.';
 }
 function tick() {
   const bpm = Math.min(300, Math.max(20, +$('bpm').value || 120));
-  while (nextT < ctx.currentTime + 0.15) {
-    beep(nextT, beat % perBar === 0 ? 1500 : 1000, 0.06, 0.5);
-    const full = flashAllowed(bpm, beat % perBar, perBar);
-    setTimeout(() => flash(full), Math.max(0, (nextT - ctx.currentTime) * 1000));
+  const k = audioOk() ? 'a' : 'p';
+  if (k !== clockKind) { clockKind = k; nextT = nowSec() + 0.05; drawAudioMsg(); }
+  while (nextT < nowSec() + 0.15) {
+    const i = beat % perBar;
+    if (clockKind === 'a') beep(nextT, i === 0 ? 1500 : 1000, 0.06, 0.5);
+    const full = flashAllowed(bpm, i, perBar);
+    setTimeout(() => lightBeat(i, full), Math.max(0, (nextT - nowSec()) * 1000));
     nextT += 60 / bpm; beat++;
   }
 }
@@ -1082,26 +1111,35 @@ $('fl').onchange = () => { // first-time warning before the screen flash is swit
   }
 };
 async function getLock() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch {} }
-async function start() { if (running) return; await unlock(); running = true; beat = 0; nextT = ctx.currentTime + 0.05; timer = setInterval(tick, 25); $('go').textContent = 'Stop'; getLock(); syncPlay(); }
-function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; syncPlay(); }
-function loadSong(s) { $('bpm').value = s.bpm || 120; $('now').textContent = s.title; perBar = parseInt(s.time_signature) || 4; beat = 0; clickSong = s.id; syncPlay(); }
+async function start() {
+  if (running) return;
+  running = true; // set first, so a second tap while the sound is starting stops it instead of starting twice
+  $('go').textContent = 'Stop'; syncPlay(); // react at once, even if the sound takes a moment
+  const ok = await unlock();
+  if (!running) return;
+  beat = 0; clockKind = ok ? 'a' : 'p'; nextT = nowSec() + 0.05; timer = setInterval(tick, 25);
+  $('go').textContent = 'Stop'; getLock(); syncPlay(); drawAudioMsg();
+}
+function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; litDot(-1); $('fx').classList.remove('on'); $('aMsg').hidden = true; syncPlay(); }
+function loadSong(s) { $('bpm').value = s.bpm || 120; $('now').textContent = s.title; perBar = parseInt(s.time_signature) || 4; setDots(perBar); beat = 0; clickSong = s.id; syncPlay(); }
 async function toggleClick(s) { // the same song's button starts it, then stops it
   if (running && clickSong === s.id) { stop(); return; }
   loadSong(s); if (!running) await start();
 }
 function syncPlay() { // keep every Click button's label in step with the metronome
-  $('bar').classList.toggle('on', running);
+  $('bar').classList.toggle('on', running); document.body.classList.toggle('run', running);
   document.querySelectorAll('#list article').forEach((a) => { const b = a.querySelector('[data-a="play"]'); if (b) b.textContent = running && a.dataset.sid === clickSong ? '■ Stop' : '▶ Click'; });
   const g = document.getElementById('gPlay'); if (g) g.textContent = running && clickSong === items[gigIdx]?.songs.id ? '■ Stop' : '▶ Click';
 }
 $('go').onclick = () => (running ? stop() : start());
+setDots(perBar);
 $('bpmDn').onclick = () => ($('bpm').value = Math.max(20, +$('bpm').value - 1));
 $('bpmUp').onclick = () => ($('bpm').value = Math.min(300, +$('bpm').value + 1));
-$('tone').onclick = async () => { await unlock(); beep(ctx.currentTime + 0.02, 440, 0.4, 0.4); say('Test tone sent'); };
+$('tone').onclick = async () => { const ok = await unlock(); if (ok) beep(ctx.currentTime + 0.02, 440, 0.4, 0.4); say(ok ? 'Test tone sent' : 'No sound: check the silent switch and the volume, and open the app in Safari or Chrome'); };
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && running) { ctx?.resume(); silentEl?.play().catch(() => {}); getLock(); } });
 setInterval(() => {
   $('dbg').textContent = ['audioSession: ' + ('audioSession' in navigator ? navigator.audioSession.type : 'unsupported'), 'audio: ' + (ctx ? ctx.state : 'not started'),
-    'silent element: ' + (silentEl ? (silentEl.paused ? 'paused' : 'playing') : 'none'), 'wake lock: ' + (lock && !lock.released ? 'on' : 'off'),
+    'silent element: ' + (silentEl ? (silentEl.paused ? 'paused' : 'playing') : 'none'), 'wake lock: ' + (lock && !lock.released ? 'on' : 'off'), 'beat timer: ' + (running ? (clockKind === 'a' ? 'sound clock' : 'phone timer') : 'stopped'),
     'installed: ' + (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches), 'online: ' + navigator.onLine].join('\n');
 }, 500);
 

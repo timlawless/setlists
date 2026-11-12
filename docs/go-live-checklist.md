@@ -84,6 +84,16 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Open the menu (☰): it fills the screen. Scroll to the bottom: **Close** is still at the top. Try **Band members and access** and **+ Add song** the same way.
 - [ ] With one band the top bar shows the band name and the setlist picker. Turn the phone sideways: nothing is cut off or hidden behind the metronome bar.
 
+### 8. Metronome dots and sound (needs real phones)
+- [ ] Tap **▶ Click** on a 4/4 song: four big dots, one lights on each click, beat 1 is green, and the lit dot lines up with what you hear. Stop: the dots go dark.
+- [ ] A 3/4 song shows three dots and a 6/8 song shows six.
+- [ ] On a tablet or laptop the dots sit in the middle of the metronome bar all the time. On a phone they only appear while the click is running, in a row above the controls.
+- [ ] Gig mode: start the click: the dots still show at the bottom.
+- [ ] iPhone: with the side silent switch ON, tap **▶ Click**: you should still hear it (the app asks iOS to play sound anyway). Write down your iOS version.
+- [ ] iPhone: open the page inside WhatsApp and tap **▶ Click**. Either you hear it, or a warning appears above the dots and the dots keep flashing.
+- [ ] Menu, **Test tone**: you hear a beep, and the lines under it say `audio: running`.
+- [ ] Ask the tester who heard and saw nothing for their iPhone model, iOS version, browser, and what the `audio:` line says after **Test tone**.
+
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).
 - [ ] Create the band with your account. Choose its link ending. Add a few songs and a setlist.

@@ -63,6 +63,12 @@ You can also just use it in the browser without installing, but the installed ve
 - Add a song with **+ Add song**, open a song's details to move it **up** or **down**, and remove a song from the setlist.
 - Optional: switch your phone to airplane mode, change a song, then switch it back on. The change should sync by itself.
 
+### The metronome
+Tap **▶ Click** on a song (or **Start** at the bottom). The big dots show the beat: one dot per beat in the bar, and the dot for beat 1 is green.
+If you hear nothing, check that the side **silent switch** is off, turn the **volume** up, and open the app in **Safari** (iPhone) or **Chrome** (Android),
+not inside WhatsApp or another app. If the sound is still blocked a note appears above the dots, and the dots keep time without sound. Open the ☰ menu and
+tap **Test tone** at the bottom, then tell me what the lines under it say.
+
 ## 5. Things that don't work yet
 - **"Forgot password?" and "Email me a sign-in code"** are still in development. Please remember your password. If you forget it, message me.
 - There is **no undo** for deleting. Ask me if you delete something by mistake.
