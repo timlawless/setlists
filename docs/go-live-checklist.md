@@ -21,7 +21,7 @@ checks below focus on those and then repeat a quick sanity pass.
   3. Open `docs/setlist-pwa-v2/` and delete `sw.js`, `config.js`, `manifest.webmanifest` and the icons from it. Keep
      `index.html`: it is now a small page that sends old links to the new address.
   4. `config.js` in the zip holds the same Supabase address and key you used before. Compare it with your old one.
-- [ ] **A4b. Sign-up, invite and install-help update.** Upload the newer `index.html` over `docs/index.html` (Add file, Upload files, Commit). No SQL, and `config.js` and `sw.js` stay as they are. Do this after A4, then open the app in a private window.
+- [ ] **A4b. Sign-up, invite and install-help update.** Upload the newer `index.html` over `docs/index.html` (Add file, Upload files, Commit). No SQL, and `config.js` stays as it is. The later updates also change `sw.js` (the offline helper), so upload the newer `sw.js` over `docs/sw.js` in the same commit. Do this after A4, then open the app in a private window.
 - [ ] **A5. Check the new address.** Open https://timlawless.github.io/setlists/ in a private window: the sign-in page appears,
       and the footer says "BPM and key data from GetSongBPM and Song Finder".
 - [ ] **A6. Your own phone and laptop.** The old home-screen icon points at the old address. Delete it, open the new address
@@ -108,6 +108,13 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Reopen the app on a slow connection: the setlist appears first and quietly refreshes a moment later. If you were typing in a song when the refresh arrived, your typing must not be wiped.
 - [ ] If the server no longer accepts your saved login (for example after a long time), you land on the sign-in screen with the message "Your saved sign-in has expired. Please sign in again."
 - [ ] Ask a tester who said "it looks like it's making me log in again" to try the new version and tell you if it still looks that way.
+
+### 11. Launch on a slow connection (needs a real phone)
+- [ ] Upload `sw.js` with the other files. The first launch after the upload may still behave the old way; the new offline helper takes over from the next launch.
+- [ ] Open the app on a slow connection (for example weak Wi-Fi, or switch Wi-Fi off and use a weak mobile signal). The app should open from the saved copy within about a second, never a blank screen for several seconds.
+- [ ] Upload a small change you can see in the app (for example a different word in `index.html`), then open the app on a good connection: the change shows on the first launch. On a slow connection it may only show on the second launch.
+- [ ] Airplane mode: close the app and reopen it: it still opens from the saved copy.
+- [ ] Open https://timlawless.github.io/setlists/?check=1 on a slow connection: a link with something extra after the address has no saved copy, so it waits for the network. That is expected.
 
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).
