@@ -232,6 +232,13 @@ Findings from testing on real devices are marked.
   changes still waiting to sync would be lost, which is why the sync status is shown.
 - Links may not open an installed PWA, so invites work by typing a code.
 
+## Invitation page (SQL v9)
+- An invitation link is the app address plus `#join-CODE`. A signed-out visitor sees the invitation page: the same form as Create account, in a third mode (`invite`), with the title "Join [band]", the access level, email, password and confirm boxes, an optional name (shown after the password boxes; blank means the start of the email address) and one Accept invitation and join button. There is no code box: the code is saved in browser storage (`pendingInvite`) and the existing path joins the band as soon as the sign-in event arrives.
+- The band name and level come from the database function `invite_preview(code)` (SQL v9), a security-definer function that anyone, signed in or not, may call. It returns one row only for a valid, unexpired code, and nothing for a wrong or expired one. It exposes no other data: the invites and bands tables stay private. Joining still needs sign-in and still goes through `join_band`. Codes are 8 hexadecimal characters and last 7 days, so guessing one is not practical, but note that anyone holding a code can see the band name before joining.
+- If the lookup fails (offline, or v9 not yet run), the page falls back to the normal create form with the code filled in. A wrong or expired code clears the saved code and shows the welcome screen with a message. If the email already has an account, the form switches to Sign in, keeps the invitation and says so; signing in then joins the band.
+- The Share invite and Email invite message now leads with the link and keeps the code as a backup.
+- Checked on Postgres 18 (PGlite) with both a text and an enum `role` column: valid, lower-case, padded, expired, wrong and empty codes; no direct access to the tables for anonymous visitors; safe to run twice.
+
 ## Service worker and launch speed (sw.js)
 - App files (the page, `config.js`, the manifest, icons) are fetched network first so that an upload shows up quickly. If a saved copy exists and the network has not answered within `WAIT_MS` (one second), the saved copy is used at once and the network request carries on in the background and refreshes the saved copy (`e.waitUntil`). On a slow connection a new upload may therefore need one extra launch to appear.
 - A failed answer (for example a 404 while an upload is half done) never replaces a saved copy: the saved copy is used instead. The old worker saved the error page over the good copy.
@@ -289,6 +296,7 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `docs/` fo
 | v6 | Cleans up a deleted band's history |
 | v7 | Band logo |
 | v8 | Band link ending (slug), unique across all bands |
+| v9 | `invite_preview(code)`: the band name and level for a valid invite code, usable before sign-in |
 | check_schema | A read-only checklist of which updates are present |
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
@@ -304,7 +312,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 Database changes were tested on a local PostgreSQL 16 with a stand-in for Supabase's auth layer: 97 permission checks
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
-(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 79 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, the welcome screen with one-step sign-up, confirm password and the fast start), plus 168 checks in headless Chromium (layout at phone, tablet and laptop sizes, the two-column view, the metronome with a real audio engine and with fake ones that refuse to start, the real Enter key, the launch screens with a slow fake server, and the service worker against a server made slow, broken or offline) at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
+(run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 90 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, the welcome screen with one-step sign-up, confirm password, the fast start and the invitation page), plus 183 checks in headless Chromium (layout at phone, tablet and laptop sizes, the two-column view, the metronome with a real audio engine and with fake ones that refuse to start, the real Enter key, the launch screens with a slow fake server, the service worker against a server made slow, broken or offline, and the invitation page) at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests.

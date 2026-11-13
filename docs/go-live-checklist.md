@@ -12,6 +12,7 @@ checks below focus on those and then repeat a quick sanity pass.
 ## A. Install this release, in this order
 - [ ] **A1. Back up the data** (Table Editor, Export as CSV for each table, or `pg_dump`). The free plan has no automatic backups.
 - [ ] **A2. SQL.** Supabase, SQL Editor, new query: paste all of `schema_v8_band_link.sql`, Run. (Safe to run twice.)
+- [ ] **A2b. SQL v9 (new).** Supabase, SQL Editor, new query: paste all of `schema_v9_invite_preview.sql`, Run. (Safe to run twice.) Do this BEFORE uploading the new `index.html`. Check: make an invite code in the app, then run `select * from public.invite_preview('YOURCODE');` : one row with the band name and level. Also put `schema_v9_invite_preview.sql` in the repository's `sql/` folder.
 - [ ] **A3. Edge Function.** Edge Functions, `lookup-song`: replace the code with the new `lookup-song.ts` and Deploy. Verify JWT stays off.
 - [ ] **A4. Move the app to the top of `docs/`.**
   1. Unzip `docs-upload.zip` on your computer.
@@ -57,7 +58,7 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Tap **I am new: create my account**: the card has a coloured top band, a welcome line, and name, email, password, confirm password and invite code boxes with one **Create my account** button. Tap **I already have an account** under it: the card turns plain, the name, confirm and code boxes go, and one **Sign in** button and **Trouble signing in?** appear.
 - [ ] Fill in the create form with a fresh test email, the code typed in lower case with a space in the middle, and tap **Create my account**. You join the band in one go and see "You have joined ...".
 - [ ] Repeat with a second fresh email and the code box left empty: you land on "Welcome! You are not in a band yet" with a code box. Type the code there: it joins. Repeat once with a wrong code: a friendly message, the account is still made, and the code box stays.
-- [ ] Open the invite link in a private window, signed out: you go straight to the create form with the code already filled in and a note that you have been invited.
+- [ ] Open the invite link in a private window, signed out: you see "Join [band name]" and "You are invited as Editor", then email, password and confirm boxes, an optional name, one **Accept invitation and join** button, and no invite code box.
 - [ ] Reload the page after signing in once, then sign out: you land on the sign-in form, not the first-visit buttons.
 - [ ] On the sign-in form type an email and password and tap the keyboard's **Go** (or Enter): a known user signs in. Try a wrong password or an unknown email: a message stays on screen, tells new people to tap **I am new: create my account**, and opens **Trouble signing in?**. Do this on a real iPhone and a real Android phone, not only a laptop.
 - [ ] In the create form the keyboard key reads **Next** on every box except the invite code box, where it reads **Go**. Next moves down the form; Go creates the account. Type two different passwords and tap Go: it says the passwords do not match and nothing is created.
@@ -115,6 +116,14 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Upload a small change you can see in the app (for example a different word in `index.html`), then open the app on a good connection: the change shows on the first launch. On a slow connection it may only show on the second launch.
 - [ ] Airplane mode: close the app and reopen it: it still opens from the saved copy.
 - [ ] Open https://timlawless.github.io/setlists/?check=1 on a slow connection: a link with something extra after the address has no saved copy, so it waits for the network. That is expected.
+
+### 12. Invitation page (needs SQL v9 and a real phone)
+- [ ] Make a new invite code, tap **Share invite**, send it to yourself on WhatsApp, and tap the link on a phone that is signed out.
+- [ ] The page names the band and the level. Type a new email and a password twice, leave the name empty, tap **Accept invitation and join**: you are in the band at once, and your name shows as the start of your email.
+- [ ] Open the same link with an email that already has an account: you are moved to **Sign in** with a message saying so, and signing in adds you to the band.
+- [ ] Open an old or mistyped link: the welcome screen with "That invitation is no longer valid."
+- [ ] iPhone: after accepting in Safari, add the app to the Home Screen and open it: it asks you to sign in once with the same email and password.
+- [ ] Before SQL v9 is run (only as a test): the link opens the normal create form with the code filled in, so nothing breaks.
 
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).

@@ -136,7 +136,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
       <form id="authForm" hidden novalidate>
         <h2 id="authTitle">Create your account</h2>
         <p id="authIntro"></p>
-        <label id="nameLbl">Your name <small>(your bandmates will see this)</small><input id="name" autocomplete="name" autocapitalize="words"></label>
+        <label id="nameLbl">Your name <small id="nameHelp">(your bandmates will see this)</small><input id="name" autocomplete="name" autocapitalize="words"></label>
         <label>Email <small id="emailHelp"></small><input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
         <label>Password <small id="pwHelp"></small><input id="pw" type="password" autocomplete="current-password"></label>
         <label id="pw2Lbl">Confirm password <small>(type it again)</small><input id="pw2" type="password" autocomplete="new-password"></label>
@@ -535,7 +535,7 @@ $('invCopyCode').onclick = () => lastInvite && copyText(lastInvite, 'Code copied
 const bandNameNow = () => bandRows.find((x) => x.bands.id === bandId)?.bands.name || 'our band';
 const appUrl = () => location.origin + location.pathname;
 function inviteText() {
-  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Open the app: ${appUrl()}\n   iPhone: open it in Safari, tap Share, then Add to Home Screen, and open it from your home screen.\n2. Tap “I am new: create my account” and type your name, your email, a password and this invite code: ${lastInvite}\n\nUsing a browser instead of the installed app? This link fills in the code for you: ${appUrl()}#join-${lastInvite}\n\nThe code works for 7 days.`;
+  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Tap this link: ${appUrl()}#join-${lastInvite}\n2. Enter your email and choose a password. That is all: you will be in the band.\n   iPhone: to install the app, open the link in Safari, tap Share, then Add to Home Screen, then open it from your home screen and sign in.\n\nLink not working? Open ${appUrl()}, tap “I am new: create my account” and type this invite code: ${lastInvite}\n\nThe invitation works for 7 days.`;
 }
 $('invShare').onclick = async () => {
   if (!lastInvite) return;
@@ -587,11 +587,12 @@ function askCode(mode, email) {
   $('codeHelp').textContent = `We emailed a code to ${email}. It can take a minute to arrive, so check your spam folder too.`;
   showPanel('pCode');
 }
+let authMode = 'choose', inviteInfo = null; // inviteInfo: { band, role } once the invitation has been looked up
 // ---- invite links: https://.../#join-CODE
 const INVITE_HASH = /^#join-([A-Za-z0-9]{4,16})$/;
 function inviteFromHash(h) { const m = INVITE_HASH.exec(h || ''); return m ? m[1].toUpperCase() : ''; }
 const pendingInvite = () => { try { return localStorage.getItem('pendingInvite') || ''; } catch { return ''; } };
-function drawInviteNote() { $('invNote').hidden = !pendingInvite() || !!user; }
+function drawInviteNote() { $('invNote').hidden = !pendingInvite() || !!user || authMode === 'invite'; }
 function captureInvite() { // remember a code from the address bar, then take it out of the address
   const c = inviteFromHash(location.hash); if (!c) return;
   try { localStorage.setItem('pendingInvite', c); } catch {}
@@ -623,7 +624,7 @@ async function joinFromInput(inp) {
 $('joinBand').onclick = () => joinFromInput($('joinCode'));
 $('joinBand2').onclick = () => joinFromInput($('joinCode2'));
 $('joinCode2').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBand2').click(); });
-window.addEventListener('hashchange', () => { captureInvite(); drawInviteNote(); if (authMode === 'new' && pendingInvite()) $('inviteIn').value = pendingInvite(); if (user && pendingInvite()) loadBands(); });
+window.addEventListener('hashchange', () => { captureInvite(); drawInviteNote(); if (!user && pendingInvite()) { if (authMode === 'new') $('inviteIn').value = pendingInvite(); else { setAuthMode('invite'); loadInvitePreview(); } } if (user && pendingInvite()) loadBands(); });
 captureInvite(); drawInviteNote();
 
 // ---- sign-up helpers: a mistyped email cannot be recovered while email is off, so check it
@@ -671,28 +672,42 @@ window.addEventListener('appinstalled', () => { installEvt = null; drawInstall()
 drawInstall();
 
 // ---- welcome screen: choose, then one short form for the choice
-let authMode = 'choose';
 function setAuthMode(m) {
-  authMode = m; const isNew = m === 'new';
+  authMode = m; const isInvite = m === 'invite', isNew = m === 'new' || isInvite;
   $('authChoose').hidden = m !== 'choose'; $('authForm').hidden = m === 'choose';
-  $('authTitle').textContent = isNew ? 'Create your account' : 'Sign in';
-  $('authIntro').textContent = isNew ? 'Welcome! Set up your account. It takes about a minute.' : 'Welcome back.';
-  $('auth').classList.toggle('new', isNew); $('authGo').textContent = isNew ? 'Create my account' : 'Sign in';
-  $('nameLbl').hidden = !isNew; $('pw2Lbl').hidden = !isNew; $('codeLbl').hidden = !isNew; $('trouble').hidden = isNew;
+  $('authTitle').textContent = isInvite ? (inviteInfo ? 'Join ' + inviteInfo.band : 'You are invited') : isNew ? 'Create your account' : 'Sign in';
+  $('authIntro').textContent = isInvite ? (inviteInfo ? 'You are invited as ' + (LEVELS[inviteInfo.role] || inviteInfo.role) + '. Choose a password and you are in.' : 'You are invited to join a band. Choose a password and you are in.') : isNew ? 'Welcome! Set up your account. It takes about a minute.' : 'Welcome back.';
+  $('auth').classList.toggle('new', isNew); $('authGo').textContent = isInvite ? 'Accept invitation and join' : isNew ? 'Create my account' : 'Sign in';
+  $('nameLbl').hidden = !isNew; $('pw2Lbl').hidden = !isNew; $('codeLbl').hidden = !isNew || isInvite; $('trouble').hidden = isNew;
+  $('nameHelp').textContent = isInvite ? '(optional)' : '(your bandmates will see this)';
+  if (isInvite) $('showPw').parentNode.after($('nameLbl')); else $('authIntro').after($('nameLbl')); // an invitation asks for email and password first
   const hint = (id, h) => $(id).setAttribute('enterkeyhint', h);
-  hint('name', 'next'); hint('email', 'next'); hint('pw', isNew ? 'next' : 'go'); hint('pw2', 'next'); hint('inviteIn', 'go');
+  hint('name', isInvite ? 'go' : 'next'); hint('email', 'next'); hint('pw', isNew ? 'next' : 'go'); hint('pw2', isInvite ? 'next' : 'next'); hint('inviteIn', 'go');
   $('pw').setAttribute('autocomplete', isNew ? 'new-password' : 'current-password');
   $('pwHelp').textContent = isNew ? '(at least 8 characters)' : '';
   $('emailHelp').textContent = isNew ? '(use one you can check: the app cannot email you yet)' : '';
   $('authSwitch').textContent = isNew ? 'I already have an account' : 'I am new: create my account';
-  $('authMsg').hidden = true;
-  if (isNew && !$('inviteIn').value) $('inviteIn').value = pendingInvite();
+  $('authMsg').hidden = true; drawInviteNote();
+  if (m === 'new' && !$('inviteIn').value) $('inviteIn').value = pendingInvite();
+}
+async function loadInvitePreview() { // asks the database which band this invitation is for, so the page can say so
+  const code = pendingInvite(); if (!code) return;
+  try {
+    const r = await sb.rpc('invite_preview', { p_code: code }); if (r.error) throw r.error;
+    const row = r.data?.[0];
+    if (!row) { // expired, mistyped or already removed
+      try { localStorage.removeItem('pendingInvite'); } catch {}
+      inviteInfo = null; setAuthMode('choose'); say('That invitation is no longer valid. Ask your band leader for a new one.'); return;
+    }
+    inviteInfo = { band: row.band_name, role: row.role }; if (authMode === 'invite') setAuthMode('invite');
+  } catch { inviteInfo = null; if (authMode === 'invite') setAuthMode('new'); } // offline, or the database step has not been run yet: the normal create form with the code filled in
 }
 $('chooseNew').onclick = () => { setAuthMode('new'); $('name').focus(); };
 $('chooseOld').onclick = () => { setAuthMode('old'); $('email').focus(); };
-$('authSwitch').onclick = () => setAuthMode(authMode === 'new' ? 'old' : 'new');
+$('authSwitch').onclick = () => setAuthMode(authMode === 'old' ? 'new' : 'old');
 const hadAccount = () => { try { return localStorage.getItem('hadAccount') === '1'; } catch { return false; } };
-setAuthMode(pendingInvite() ? 'new' : hadAccount() ? 'old' : 'choose');
+setAuthMode(pendingInvite() ? 'invite' : hadAccount() ? 'old' : 'choose');
+if (pendingInvite()) loadInvitePreview();
 
 const doSignUp = async () => {
   let email = emailVal(); if (!email) return say('Type your email address first');
@@ -701,12 +716,16 @@ const doSignUp = async () => {
   if (fix && confirm(`Did you mean ${fix}?\n\nOK uses ${fix}. Cancel keeps ${email}.`)) { email = fix; $('email').value = fix; }
   if (!pwOk($('pw').value)) return;
   if ($('pw').value !== $('pw2').value) { say('The two passwords do not match'); $('pw2').focus(); return; }
-  const nm = $('name').value.trim(); if (!nm) return say('Type your name so your bandmates know who you are');
-  const code = $('inviteIn').value.replace(/\s/g, '').toUpperCase(); if (code) { try { localStorage.setItem('pendingInvite', code); } catch {} }
+  const invited = authMode === 'invite';
+  const nm = $('name').value.trim() || (invited ? email.split('@')[0] : ''); if (!nm) return say('Type your name so your bandmates know who you are');
+  if (!invited) { const code = $('inviteIn').value.replace(/\s/g, '').toUpperCase(); if (code) { try { localStorage.setItem('pendingInvite', code); } catch {} } }
+  const exists = () => { setAuthMode('old'); $('authMsg').textContent = 'That email already has an account. Sign in below' + (pendingInvite() ? ' and you will be added to the band.' : '.') + ' Forgot your password? Open “Trouble signing in?”.'; $('authMsg').hidden = false; $('trouble').open = true; $('pw').focus(); };
   try {
-    const d = await must(sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: nm } } }));
+    const r = await sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: nm } } });
+    if (r.error) { if (/already (registered|exists)/i.test(r.error.message || '')) exists(); else say('Error: ' + r.error.message); return; }
+    const d = r.data;
     if (d.session) { if (!pendingInvite()) say('Account created. Now type your invite code to join your band.'); }
-    else if (d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) say('That email already has an account. Use Sign in, or Forgot password.');
+    else if (d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) exists();
     else askCode('signup', email);
   } catch {}
 };
@@ -749,11 +768,11 @@ const doSignIn = async () => {
   }
 };
 // Enter and the phone keyboard's Go key: the boxes are a real form, so every keyboard submits it. On a computer, Enter in an early box moves on instead.
-$('authForm').addEventListener('submit', (e) => { e.preventDefault(); if (authMode === 'new') doSignUp(); else doSignIn(); });
-$('name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('email').focus(); } });
-$('email').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (authMode === 'new' || !$('pw').value)) { e.preventDefault(); $('pw').focus(); } });
-$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode === 'new') { e.preventDefault(); $('pw2').focus(); } });
-$('pw2').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('inviteIn').focus(); } });
+$('authForm').addEventListener('submit', (e) => { e.preventDefault(); if (authMode === 'new' || authMode === 'invite') doSignUp(); else doSignIn(); });
+$('name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode !== 'invite') { e.preventDefault(); $('email').focus(); } });
+$('email').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (authMode !== 'old' || !$('pw').value)) { e.preventDefault(); $('pw').focus(); } });
+$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode !== 'old') { e.preventDefault(); $('pw2').focus(); } });
+$('pw2').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode === 'new') { e.preventDefault(); $('inviteIn').focus(); } }); // in an invitation the name is optional, so Enter here sends the form
 $('signOut').onclick = async () => {
   if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
 // ---- fast start: a sign-in saved on this device shows the saved copy at once; the server is checked afterwards

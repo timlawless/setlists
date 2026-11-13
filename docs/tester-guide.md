@@ -1,31 +1,27 @@
 # Setlist app: tester guide
 
-## 1. WhatsApp invite messages (send as two separate messages)
+## 1. Invite someone (one message)
 
-**Message 1: the app and how to install it** (copy, fill in the blanks, send)
+**Easiest way: let the app write the message.** In Band members and access, tap **New invite code**, then **Share invite**
+(on a phone this opens WhatsApp, Messages or Mail with the whole message ready) or **Email invite** (opens your mail app with the
+message filled in, and you choose who to send it to). The message leads with an invitation link. The tester taps it, sees
+"Join [your band]", types their email and a password, and taps **Accept invitation and join**. That is all: they are in the band.
+The message also holds the invite code as a backup and a note on installing the app on an iPhone. The app does not send any email itself.
+
+**If you would rather write it yourself** (copy, fill in the blanks)
 
 > Hi [name]! I'd love your help testing a setlist app I've built for bands: songs with BPM, key and chords, a metronome,
 > and a stage view. It's an early test version.
 >
-> Open this link: https://timlawless.github.io/setlists/
-> **iPhone:** open it in Safari (not inside WhatsApp). **Android:** open it in Chrome.
-> Install it first (steps below), then open the app from your home screen and sign up there. I'll send your invite code in my next message.
+> 1. Tap this link: https://timlawless.github.io/setlists/#join-[CODE]
+> 2. Enter your email and choose a password. That is all: you will be in the band.
+>    iPhone: to install the app, open the link in Safari, tap Share, then Add to Home Screen, then open it from your home screen and sign in.
+>
+> Link not working? Open https://timlawless.github.io/setlists/, tap "I am new: create my account" and type this invite code: [CODE]
 >
 > Please message me here with anything odd, confusing or broken. Thank you!
 
-**Message 2: the code on its own**, so it can be copied with a long press
-
-> Your invite code: **[CODE]**
-> When you create your account, type it in the **Invite code** box.
-
-**Easiest way: let the app write the message.** In Band members and access, tap **New invite code**, then **Share invite**
-(on a phone this opens WhatsApp, Messages or Mail with the whole message ready) or **Email invite** (opens your mail app with the
-message filled in, and you choose who to send it to). The message holds the app address, the install steps, the code and the invite
-link. The app does not send any email itself. The two-message version above is still fine if you prefer it.
-
-**Option: the invite link.** Tap **Copy invite link**. The link ends `#join-` and the code. Anyone who opens it, then signs up
-or signs in, is added to the band automatically. Use it for a tester who will use the app in a browser. On an iPhone the installed
-app and Safari keep separate sign-ins, so an iPhone tester who installs the app should type the code in the installed app instead.
+**Copy buttons.** **Copy invite link** and **Copy code only** are there if you want to paste them somewhere yourself. Invitations work for 7 days.
 
 ## 2. Install it on your phone
 When you open the link in a browser, the app shows an **Install** card at the top with the steps for your phone. You can follow
@@ -37,7 +33,7 @@ the card or the steps below. Tap **Not now** to hide it. To bring it back, open 
 2. Tap the **Share** button (the square with an arrow pointing up) at the bottom of Safari.
 3. Scroll down the list and tap **Add to Home Screen**, then **Add**.
 4. Close Safari and open the app from the new icon on your home screen. It opens full screen. The installed app is separate
-   from Safari, so it asks you to sign in once. Create your account there and type your invite code in the **Invite code** box.
+   from Safari, so it asks you to sign in once. If you already joined in Safari, just sign in. If not, create your account there and type your invite code in the **Invite code** box.
 
 **Android**
 1. Open the link in Chrome.
@@ -47,6 +43,9 @@ the card or the steps below. Tap **Not now** to hide it. To bring it back, open 
 You can also just use it in the browser without installing, but the installed version is the one to test.
 
 ## 3. Create your account and join the band
+**If you were sent an invitation link:** tap it, type your email and a password (twice), and tap **Accept invitation and join**. You do not need a code, and your name is optional. Then skip to step 4. If your email already has an account, the app moves you to **Sign in** and adds you to the band when you sign in.
+
+**If you have a code instead:**
 1. Open the app. Tap **I am new: create my account**.
 2. Fill in the boxes: your name (your bandmates will see it), your email (check the spelling: the app cannot email you while it is
    in testing), a password you will remember (at least 8 characters, typed twice) and the **Invite code** from your band leader. Tap
