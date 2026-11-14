@@ -2,7 +2,7 @@
 
 ## 1. Invite someone (one message)
 
-**Easiest way: let the app write the message.** In Band members and access, tap **New invite code**, then **Share invite**
+**Easiest way: let the app write the message.** In Band members and access your invite code is already there (it is made the first time you open the screen). Tap **Share invite**
 (on a phone this opens WhatsApp, Messages or Mail with the whole message ready) or **Email invite** (opens your mail app with the
 message filled in, and you choose who to send it to). The message leads with an invitation link. The tester taps it, sees
 "Join [your band]", types their email and a password, and taps **Accept invitation and join**. That is all: they are in the band.
@@ -21,7 +21,7 @@ The message also holds the invite code as a backup and a note on installing the 
 >
 > Please message me here with anything odd, confusing or broken. Thank you!
 
-**Copy buttons.** **Copy invite link** and **Copy code only** are there if you want to paste them somewhere yourself. Invitations work for 7 days.
+**Copy buttons.** **Copy invite link** and **Copy code only** are there if you want to paste them somewhere yourself. The invite code stays the same, and keeps working, until you tap **Make a new code**, so you can send the same invitation again and again. Making a new code switches the old one off straight away. There is one code for Editors and one for Viewers. **Email invite** asks which mail to use on a computer (your email app, Gmail or Outlook, or copy the message).
 
 ## 2. Install it on your phone
 When you open the link in a browser, the app shows an **Install** card at the top with the steps for your phone. You can follow

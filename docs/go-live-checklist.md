@@ -53,7 +53,7 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] Sign in, switch band and setlist, open gig mode, start the metronome (click is audible), make one offline edit and watch it sync.
 
 ### 5. Sign-up and invite
-- [ ] As owner: Band members and access, choose Editor, tap **New invite code**. **Share invite**, **Email invite**, **Copy invite link** and **Copy code only** appear. Paste the link somewhere to read it: it ends `#join-` and the 8-character code.
+- [ ] As owner: open Band members and access. The Editor invite code is already shown, with **Share invite**, **Email invite**, **Copy invite link** and **Copy code only**, and you did not have to press anything. Paste the link somewhere to read it: it ends `#join-` and the 8-character code.
 - [ ] Open the plain address in a private window, signed out: you see "Welcome to Setlist" with two big buttons and no form yet.
 - [ ] Tap **I am new: create my account**: the card has a coloured top band, a welcome line, and name, email, password, confirm password and invite code boxes with one **Create my account** button. Tap **I already have an account** under it: the card turns plain, the name, confirm and code boxes go, and one **Sign in** button and **Trouble signing in?** appear.
 - [ ] Fill in the create form with a fresh test email, the code typed in lower case with a space in the middle, and tap **Create my account**. You join the band in one go and see "You have joined ...".
@@ -125,10 +125,19 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] iPhone: after accepting in Safari, add the app to the Home Screen and open it: it asks you to sign in once with the same email and password.
 - [ ] Before SQL v9 is run (only as a test): the link opens the normal create form with the code filled in, so nothing breaks.
 
+### 13. Panes and the standing invite code (needs a laptop or a wide tablet)
+- [ ] A wide window (about 1000 px or more) opens with two panes, split 50/50: the setlist on the left, the song details on the right. **Add song** and **Gig mode** sit above the setlist only, level with the top of the details.
+- [ ] The details panel is as tall as the window, down to the metronome bar, even for a short song, and scrolls inside itself when a song has more to show. Start the metronome with **Click**: the bar grows and the panel shortens to match.
+- [ ] Tap **One pane** at the top: the details panel goes, the setlist becomes one column, and tapping a song opens its details inside the row. The button now says **Two panes**. Close the tab and open it again: your choice is remembered.
+- [ ] Members screen: **Share invite** and **Email invite** are visible without making a code. **Email invite** on a computer shows **My email app**, **Gmail**, **Outlook** and **Copy message**: Gmail and Outlook each open a new message in your browser with the invitation filled in.
+- [ ] Open the screen again next week (or after a reload): it is the same code. Tap **Make a new code**: it warns you, and then the old code stops working (try it from a private window: it says the invitation is no longer valid).
+- [ ] Switch the list to **Viewer**: a separate Viewer code is shown (made the first time).
+- [ ] An old 7-day code you made earlier keeps working until it runs out, but the screen shows the new standing code.
+
 ## C. Before you invite anyone
 - [ ] Keep the previous `index.html` so you can roll back (GitHub keeps every version).
 - [ ] Create the band with your account. Choose its link ending. Add a few songs and a setlist.
-- [ ] Make the invite code on Tuesday morning (codes last 7 days and can be used by several people). In Band members and access tap **New invite code**, then **Copy code only** (and **Copy invite link** if you want the link).
+- [ ] Open Band members and access: your invite code is already there and stays the same until you make a new one, so it can be used by several people. Tap **Share invite** (or **Copy code only** and **Copy invite link**).
 - [ ] Dry run `tester-guide.md` with a fresh account on a phone that is not yours.
 - [ ] Send the two WhatsApp messages from `tester-guide.md` section 1: the link and install steps first, then the code on its own.
 

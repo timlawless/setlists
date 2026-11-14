@@ -92,17 +92,15 @@ body.run main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}body.
 @media (pointer:coarse){button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}input[type=checkbox]{width:22px;height:22px}}
 @media (max-width:520px){dialog#menu,dialog#memDlg,dialog#addDlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:0;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
 dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:first-child{position:sticky;top:0;z-index:2;background:var(--card,#fff);padding-bottom:8px}}
-@media (max-width:899px){#pane{display:none}}
-@media (min-width:900px){
-  body{font-size:17px}
-  main{max-width:1280px}
-  #split{display:grid;grid-template-columns:minmax(340px,5fr) minmax(400px,6fr);gap:16px;align-items:start}
-  #pane{position:sticky;top:76px;max-height:calc(100vh - 76px - 130px);overflow:auto;padding-right:2px}
-  #pane article.pane{margin:0}
-  #list article.open{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
-  .chev{display:none}
-  .rt{font-size:1.06em}
-}
+@media (max-width:899px){#pane,#paneBtn{display:none}}
+@media (min-width:900px){body{font-size:17px}.rt{font-size:1.06em}}
+body:not(.dual) #pane{display:none}
+body.dual main{max-width:1280px}
+body.dual #split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+body.dual #pane{position:sticky;top:76px;height:calc(100vh - 76px - var(--barH,96px) - 12px);overflow:auto}
+body.dual #pane article.pane{margin:0;min-height:100%}
+body.dual #list article.open{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+body.dual .chev{display:none}
 #auth.new{border-top:6px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card))}
 #auth.new #authTitle{color:var(--accent)}#authIntro{margin:2px 0 10px;color:var(--mute);font-size:14px}
 html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28px 12px}html.booting #boot{display:block}
@@ -114,6 +112,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
   <select id="band" aria-label="Band"></select><b id="bandTitle" hidden></b>
   <select id="setlist" aria-label="Setlist"></select>
   <button id="syncChip" hidden>Offline</button>
+  <button id="paneBtn" hidden></button>
   <button id="menuBtn" aria-label="Menu">☰</button>
 </header>
 <main>
@@ -167,7 +166,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
   <div id="app" hidden>
     <div id="nobands" class="card" hidden><b>Welcome! You are not in a band yet.</b><p>Got an invite code from your band? Type it here.</p><div class="row"><input id="joinCode2" placeholder="Invite code" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"><button id="joinBand2" class="primary">Join band</button></div><p><small>Starting a band yourself?</small></p><button data-open="menu">Create a new band</button></div>
     <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
-    <div id="sl" hidden><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="split"><div id="list"></div><aside id="pane"></aside></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
+    <div id="sl" hidden><div id="split"><div id="left"><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div></div><aside id="pane"></aside></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
   </div>
 <p style="text-align:center"><small>BPM and key data from <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM</a> and <a href="https://songfinder.dev" target="_blank" rel="noopener">Song Finder</a></small></p>
 </main>
@@ -218,10 +217,11 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
   <p><small>Owner and Admin: full control. Editor: edit songs and setlists. Viewer: view only, with the metronome and gig mode.</small></p>
   <div id="invSec" hidden>
     <h3>Invite someone</h3>
-    <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake" class="primary">New invite code</button></div>
+    <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake">Make a new code</button></div>
     <p id="invCode"></p>
     <div id="invCopyRow" hidden>
       <div class="row"><button id="invShare" class="primary">Share invite</button><button id="invEmail">Email invite</button></div>
+      <div id="emailChoose" class="card" hidden><b>Send the invite with</b><div class="row"><button id="mailApp">My email app</button><button id="mailGmail">Gmail</button><button id="mailOutlook">Outlook</button><button id="mailCopy">Copy message</button></div><p><small>On a computer, "My email app" only works if one is set up. Gmail and Outlook open a new message in your browser.</small></p></div>
       <div class="row"><button id="invCopyLink">Copy invite link</button><button id="invCopyCode">Copy code only</button></div>
     </div>
   </div>
@@ -493,7 +493,7 @@ async function openMembers() {
   $('invSec').hidden = !a; $('bandSec').hidden = !a; $('delBandRow').hidden = myLevel() !== 'owner'; $('leaveBand').hidden = myLevel() === 'owner';
   $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = ''; $('invCopyRow').hidden = true;
   $('myLevel').textContent = `You are ${LEVELS[myLevel()]} in this band.` + (a ? '' : ' Only owners and admins can change this list.');
-  $('memDlg').showModal(); await loadMembers();
+  $('emailChoose').hidden = true; $('memDlg').showModal(); if (a) ensureInvite(); await loadMembers();
 }
 async function loadMembers() {
   try {
@@ -535,25 +535,60 @@ $('invCopyCode').onclick = () => lastInvite && copyText(lastInvite, 'Code copied
 const bandNameNow = () => bandRows.find((x) => x.bands.id === bandId)?.bands.name || 'our band';
 const appUrl = () => location.origin + location.pathname;
 function inviteText() {
-  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Tap this link: ${appUrl()}#join-${lastInvite}\n2. Enter your email and choose a password. That is all: you will be in the band.\n   iPhone: to install the app, open the link in Safari, tap Share, then Add to Home Screen, then open it from your home screen and sign in.\n\nLink not working? Open ${appUrl()}, tap “I am new: create my account” and type this invite code: ${lastInvite}\n\nThe invitation works for 7 days.`;
+  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Tap this link: ${appUrl()}#join-${lastInvite}\n2. Enter your email and choose a password. That is all: you will be in the band.\n   iPhone: to install the app, open the link in Safari, tap Share, then Add to Home Screen, then open it from your home screen and sign in.\n\nLink not working? Open ${appUrl()}, tap “I am new: create my account” and type this invite code: ${lastInvite}\n\nThis invitation stays valid until the band leader makes a new code.`;
 }
 $('invShare').onclick = async () => {
   if (!lastInvite) return;
   if (navigator.share) { try { await navigator.share({ title: `Join ${bandNameNow()} on Setlist`, text: inviteText() }); } catch {} } // closing the share sheet is not an error
   else copyText(inviteText(), 'Invite message copied');
 };
-$('invEmail').onclick = () => {
-  if (!lastInvite) return;
-  const a = document.createElement('a');
-  a.href = 'mailto:?subject=' + encodeURIComponent(`Join ${bandNameNow()} on Setlist`) + '&body=' + encodeURIComponent(inviteText().replace(/\n/g, '\r\n'));
+const mailBits = () => ({ subject: `Join ${bandNameNow()} on Setlist`, body: inviteText() });
+const enc = encodeURIComponent;
+function openMailApp() {
+  const { subject, body } = mailBits(), a = document.createElement('a');
+  a.href = 'mailto:?subject=' + enc(subject) + '&body=' + enc(body.replace(/\n/g, '\r\n'));
   document.body.appendChild(a); a.click(); a.remove();
+}
+$('invEmail').onclick = () => { // a phone goes straight to its mail app; a computer asks which mail to use, because a mail app may not be set up
+  if (!lastInvite) return;
+  if (matchMedia('(pointer: coarse)').matches) return openMailApp();
+  $('emailChoose').hidden = !$('emailChoose').hidden;
 };
-$('invMake').onclick = async () => {
+$('mailApp').onclick = () => { openMailApp(); $('emailChoose').hidden = true; };
+$('mailGmail').onclick = () => { const m = mailBits(); window.open('https://mail.google.com/mail/?view=cm&fs=1&su=' + enc(m.subject) + '&body=' + enc(m.body), '_blank', 'noopener'); $('emailChoose').hidden = true; };
+$('mailOutlook').onclick = () => { const m = mailBits(); window.open('https://outlook.live.com/mail/0/deeplink/compose?subject=' + enc(m.subject) + '&body=' + enc(m.body), '_blank', 'noopener'); $('emailChoose').hidden = true; };
+$('mailCopy').onclick = () => { copyText(mailBits().body, 'Invite message copied'); $('emailChoose').hidden = true; };
+
+// The invite code for each access level stays the same until someone makes a new one (it is stored with an expiry 100 years away).
+const farFuture = () => new Date(Date.now() + 100 * 365 * 864e5).toISOString();
+const isStanding = (r) => { const t = Date.parse(r.expires_at); return !Number.isFinite(t) || t - Date.now() > 50 * 365 * 864e5; };
+function showInvite(inv) {
+  if (!inv) { lastInvite = ''; $('invCode').textContent = ''; $('invCopyRow').hidden = true; $('emailChoose').hidden = true; return; }
+  lastInvite = inv.code; $('invCopyRow').hidden = false;
+  $('invCode').textContent = `Invite code: ${inv.code} (${LEVELS[inv.role] || inv.role} access). ` + (isStanding(inv) ? 'It stays the same until you make a new one.' : 'Valid for 7 days.');
+}
+async function newInvite(role) {
+  const base = { band_id: bandId, created_by: user.id, role };
+  let r = await sb.from('band_invites').insert({ ...base, expires_at: farFuture() }).select().single();
+  if (r.error) r = await sb.from('band_invites').insert(base).select().single(); // the database refused a long expiry: fall back to the usual 7 days
+  if (r.error) { say('Error: ' + r.error.message); throw r.error; }
+  return r.data;
+}
+let inviteFor = '';
+async function ensureInvite() { // shows the standing code for the chosen level, and makes it the first time
+  if (!bandId || !isAdmin()) return;
+  const role = $('invRole').value, mine = bandId + role; inviteFor = mine;
   try {
-    const d = await must(sb.from('band_invites').insert({ band_id: bandId, created_by: user.id, role: $('invRole').value }).select().single());
-    $('invCode').textContent = `Invite code: ${d.code} (${LEVELS[d.role]} access, valid for 7 days)`;
-    lastInvite = d.code; $('invCopyRow').hidden = false;
+    const rows = await must(sb.from('band_invites').select('code,role,expires_at').eq('band_id', bandId).eq('role', role).order('created_at', { ascending: false }));
+    const inv = (rows || []).find(isStanding) || await newInvite(role);
+    if (inviteFor === mine) showInvite(inv);
   } catch {}
+}
+$('invRole').onchange = () => ensureInvite();
+$('invMake').onclick = async () => {
+  const role = $('invRole').value;
+  if (!confirm(`Make a new ${LEVELS[role]} code? The current one stops working straight away, so anyone you have not sent it to yet will need the new one.`)) return;
+  try { await must(sb.from('band_invites').delete().eq('band_id', bandId).eq('role', role)); showInvite(await newInvite(role)); say('New code made. The old one no longer works.'); } catch {}
 };
 $('bandRename').onclick = async () => {
   const name = $('bandName').value.trim(); if (!name) return say('Type a band name');
@@ -606,7 +641,7 @@ async function joinWith(code) { // returns the band id, or null when it did not 
   if (r.error) {
     joinOffline = !r.error.code && /fetch|network/i.test(r.error.message || '');
     say(joinOffline ? 'You seem to be offline. Try again when you have a connection.'
-      : /invalid or expired/i.test(r.error.message || '') ? 'That code did not work. Check it with the person who sent it. Codes last 7 days.' : 'Error: ' + r.error.message);
+      : /invalid or expired/i.test(r.error.message || '') ? 'That code did not work. Check it with the person who sent it, or ask them for a new one.' : 'Error: ' + r.error.message);
     return null;
   }
   return r.data;
@@ -894,16 +929,26 @@ function render() {
   $('setlist').hidden = !$('setlist').options.length;
   $('emptySl').hidden = items.length > 0;
   const ce = canEdit(); $('addBtn').hidden = !ce; $('slNew2').parentElement.hidden = !ce; $('slSec').hidden = !ce;
-  if (wide() && !items.some((x) => x.songs.id === openId)) openId = items[0]?.songs.id ?? null; // a wide screen always shows one song
+  drawPaneBtn();
+  if (dual() && !items.some((x) => x.songs.id === openId)) openId = items[0]?.songs.id ?? null; // two panes always show one song
   $('list').innerHTML = items.map(card).join('');
   drawPane();
   if (openId) loadLinks(openId);
   if (!$('gig').hidden) renderGig();
 }
 const wideQ = matchMedia('(min-width: 900px)'), wide = () => wideQ.matches;
+const paneMode = () => { try { return localStorage.getItem('paneMode') === 'single' ? 'single' : 'dual'; } catch { return 'dual'; } };
+const dual = () => wide() && paneMode() === 'dual'; // two panes: only on a wide screen, and only if the person has not chosen one pane
+function drawPaneBtn() {
+  const b = $('paneBtn'); b.hidden = !wide(); b.textContent = paneMode() === 'dual' ? '▢ One pane' : '▥ Two panes';
+  b.title = paneMode() === 'dual' ? 'Show one list at a time, like on a phone' : 'Show the setlist and the song details side by side';
+  document.body.classList.toggle('dual', dual());
+}
+if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--barH', $('bar').offsetHeight + 'px')).observe($('bar')); // the details panel fills the window down to the metronome bar, however tall the bar is
+$('paneBtn').onclick = () => { const toSingle = paneMode() === 'dual'; try { localStorage.setItem('paneMode', toSingle ? 'single' : 'dual'); } catch {} if (toSingle) openId = null; render(); };
 function drawPane() {
   const it = items.find((x) => x.songs.id === openId);
-  $('pane').innerHTML = wide() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs)}</article>` : '';
+  $('pane').innerHTML = dual() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs)}</article>` : '';
 }
 wideQ.addEventListener?.('change', () => render());
 function roleLine(s) {
@@ -920,7 +965,7 @@ function card(it, i) {
   <span class="n">${i + 1}</span>
   <button data-a="toggle" class="rowmain" aria-expanded="${o}"><span class="rt">${esc(s.title)}</span><span class="rs"><span class="pill">${s.bpm || '–'} bpm</span><span class="pill">${esc(s.musical_key || '–')}</span><span class="ra">${esc(sub)}</span><span class="chev">${o ? '▴' : '▾'}</span></span></button>
   <button data-a="play" class="primary playbtn">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button>
-  ${roleLine(s)}${o && !wide() ? detail(s) : ''}</article>`;
+  ${roleLine(s)}${o && !dual() ? detail(s) : ''}</article>`;
 }
 function detail(s) {
   const ro = !canEdit(), dis = ro ? ' disabled' : '', i = items.findIndex((x) => x.songs.id === s.id);
@@ -961,7 +1006,7 @@ $('split').onclick = async (e) => {
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
   if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
-    if (a === 'toggle') { openId = wide() ? sid : openId === sid ? null : sid; render(); }
+    if (a === 'toggle') { openId = dual() ? sid : openId === sid ? null : sid; render(); }
     else if (a === 'up' || a === 'down') {
       const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
       x.position = py; y.position = px; items.sort((m, n) => m.position - n.position);
