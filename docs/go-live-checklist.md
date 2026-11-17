@@ -14,15 +14,9 @@ checks below focus on those and then repeat a quick sanity pass.
 - [ ] **A2. SQL.** Supabase, SQL Editor, new query: paste all of `schema_v8_band_link.sql`, Run. (Safe to run twice.)
 - [ ] **A2b. SQL v9 (new).** Supabase, SQL Editor, new query: paste all of `schema_v9_invite_preview.sql`, Run. (Safe to run twice.) Do this BEFORE uploading the new `index.html`. Check: make an invite code in the app, then run `select * from public.invite_preview('YOURCODE');` : one row with the band name and level. Also put `schema_v9_invite_preview.sql` in the repository's `sql/` folder.
 - [ ] **A3. Edge Function.** Edge Functions, `lookup-song`: replace the code with the new `lookup-song.ts` and Deploy. Verify JWT stays off.
-- [ ] **A4. Move the app to the top of `docs/`.**
-  1. Unzip `docs-upload.zip` on your computer.
-  2. On GitHub open the `docs` folder, choose Add file, Upload files, and drag in everything from inside the `docs-upload`
-     folder: `index.html`, `config.js`, `sw.js`, `manifest.webmanifest`, the three `icon-` pictures, and the
-     `setlist-pwa-v2` folder. Commit.
-  3. Open `docs/setlist-pwa-v2/` and delete `sw.js`, `config.js`, `manifest.webmanifest` and the icons from it. Keep
-     `index.html`: it is now a small page that sends old links to the new address.
-  4. `config.js` in the zip holds the same Supabase address and key you used before. Compare it with your old one.
-- [ ] **A4b. Sign-up, invite and install-help update.** Upload the newer `index.html` over `docs/index.html` (Add file, Upload files, Commit). No SQL, and `config.js` stays as it is. The later updates also change `sw.js` (the offline helper), so upload the newer `sw.js` over `docs/sw.js` in the same commit. Do this after A4, then open the app in a private window.
+- [ ] **A4. Deploy the reorganised app.** Commit and push the new `app/` folder and `.github/workflows/deploy-pages.yml` to `main`. In GitHub, open Settings → Pages and set Build and deployment → Source to **GitHub Actions**. The workflow publishes only `app/`; `docs/`, `sql/`, `core/`, `prototype/` and `archive/` are not published.
+- [ ] **A4b. Preserve the old app URL.** The old `/setlist-pwa-v2/` path now contains a small redirect page to the app root. The previous implementation is retained under `archive/setlist-pwa-v2/`.
+- [ ] **A4c. Keep configuration intact.** Check that `app/config.js` still contains the existing Supabase project URL and publishable key. Do not replace it with a service-role or secret key.
 - [ ] **A5. Check the new address.** Open https://timlawless.github.io/setlists/ in a private window: the sign-in page appears,
       and the footer says "BPM and key data from GetSongBPM and Song Finder".
 - [ ] **A6. Your own phone and laptop.** The old home-screen icon points at the old address. Delete it, open the new address

@@ -11,7 +11,7 @@ parts were removed. If files like `useLiveSync.ts` or `SetlistManager.tsx` exist
 experiments, not as the live app, and check with Tim before building on them.
 
 ## 1. What exists
-- **Live app:** `docs/` (`index.html`, `config.js`, `sw.js`, manifest, icons), served by GitHub Pages at
+- **Live app:** `app/` (`index.html`, `config.js`, `sw.js`, manifest, icons), served by GitHub Pages at
   https://timlawless.github.io/setlists/
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and one Edge Function (`lookup-song`).
 - **Database files:** v1 to v7 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
@@ -58,7 +58,7 @@ limited flash, offline reading, offline editing with sync.
 - Deleting a band cascades, so use a typed confirmation.
 - GitHub Pages cannot route paths such as `/band-name`. Use a `#` link, or move the hosting.
 - Chrome on a laptop had its own volume set to zero in the system mixer, which looked like an app bug.
-- Everything in `docs/` is public.
+- Everything in `app/` is public.
 
 ## 6. How to work with Tim
 - Tim is an experienced IT professional and a teacher. He prefers step by step work and asks for outputs he can use

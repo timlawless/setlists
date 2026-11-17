@@ -7,7 +7,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 
 ## Where things stand
 - Free, never commercial. Devices: iPhone, Android, tablets. Backend: Supabase.
-- **PWA first is decided and built.** The app is an installable web app served from `docs/` on GitHub Pages.
+- **PWA first is decided and built.** The app is an installable web app served from `app/` on GitHub Pages.
   The Expo (native) option is parked and can be revisited if a native feature is ever needed.
 - Sharing is built and can be tested with bandmates: sign-in, invite codes, shared songs and setlists, shared history.
 - The app has four access levels (owner, admin, editor, viewer) and instrument roles (singer, guitarist, bassist,
@@ -51,7 +51,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Simpler welcome screen (build A) | First screen is two big choices (I am new / I already have an account); each shows only its own short form with plain help text; the invite code is a box on the create form so one tap makes the account and joins the band; forgot-password buttons sit behind Trouble signing in; returning people go straight to Sign in; numbered install steps fixed | none | Built, not yet on the site; tested in a simulated browser and in headless Chromium at four screen sizes, not on a real phone |
 | Easier sign-up and invites | Join box on the "No bands yet" card; invite links ending `#join-CODE` that add the person after sign-up or sign-in; Copy invite link and Copy code only buttons; email typo check; show password; name required; clearer sign-in message; Enter key signs in and an unknown email is asked for a name; Share invite and Email invite buttons (they open your share sheet or mail app, the app sends no email itself) | none | Built, not yet on the site; tested only with a stand-in database |
 | iPhone install help | An Install card on the first screen (iPhone: Share, Add to Home Screen, with a Copy link button for people stuck in WhatsApp's browser; Android: Install app button); Not now, and a menu button to bring it back; the invite code is shown for retyping in the installed app | none | Built, not yet on the site; tested only in a simulated browser |
-| App at the site root | The app moves to the top of `docs/`, so https://timlawless.github.io/setlists/ opens it; the old address redirects | none | Built, not yet on the site |
+| App at the site root | The app is served from `app/`, so https://timlawless.github.io/setlists/ opens it; the old `/setlist-pwa-v2/` address redirects | none | Built, not yet on the site |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -156,7 +156,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 
 ## Notes for whoever picks this up
 - Run `cd core && npm install && npm test` before and after changes to `core/`. Keep `core/` free of platform code.
-- For any change that includes SQL: run the SQL first, then upload the new `index.html`. Upload to `docs/`
+- For any change that includes SQL: run the SQL first, then upload the new `index.html` to `app/`
   and leave `config.js` alone. Open the app in a private window to avoid a stale copy.
 - Lyrics: never ship or fetch lyrics. See "Lyrics and links" in `architecture.md`.
 - Source accuracy for tempo and key varies. Show a confidence level and let the band's own values win.

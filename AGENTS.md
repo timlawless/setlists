@@ -4,7 +4,7 @@
 A free, non-commercial web app (PWA) for bands: setlists with tempo, key, chords, notes, lyrics links and links, a
 metronome with an optional flash, gig mode, several setlists per band, several bands per user, change history, and
 offline use. Used on iPhone, Android and tablets. Backend is Supabase. The live app is a single page,
-`docs/index.html`, served by GitHub Pages. PWA first is decided; Expo is parked.
+`app/index.html`, served by GitHub Pages. PWA first is decided; Expo is parked.
 
 ## Start here
 1. Read `docs/architecture.md` (decisions and reasons) and `docs/roadmap.md` (what to do next).
@@ -27,7 +27,7 @@ offline use. Used on iPhone, Android and tablets. Backend is Supabase. The live 
 - **Flash.** At most three flashes a second (`flashAllowed` in `core/`; the web app has the same rule). Warn the first
   time it is switched on.
 - **Secrets.** Never commit a service-role or secret key, or the GetSongBPM key. The publishable key in `config.js` is
-  public by design. Do not put SQL files, keys or notes you want private in `docs/`, which is published on the web.
+  public by design. Do not put SQL files, secrets or private notes in `app/`, which is published on the web.
 - **SQL.** Every SQL file is numbered, safe to run twice, and adds to what exists. Run it before uploading a page
   that depends on it. A change to permissions needs tests that were run, not just written.
 - **Do not claim something works unless it was tested.** Device-specific behaviour (iPhone PWA audio, wake lock,
