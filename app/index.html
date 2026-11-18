@@ -974,6 +974,7 @@ function detail(s) {
   return `<div>
   ${ro ? '' : `<div class="btns"><button data-a="up" ${i > 0 ? '' : 'disabled'}>▲ Move up</button><button data-a="down" ${i >= 0 && i < items.length - 1 ? '' : 'disabled'}>▼ Move down</button></div>`}
   <div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>
+  ${ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="2" placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`}
   <label>Chords<textarea data-f="chords" rows="4" class="mono"${dis}>${esc(s.chords)}</textarea></label>
   <label>Root notes (for bass)<textarea data-f="root_notes" rows="2" class="mono" placeholder="e.g. E  A  B  E"${dis}>${esc(s.root_notes)}</textarea></label>
   <label>Notes<textarea data-f="notes" rows="3"${dis}>${esc(s.notes)}</textarea></label>
@@ -1016,7 +1017,7 @@ $('split').onclick = async (e) => {
     else if (a === 'save') {
       const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
       if (!p.title) return say('A title is needed');
-      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
+      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
       const song = items[i].songs, set = {}, base = {};
       Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
       if (!Object.keys(set).length) return say('Nothing has changed');
@@ -1038,13 +1039,13 @@ $('split').onclick = async (e) => {
         must(sb.from('band_members').select('user_id,profiles(display_name)').eq('band_id', bandId)),
       ]);
       const who = Object.fromEntries(mem.map((m) => [m.user_id, m.profiles?.display_name || 'Someone']));
-      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', notes: 'notes', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', deleted_at: 'deleted' };
+      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', notes: 'notes', song_structure: 'structure', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', deleted_at: 'deleted' };
       const short = (v) => { const t = v == null || v === '' ? 'empty' : String(v); return t.length > 30 ? t.slice(0, 30) + '…' : t; };
       const diff = (r) => {
         if (r.op === 'INSERT') return 'Song added';
         const o = r.old_data || {}, n = r.new_data || {};
         const ch = Object.keys(LABEL).filter((k) => JSON.stringify(o[k]) !== JSON.stringify(n[k]));
-        return ch.map((k) => (k === 'chords' || k === 'root_notes' || k === 'notes' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
+        return ch.map((k) => (k === 'chords' || k === 'root_notes' || k === 'notes' || k === 'song_structure' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
       };
       art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><span>${esc(diff(r))}${r.reason ? `<br><small>Reason: ${esc(r.reason)}</small>` : ''}</span><small style="text-align:right">${esc(who[r.changed_by] || 'Someone')}<br>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
     }
