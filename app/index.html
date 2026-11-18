@@ -168,7 +168,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
     <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
     <div id="sl" hidden><div id="split"><div id="left"><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div></div><aside id="pane"></aside></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
   </div>
-<p style="text-align:center"><small>BPM and key data from <a href="https://getsongbpm.com" target="_blank" rel="noopener">GetSongBPM</a> and <a href="https://songfinder.dev" target="_blank" rel="noopener">Song Finder</a></small></p>
+<p style="text-align:center"><small>BPM and key data from <a href="https://songfinder.dev" target="_blank" rel="noopener">Song Finder</a></small></p>
 </main>
 
 <div id="bar">
@@ -955,7 +955,6 @@ function roleLine(s) {
   const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
   if (r.includes('singer') && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
   if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + first(s.chords));
-  if (r.includes('bassist') && s.root_notes) out.push('Root: ' + first(s.root_notes));
   if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
   return out.length ? `<div class="rl">${out.join(' · ')}</div>` : '';
 }
@@ -976,7 +975,6 @@ function detail(s) {
   <div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>
   ${ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="2" placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`}
   <label>Chords<textarea data-f="chords" rows="4" class="mono"${dis}>${esc(s.chords)}</textarea></label>
-  <label>Root notes (for bass)<textarea data-f="root_notes" rows="2" class="mono" placeholder="e.g. E  A  B  E"${dis}>${esc(s.root_notes)}</textarea></label>
   <label>Notes<textarea data-f="notes" rows="3"${dis}>${esc(s.notes)}</textarea></label>
   ${ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`}
   ${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}
@@ -1017,7 +1015,7 @@ $('split').onclick = async (e) => {
     else if (a === 'save') {
       const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
       if (!p.title) return say('A title is needed');
-      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
+      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
       const song = items[i].songs, set = {}, base = {};
       Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
       if (!Object.keys(set).length) return say('Nothing has changed');
@@ -1129,7 +1127,7 @@ $('libList').onclick = (e) => {
 $('addNew').onclick = () => {
   const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
   if (!setlistId) return say('Create or pick a setlist first');
-  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', root_notes: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
+  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
   enqueue({ t: 'songNew', label: title, row: { id: song.id, band_id: bandId, title, artist: song.artist, bpm: song.bpm, musical_key: song.musical_key, created_by: user.id } });
   if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); persistLib(); }
   ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); addToSetlist(song);
@@ -1154,9 +1152,8 @@ function renderGig() {
   const parts = [];
   if (has('singer')) parts.push(safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', ''));
   if (has('guitarist') || has('keyboards')) parts.push(panel('Chords', s.chords, true));
-  if (has('bassist')) parts.push(panel('Root notes', s.root_notes, true));
   if (s.notes) parts.push(panel('Notes', s.notes));
-  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics, chords or root notes here.</small></p>';
+  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics or chords here.</small></p>';
   $('gig').innerHTML = `<div class="gtop"><span style="display:flex;align-items:center;gap:8px">${bandLogo() ? `<img src="${bandLogo()}" alt="" style="height:30px;width:30px;object-fit:contain">` : ''}<small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small></span><button id="gigClose">✕ Close</button></div>
   <h1>${esc(s.title)}</h1><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small>
   <div class="tiles">${tile('BPM', s.bpm, drummer ? 'xl' : '')}${tile('Key', s.musical_key)}${drummer ? tile('Time', s.time_signature || '4/4') : ''}</div>
