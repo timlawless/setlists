@@ -53,6 +53,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | iPhone install help | An Install card on the first screen (iPhone: Share, Add to Home Screen, with a Copy link button for people stuck in WhatsApp's browser; Android: Install app button); Not now, and a menu button to bring it back; the invite code is shown for retyping in the installed app | none | Built, not yet on the site; tested only in a simulated browser |
 | App at the site root | The app is served from `app/`, so https://timlawless.github.io/setlists/ opens it; the old `/setlist-pwa-v2/` address redirects | none | Built, not yet on the site |
 | Song structure | An optional free-text Song structure box (for example `V C V C M8 V C Outro`) in the song details editor; no list of sections and no checking; viewers see it only when it has text; saved, synced offline and recorded in the history like any other song field; not in the song list, the Create a new song box or gig mode | v10 | Prepared, awaiting review; not yet built into the site; nothing tested |
+| Simplify: no GetSongBPM link, no Root notes | The GetSongBPM link is removed from the page footer (Song Finder stays); the Root notes box is removed from the song details, the "Root:" line on song rows and the bass panel in gig mode; the database column and old values are kept | none | Prepared, awaiting review; nothing tested |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -66,7 +67,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | 7. Polish | Partly done: wake lock on stage, "Auto" theme following the phone, stage view (gig mode). Flash safety rule and first-time warning built. iPhone install help built, not yet on the site. Not done: high-contrast mode. |
 
 ## In progress and waiting
-1. **GetSongBPM API key.** The documentation confirms a key is required, and a visible link back (done). The lookup no
+1. **GetSongBPM API key.** The documentation confirms a key is required, and a visible link back (the footer link was removed while no key is in use; put it back before using a key). The lookup no
    longer depends on it: without a key, the function uses Song Finder. Song Finder is new, rate-limited per address and
    covers less-known songs unevenly, so test it from your side and keep the GetSongBPM application going.
 2. **Email sending.** Password reset, sign-in codes and sign-up confirmation need a custom email service in Supabase
@@ -79,6 +80,8 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
    When approved: run SQL v10 in the Supabase SQL Editor first, then upload `app/index.html`, leave `config.js` alone, and
    test: edit a song's Song structure and save it, reload, see it come back, check the History line, check a viewer sees it
    only when filled in, and make one offline edit of it and watch it sync.
+7. **Another lookup source (waiting).** Song Finder is the only source in use. A second source for songs Song Finder cannot find
+   needs the current `lookup-song` code from `sql/` in the repository, which has not been reviewed yet.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -113,6 +116,7 @@ Not committed. Move any of these up by saying so.
 - Default label for a link (the site name) and adding a typed link on save.
 - A setlist note shown large in gig mode.
 - Song structure in gig mode, and in the Create a new song box (left out of the first version on purpose).
+- What a bass player sees in gig mode (chords, or root notes brought back).
 - Membership changes (promotions, removals) in the history.
 - Single-use invite codes and cancelling an unused code.
 - Pruning of removed songs and old history (open question).
@@ -144,7 +148,9 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 20 | Launch speed, step 2 (sw.js) | You | After phase 1 the app still waited for GitHub to send the page before drawing anything. Now it waits at most one second. Needs a test on a real phone and a slow connection. | Now | Built |
 | 21 | One pane option, 50/50 split, standing invite code, email choices | You | You found the two panes messy on a desktop; Add song drifted over the details; the invite code expired and Share and Email invite were hidden; Email invite did nothing. Built; needs a look on a real desktop and a real email account. | Now | Built |
 | 22 | Song structure | You | Optional free-text field on each song (for example `V C V C M8 V C Outro`), no dropdowns and no checking. Song details editor only for now: not in the Create a new song box, the song list or gig mode. Needs SQL v10 first. Prepared, awaiting review; nothing tested. | Now | Planned |
-| 23 | (add your next change here) |  |  |  |  |
+| 23 | Remove the GetSongBPM link and the Root notes box | You | Footer link removed (restore it if a GetSongBPM key is ever used). Root notes removed from the details editor, song rows and bass gig mode; column kept in the database for a later return. Prepared, awaiting review; nothing tested. | Now | Planned |
+| 24 | Another key and BPM source for when Song Finder finds nothing | You | Needs the updated `lookup-song` file from `sql/` in the repo and a choice of source (free, no paid plan, terms checked). Edge Function redeploy, no SQL expected. | Next | Planned |
+| 25 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
@@ -160,6 +166,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 - **Emails carry codes, not links.** Links open in Safari rather than the installed iPhone app.
 - **Lyrics stay a link for now.**
 - **Song structure is free text, in the song details only for now.** No sections to pick, no checking of the notation.
+- **Root notes are hidden, not deleted.** The box is gone from the app; the database column and its values stay so it can return.
 - **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
 ## Notes for whoever picks this up

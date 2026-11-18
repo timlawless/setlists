@@ -14,6 +14,9 @@ Last updated: November 2026. This version keeps the earlier reasoning and adds w
   optional text box for the band's own lyrics or cues is wanted later.
 - **Decided:** each song has an optional free-text Song structure (for example `V C V C M8 V C Outro`), shown in the
   song details only for now.
+- **Decided:** the Root notes box is removed from the app for now (song details, song rows, and the bass panel in gig mode). The
+  `songs.root_notes` column stays in the database so existing values are kept and the box can be brought back later. The history
+  still reads old Root notes changes correctly. A bass player's gig mode currently shows the tempo and key tiles and the song notes only.
 - **Decided:** sharing arrived early so it can be tested with bandmates.
 - **Decided:** a user can belong to several bands. Each band has several setlists (one per gig or arrangement).
 - **Decided:** every change to a song is recorded. Who can edit depends on the access level (see Access control).
@@ -48,7 +51,7 @@ An email service (SMTP) sends the sign-in, sign-up and reset emails.
 | Hosting | GitHub Pages, from `app/` | Everything in `app/` is public. Keep SQL files and secrets out of it. |
 | Database and auth | One Supabase project | The browser uses only the publishable key. |
 | Edge Function `lookup-song` | TypeScript on Deno; checks the caller is signed in, then asks GetSongBPM (when its key is set) and falls back to Song Finder | Optional secret `GETSONGBPM_API_KEY`. Verify JWT is off because the function checks sign-in itself. |
-| GetSongBPM | Tempo, key and time signature | Needs an API key on each request and a visible link back. Key requested, not yet received. |
+| GetSongBPM | Tempo, key and time signature | Needs an API key on each request and a visible link back. Key requested, not yet received. The link back was removed from the app footer while no key is in use; put it back before using a GetSongBPM key. |
 | Song Finder (songfinder.dev) | Tempo, key and a second tempo reading, no key needed | Free, new (first release August 2026), rate-limited per address (about one call every one to five seconds), uneven coverage for less-known songs. Needs a descriptive User-Agent. Terms of use not reviewed. |
 | Email service | Any SMTP provider connected in Supabase | The built-in sender only reaches team members and allows about 2 emails an hour. |
 
@@ -73,7 +76,7 @@ Band ──< ChangeLog   (filled by a database trigger)
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
 | band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles; last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
-| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes, notes, song_structure (SQL v10), lyrics_url, youtube_url, catalog_ref, change_note, deleted_at |
+| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (kept in the database, no longer shown in the app), notes, song_structure (SQL v10), lyrics_url, youtube_url, catalog_ref, change_note, deleted_at |
 | song_links | Labelled links on a song (sheet music, tab, lyrics, video, other). This is the earlier `charts` list. |
 | setlists | name, gig_date, venue, notes, deleted_at. Gig date, venue and notes are not shown yet. |
 | setlist_songs | A song's place in a setlist. position is a decimal number, so reordering does not rewrite every row. Override columns exist but are unused. |
@@ -339,7 +342,8 @@ mistakes), and separate checks for the last-used setlist, band deletion, the log
 (run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 90 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, the welcome screen with one-step sign-up, confirm password, the fast start and the invitation page), plus 183 checks in headless Chromium (layout at phone, tablet and laptop sizes, the two-column view, the metronome with a real audio engine and with fake ones that refuse to start, the real Enter key, the launch screens with a slow fake server, the service worker against a server made slow, broken or offline, and the invitation page) at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
-delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) has not been tested yet.
+delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) and the removal of the
+GetSongBPM footer link and the Root notes box have not been tested yet.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
