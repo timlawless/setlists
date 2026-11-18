@@ -280,6 +280,7 @@ Findings from testing on real devices are marked.
 - Wide screens always show one song: the first is chosen when nothing is open (also after a delete or a different setlist), and tapping the open row keeps it open. Under 900 px the details open inline in the row as before and the pane is hidden. Crossing 900 px (rotating a tablet, resizing a window) redraws by itself.
 - The pane is as tall as the window down to the metronome bar (`height: calc(100vh - 76px - var(--barH) - 12px)`, where `--barH` is the bar's height kept up to date by a `ResizeObserver`, so the pane shortens when the bar grows while the click runs) and scrolls inside itself; the card inside fills the panel (`min-height: 100%`).
 - A button in the top bar (`#paneBtn`, wide screens only) switches between two panes and one pane. The choice is saved on the device (`paneMode` in browser storage); in one pane the list is a single column and details open inside the row as on a phone. `dual()` is true only on a wide screen with two panes chosen.
+- The right-hand panel uses a compact form of the song details (`detail(s, true)`) so a lightly filled song fits without scrolling: Song structure is one line, Chords sits beside Notes in two columns, those boxes grow with their text (`textarea.grow`, resized by script), and the rarely used parts (reason for change, lyrics and YouTube links, sheet music and tab links) sit under a **More** section that is closed by default and stays open or closed when the panel is redrawn (`moreOpen`). The Save, Look up, History, Remove and Delete buttons stay visible. Phones and the one-pane view still use the full form (`detail(s)`), whose markup is unchanged.
 - The do-not-redraw-while-typing guard covers the list and the pane. The text size is 17 px on wide screens (16 px elsewhere). Gig mode is unchanged and still single-column.
 
 ## Metronome beat dots and sound rescue
@@ -343,7 +344,7 @@ mistakes), and separate checks for the last-used setlist, band deletion, the log
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) and the removal of the
-GetSongBPM footer link and the Root notes box have not been tested yet.
+GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
