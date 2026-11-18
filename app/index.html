@@ -101,6 +101,10 @@ body.dual #pane{position:sticky;top:76px;height:calc(100vh - 76px - var(--barH,9
 body.dual #pane article.pane{margin:0;min-height:100%}
 body.dual #list article.open{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
 body.dual .chev{display:none}
+body.dual .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}
+textarea.grow{resize:none;overflow:hidden}
+details[data-more]{margin-top:10px;border-top:1px solid var(--line)}
+details[data-more]>summary{cursor:pointer;padding:10px 0;color:var(--mute);font-size:14px}
 #auth.new{border-top:6px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card))}
 #auth.new #authTitle{color:var(--accent)}#authIntro{margin:2px 0 10px;color:var(--mute);font-size:14px}
 html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28px 12px}html.booting #boot{display:block}
@@ -946,9 +950,16 @@ function drawPaneBtn() {
 }
 if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--barH', $('bar').offsetHeight + 'px')).observe($('bar')); // the details panel fills the window down to the metronome bar, however tall the bar is
 $('paneBtn').onclick = () => { const toSingle = paneMode() === 'dual'; try { localStorage.setItem('paneMode', toSingle ? 'single' : 'dual'); } catch {} if (toSingle) openId = null; render(); };
+let moreOpen = false; // whether the More section of the right-hand panel is open; kept when the panel is redrawn
+const grow = (t) => { if (!t.offsetParent) return; t.style.height = 'auto'; t.style.height = (t.scrollHeight + t.offsetHeight - t.clientHeight) + 'px'; }; // boxes in the panel grow with their text
+const growAll = () => $('pane').querySelectorAll('textarea.grow').forEach(grow);
+$('pane').addEventListener('input', (e) => { if (e.target.matches('textarea.grow')) grow(e.target); });
+$('pane').addEventListener('toggle', (e) => { if (e.target.matches('details[data-more]')) moreOpen = e.target.open; }, true);
+window.addEventListener('resize', growAll);
 function drawPane() {
   const it = items.find((x) => x.songs.id === openId);
-  $('pane').innerHTML = dual() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs)}</article>` : '';
+  $('pane').innerHTML = dual() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs, true)}</article>` : '';
+  growAll();
 }
 wideQ.addEventListener?.('change', () => render());
 function roleLine(s) {
@@ -966,24 +977,23 @@ function card(it, i) {
   <button data-a="play" class="primary playbtn">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button>
   ${roleLine(s)}${o && !dual() ? detail(s) : ''}</article>`;
 }
-function detail(s) {
+function detail(s, compact) { // compact is the wide-screen right-hand panel: shorter boxes, Chords beside Notes, rarely used parts under More
   const ro = !canEdit(), dis = ro ? ' disabled' : '', i = items.findIndex((x) => x.songs.id === s.id);
   const f = (k, l, t = 'text') => `<label>${l}<input data-f="${k}" type="${t}" value="${esc(s[k] ?? '')}"${dis}></label>`;
   const lk = (k, l) => `<label>${l}${safe(s[k]) ? `<a href="${esc(s[k])}" target="_blank" rel="noopener">open</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"${dis}></label>`;
-  return `<div>
-  ${ro ? '' : `<div class="btns"><button data-a="up" ${i > 0 ? '' : 'disabled'}>▲ Move up</button><button data-a="down" ${i >= 0 && i < items.length - 1 ? '' : 'disabled'}>▼ Move down</button></div>`}
-  <div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>
-  ${ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="2" placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`}
-  <label>Chords<textarea data-f="chords" rows="4" class="mono"${dis}>${esc(s.chords)}</textarea></label>
-  <label>Notes<textarea data-f="notes" rows="3"${dis}>${esc(s.notes)}</textarea></label>
-  ${ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`}
-  ${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}
-  <div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>
-  <ul data-lookup></ul>
-  ${ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>'}
-  <h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>
-  ${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
-  <div class="btns"><button data-a="addlink">Add link</button></div>`}<ul data-hist></ul></div>`;
+  const top = ro ? '' : `<div class="btns"><button data-a="up" ${i > 0 ? '' : 'disabled'}>▲ Move up</button><button data-a="down" ${i >= 0 && i < items.length - 1 ? '' : 'disabled'}>▼ Move down</button></div>`;
+  const grid = `<div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>`;
+  const struct = ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="${compact ? 1 : 2}"${compact ? ' class="grow"' : ''} placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`;
+  const chords = `<label>Chords<textarea data-f="chords" rows="${compact ? 2 : 4}" class="mono${compact ? ' grow' : ''}"${dis}>${esc(s.chords)}</textarea></label>`;
+  const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 2 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
+  const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
+  const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}`;
+  const buttons = `<div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
+  const note = ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>';
+  const sheet = `<h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
+  <div class="btns"><button data-a="addlink">Add link</button></div>`}`;
+  if (compact) return `<div>${top}${grid}${struct}<div class="two">${chords}${notes}</div>${buttons}<ul data-lookup></ul>${note}<ul data-hist></ul><details data-more${moreOpen ? ' open' : ''}><summary>More: links, sheet music${ro ? '' : ', reason for change'}</summary>${reason}${links}${sheet}</details></div>`;
+  return `<div>${top}${grid}${struct}${chords}${notes}${reason}${links}${buttons}<ul data-lookup></ul>${note}${sheet}<ul data-hist></ul></div>`;
 }
 const CONF = { high: 'confidence: high', medium: 'confidence: medium', check: 'check this tempo' };
 function drawLookup(ul) { // matches already have tempo and key; candidates are recordings to pick from
