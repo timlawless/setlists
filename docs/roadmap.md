@@ -52,6 +52,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Easier sign-up and invites | Join box on the "No bands yet" card; invite links ending `#join-CODE` that add the person after sign-up or sign-in; Copy invite link and Copy code only buttons; email typo check; show password; name required; clearer sign-in message; Enter key signs in and an unknown email is asked for a name; Share invite and Email invite buttons (they open your share sheet or mail app, the app sends no email itself) | none | Built, not yet on the site; tested only with a stand-in database |
 | iPhone install help | An Install card on the first screen (iPhone: Share, Add to Home Screen, with a Copy link button for people stuck in WhatsApp's browser; Android: Install app button); Not now, and a menu button to bring it back; the invite code is shown for retyping in the installed app | none | Built, not yet on the site; tested only in a simulated browser |
 | App at the site root | The app is served from `app/`, so https://timlawless.github.io/setlists/ opens it; the old `/setlist-pwa-v2/` address redirects | none | Built, not yet on the site |
+| Song structure | An optional free-text Song structure box (for example `V C V C M8 V C Outro`) in the song details editor; no list of sections and no checking; viewers see it only when it has text; saved, synced offline and recorded in the history like any other song field; not in the song list, the Create a new song box or gig mode | v10 | Prepared, awaiting review; not yet built into the site; nothing tested |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -74,6 +75,10 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 3. **Install the v7 update** (SQL v7 and the new page) and test reset, sign-in codes and the logo.
 4. **Install the offline editing and flash safety update** (one `index.html`, no SQL) and test it with the connection switched off.
 5. **Install the sign-up, invite and install-help update** (one `index.html`, no SQL) and run checklist sections B5 and B6 before the first band starts.
+6. **Song structure (awaiting review).** SQL v10 and the new `index.html` are prepared but not yet approved or installed.
+   When approved: run SQL v10 in the Supabase SQL Editor first, then upload `app/index.html`, leave `config.js` alone, and
+   test: edit a song's Song structure and save it, reload, see it come back, check the History line, check a viewer sees it
+   only when filled in, and make one offline edit of it and watch it sync.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -107,6 +112,7 @@ Not committed. Move any of these up by saying so.
 - Link cleaning on paste (unwrap Google redirect links, strip tracking), using the `cleanLink` rule from `core/`.
 - Default label for a link (the site name) and adding a typed link on save.
 - A setlist note shown large in gig mode.
+- Song structure in gig mode, and in the Create a new song box (left out of the first version on purpose).
 - Membership changes (promotions, removals) in the history.
 - Single-use invite codes and cancelling an unused code.
 - Pruning of removed songs and old history (open question).
@@ -137,7 +143,8 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 19 | Accept-invitation page (phase 2) | You | A link opens "Join the band" with email and new password and one Accept button. Needs SQL v9 (invite_preview) so the page can show the band name before sign-in. Needs a test on real phones. | Now | Built |
 | 20 | Launch speed, step 2 (sw.js) | You | After phase 1 the app still waited for GitHub to send the page before drawing anything. Now it waits at most one second. Needs a test on a real phone and a slow connection. | Now | Built |
 | 21 | One pane option, 50/50 split, standing invite code, email choices | You | You found the two panes messy on a desktop; Add song drifted over the details; the invite code expired and Share and Email invite were hidden; Email invite did nothing. Built; needs a look on a real desktop and a real email account. | Now | Built |
-| 22 | (add your next change here) |  |  |  |  |
+| 22 | Song structure | You | Optional free-text field on each song (for example `V C V C M8 V C Outro`), no dropdowns and no checking. Song details editor only for now: not in the Create a new song box, the song list or gig mode. Needs SQL v10 first. Prepared, awaiting review; nothing tested. | Now | Planned |
+| 23 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
@@ -152,6 +159,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
   anyone seeing it. If you prefer the earlier rule, it is a small change.
 - **Emails carry codes, not links.** Links open in Safari rather than the installed iPhone app.
 - **Lyrics stay a link for now.**
+- **Song structure is free text, in the song details only for now.** No sections to pick, no checking of the notation.
 - **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
 ## Notes for whoever picks this up
