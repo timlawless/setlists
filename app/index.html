@@ -103,6 +103,15 @@ body.dual #list article.open{border-color:var(--accent);box-shadow:0 0 0 2px var
 body.dual .chev{display:none}
 body.dual .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}
 textarea.grow{resize:none;overflow:hidden}
+@media (min-width:900px) and (pointer:fine){
+body.dual #pane article.pane{padding:10px}
+body.dual #pane label{margin-top:5px;font-size:12px}
+body.dual #pane input,body.dual #pane select,body.dual #pane textarea{padding:5px 8px}
+body.dual #pane button{padding:4px 10px;font-size:14px;border-radius:6px}
+body.dual #pane .btns{gap:6px;margin-top:6px}
+body.dual #pane .btns>*{flex:0 1 auto}
+body.dual #pane .grid{gap:0 8px}
+}
 details[data-more]{margin-top:10px;border-top:1px solid var(--line)}
 details[data-more]>summary{cursor:pointer;padding:10px 0;color:var(--mute);font-size:14px}
 #auth.new{border-top:6px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card))}
@@ -984,8 +993,8 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const top = ro ? '' : `<div class="btns"><button data-a="up" ${i > 0 ? '' : 'disabled'}>▲ Move up</button><button data-a="down" ${i >= 0 && i < items.length - 1 ? '' : 'disabled'}>▼ Move down</button></div>`;
   const grid = `<div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>`;
   const struct = ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="${compact ? 1 : 2}"${compact ? ' class="grow"' : ''} placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`;
-  const chords = `<label>Chords<textarea data-f="chords" rows="${compact ? 2 : 4}" class="mono${compact ? ' grow' : ''}"${dis}>${esc(s.chords)}</textarea></label>`;
-  const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 2 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
+  const chords = `<label>Chords<textarea data-f="chords" rows="${compact ? 1 : 4}" class="mono${compact ? ' grow' : ''}"${dis}>${esc(s.chords)}</textarea></label>`;
+  const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 1 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
   const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}${lk('youtube_url', 'YouTube link')}`;
   const buttons = `<div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
