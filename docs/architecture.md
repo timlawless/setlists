@@ -14,6 +14,9 @@ Last updated: November 2026. This version keeps the earlier reasoning and adds w
   optional text box for the band's own lyrics or cues is wanted later.
 - **Decided:** each song has an optional free-text Song structure (for example `V C V C M8 V C Outro`), shown in the
   song details only for now.
+- **Decided:** the app can suggest a lyrics link for a song (a specific Genius page when one is found, otherwise search links). It only ever
+  suggests links: it never fetches or copies lyrics, never saves a link without the person tapping Save changes, and never replaces an
+  existing link without asking.
 - **Decided:** the Root notes box is removed from the app for now (song details, song rows, and the bass panel in gig mode). The
   `songs.root_notes` column stays in the database so existing values are kept and the box can be brought back later. The history
   still reads old Root notes changes correctly. A bass player's gig mode currently shows the tempo and key tiles and the song notes only.
@@ -51,6 +54,7 @@ An email service (SMTP) sends the sign-in, sign-up and reset emails.
 | Hosting | GitHub Pages, from `app/` | Everything in `app/` is public. Keep SQL files and secrets out of it. |
 | Database and auth | One Supabase project | The browser uses only the publishable key. |
 | Edge Function `lookup-song` | TypeScript on Deno; checks the caller is signed in, then asks GetSongBPM (when its key is set) and falls back to Song Finder | Optional secret `GETSONGBPM_API_KEY`. Verify JWT is off because the function checks sign-in itself. |
+| Edge Function `find-lyrics-link` | TypeScript on Deno; checks the caller is signed in, searches Genius for the song and returns up to three ranked links to Genius song pages (never lyrics text) | Secret `GENIUS_ACCESS_TOKEN` (a Genius client access token). Verify JWT is off because the function checks sign-in itself. Without the secret it answers with a note and the app falls back to its own search links. |
 | GetSongBPM | Tempo, key and time signature | Needs an API key on each request and a visible link back. Key requested, not yet received. The link back was removed from the app footer while no key is in use; put it back before using a GetSongBPM key. |
 | Song Finder (songfinder.dev) | Tempo, key and a second tempo reading, no key needed | Free, new (first release August 2026), rate-limited per address (about one call every one to five seconds), uneven coverage for less-known songs. Needs a descriptive User-Agent. Terms of use not reviewed. |
 | Email service | Any SMTP provider connected in Supabase | The built-in sender only reaches team members and allows about 2 emails an hour. |
@@ -168,6 +172,23 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   field by field at sync time (a same-field conflict is shown for the person to resolve), and recorded in the history,
   where a change reads "structure edited".
 - **Status:** prepared, not yet on the site, not tested. Run SQL v10 first, then upload `index.html`.
+
+## Lyrics link suggestions
+- A **Find lyrics link** button sits under the Lyrics link box in the song details (under **More** in the wide-screen panel; editors only). It also
+  runs by itself after a key and BPM match is used, but only when the Lyrics link box is empty.
+- The app asks the `find-lyrics-link` function for specific pages and always adds three search links of its own (Genius, Ultimate Guitar, Google),
+  built in the browser, so something useful appears even offline or before the function is set up. A search link is labelled as a search page, not a specific song.
+- The function searches Genius (`api.genius.com/search`) with the client access token, keeps only ordinary `https://genius.com/...` song pages, ranks them
+  by exact title and the artist typed, ranks karaoke, tribute and translation pages out, drops pages whose lyrics state is not complete, and returns at
+  most three, each marked exact, close or possible. Answers are kept in memory for ten minutes.
+- The person reviews the result: **Open** shows the page in a new tab, **Use** only fills the Lyrics link box, and nothing is stored until Save changes. If the
+  box already holds a link, Use asks before replacing it (declining keeps the old one). **Remove** empties the box (Save changes then removes the link). The box
+  can always be typed in by hand.
+- Suggested addresses go through the `cleanLink` rule (http and https only, Google redirect links unwrapped, tracking removed), ported from `core/src/links.ts`
+  into the page. It is applied to suggestions only. Applying it to every stored link is still on the housekeeping list.
+- **Lyrics rule:** neither the function nor the page ever downloads a lyrics page or any lyrics text, not even to check a match. Only search metadata is read.
+- **Status:** prepared, not yet on the site. The ranking was tested on sample Genius-style data and the page flow in headless Chromium against stand-ins; the live Genius
+  answer, its terms and any attribution wording have not been checked from here.
 
 ## Layout: phones and tablets
 - Phone: one column. This is what the web app does at every width today.
@@ -331,7 +352,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 
 ## Security notes
 - The publishable key in `config.js` is meant to be public. The secret or service-role key must never be in the app or repository.
-- The GetSongBPM key lives only as an Edge Function secret. Song Finder needs no key.
+- The GetSongBPM key and the Genius access token live only as Edge Function secrets (`GETSONGBPM_API_KEY`, `GENIUS_ACCESS_TOKEN`). Song Finder needs no key.
 - All text from the database is escaped before display, links are accepted only if they start with http or https, and
   the band logo is checked again before it is shown.
 - Emails contain codes, not links, and codes expire. Passwords must be at least 8 characters.
@@ -344,7 +365,7 @@ mistakes), and separate checks for the last-used setlist, band deletion, the log
 repository and never run on a real phone or the real database. None of these tests are in the
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) and the removal of the
-GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet.
+GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet. The lyrics link suggestions were tested with 24 checks in headless Chromium against a stand-in for Supabase and the functions (suggest, review, use, replace prompt, remove, save, error fallback, viewer, phone layout) and the ranking was run on sample data, but the live Genius service, a real phone and a real signed-in session were not used.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.

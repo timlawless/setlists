@@ -53,6 +53,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | iPhone install help | An Install card on the first screen (iPhone: Share, Add to Home Screen, with a Copy link button for people stuck in WhatsApp's browser; Android: Install app button); Not now, and a menu button to bring it back; the invite code is shown for retyping in the installed app | none | Built, not yet on the site; tested only in a simulated browser |
 | App at the site root | The app is served from `app/`, so https://timlawless.github.io/setlists/ opens it; the old `/setlist-pwa-v2/` address redirects | none | Built, not yet on the site |
 | Song structure | An optional free-text Song structure box (for example `V C V C M8 V C Outro`) in the song details editor; no list of sections and no checking; viewers see it only when it has text; saved, synced offline and recorded in the history like any other song field; not in the song list, the Create a new song box or gig mode | v10 | Prepared, awaiting review; not yet built into the site; nothing tested |
+| Lyrics link suggestions | A Find lyrics link button under the Lyrics link box (and an offer after a key and BPM match is used when the box is empty): a ranked Genius song page when one is found, plus search links for Genius, Ultimate Guitar and Google; Open to check, Use to fill the box, a prompt before replacing an existing link, Remove to clear it; nothing is saved until Save changes; links only, never lyrics text | none (new Edge Function `find-lyrics-link`, secret `GENIUS_ACCESS_TOKEN`) | Prepared, awaiting review; tested in headless Chromium against stand-ins, not against live Genius or on a real phone |
 | Compact details panel (desktop) | On a wide screen the right-hand song details panel is shorter so a lightly filled song fits without scrolling: Song structure on one line, Chords beside Notes, boxes that grow with their text, and the reason for change, lyrics and YouTube links and sheet music and tab links under a closed More section. Phones and one-pane view are unchanged | none | Prepared, awaiting review; measured in headless Chromium at three desktop sizes, not on a real desktop |
 | Simplify: no GetSongBPM link, no Root notes | The GetSongBPM link is removed from the page footer (Song Finder stays); the Root notes box is removed from the song details, the "Root:" line on song rows and the bass panel in gig mode; the database column and old values are kept | none | Prepared, awaiting review; nothing tested |
 
@@ -82,7 +83,8 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
    test: edit a song's Song structure and save it, reload, see it come back, check the History line, check a viewer sees it
    only when filled in, and make one offline edit of it and watch it sync.
 7. **Compact right-hand panel (awaiting review).** In `app/index.html` only, no SQL. Test on a real desktop and a laptop: a lightly filled song fits without scrolling, Chords and Notes grow as you type, More opens and stays open after Save, the reason for change still saves from inside More, and phones and one-pane view look as before.
-8. **Another lookup source (waiting).** Song Finder is the only source in use. A second source for songs Song Finder cannot find
+8. **Lyrics link suggestions (awaiting review).** The secret `GENIUS_ACCESS_TOKEN` is already saved in Supabase. When approved: deploy the new Edge Function `find-lyrics-link` from `sql/find-lyrics-link.ts` (Verify JWT off, like `lookup-song`), then upload `app/index.html`. Test on real devices: Find lyrics link for a song you know, check the Genius page is the right song, Use then Save, try it on a song that already has a link (it must ask before replacing), Remove then Save, and try the search links. Read the Genius API terms for any attribution wording.
+9. **Another lookup source (waiting).** Song Finder is the only source in use. A second source for songs Song Finder cannot find
    needs the current `lookup-song` code from `sql/` in the repository, which has not been reviewed yet.
 
 ## Next up, in order
@@ -154,7 +156,8 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 23 | Remove the GetSongBPM link and the Root notes box | You | Footer link removed (restore it if a GetSongBPM key is ever used). Root notes removed from the details editor, song rows and bass gig mode; column kept in the database for a later return. Prepared, awaiting review; nothing tested. | Now | Planned |
 | 24 | Another key and BPM source for when Song Finder finds nothing | You | Needs the updated `lookup-song` file from `sql/` in the repo and a choice of source (free, no paid plan, terms checked). Edge Function redeploy, no SQL expected. | Next | Planned |
 | 25 | Compact right-hand panel on desktop | You | Fit a lightly filled song without scrolling: shorter boxes, Chords beside Notes, rarely used parts under More. Wide-screen panel only. Prepared, awaiting review; needs a look on a real desktop and laptop. | Now | Planned |
-| 26 | (add your next change here) |  |  |  |  |
+| 26 | Automatically find a lyrics link | You | When a song is identified, offer a lyrics link to review: a specific Genius page when found, else search links. Manual replace and remove, never overwrite without asking, links only. New Edge Function and secret, no SQL. Prepared, awaiting review; not tested against live Genius. | Now | Planned |
+| 27 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
@@ -170,6 +173,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 - **Emails carry codes, not links.** Links open in Safari rather than the installed iPhone app.
 - **Lyrics stay a link for now.**
 - **Song structure is free text, in the song details only for now.** No sections to pick, no checking of the notation.
+- **Lyrics links are suggested, never fetched.** The app and the function only handle links; nothing downloads a lyrics page or copies lyrics, and the person always reviews a link before it is saved.
 - **Root notes are hidden, not deleted.** The box is gone from the app; the database column and its values stay so it can return.
 - **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
