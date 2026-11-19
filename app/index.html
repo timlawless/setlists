@@ -987,7 +987,7 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const chords = `<label>Chords<textarea data-f="chords" rows="${compact ? 2 : 4}" class="mono${compact ? ' grow' : ''}"${dis}>${esc(s.chords)}</textarea></label>`;
   const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 2 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
-  const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${lk('youtube_url', 'YouTube link')}`;
+  const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}${lk('youtube_url', 'YouTube link')}`;
   const buttons = `<div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
   const note = ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>';
   const sheet = `<h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
@@ -1003,6 +1003,52 @@ function drawLookup(ul) { // matches already have tempo and key; candidates are 
     ? found.join('') + (more.length ? '<li><small>Pick the recording that matches your song. Adding the artist above narrows the list.</small></li>' + more.join('') : '') + '<li><small>These values come from recordings. Check them against how your band plays the song; your own values always win.</small></li>'
     : '<li><small>No matches. Try fewer words, or fill in the artist.</small></li>';
 }
+// ---- lyrics link suggestions: LINKS only, never lyrics text, and the app never opens a lyrics page itself. Nothing is saved until the person taps Save changes.
+let lyr = { cands: [], searches: [], note: '' };
+const MATCH = { exact: 'matches title and artist', close: 'close match', possible: 'possible match' };
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+const TRACKING = /^(utm_|fbclid$|gclid$|ved$|usg$|opi$|sa$|rct$|esrc$|cad$|uact$)/i;
+function cleanLink(input) { // the cleanLink rule from core/src/links.ts: http and https only, Google redirect links unwrapped, tracking removed
+  const raw = String(input ?? '').trim(); if (!raw) return '';
+  let u; try { u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : 'https://' + raw); } catch { return ''; }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+  if (/^google\.[a-z.]+$/.test(u.hostname.replace(/^www\./, '')) && u.pathname === '/url') { const t = u.searchParams.get('url') ?? u.searchParams.get('q'); if (t) return cleanLink(t); }
+  for (const k of [...u.searchParams.keys()]) if (TRACKING.test(k)) u.searchParams.delete(k);
+  return u.toString();
+}
+const searchLinks = (title, artist) => { // always available, even offline or before the lookup function is set up
+  const q = enc(`${artist} ${title}`.trim());
+  return [
+    { label: 'Search Genius', url: `https://genius.com/search?q=${q}` },
+    { label: 'Search Ultimate Guitar', url: `https://www.ultimate-guitar.com/search.php?search_type=title&value=${q}` },
+    { label: 'Search Google', url: `https://www.google.com/search?q=${enc(`${artist} ${title} lyrics`.trim())}` },
+  ];
+};
+function drawLyr(art) {
+  const ul = art.querySelector('[data-lyr]'); if (!ul) return;
+  const cur = (art.querySelector('[data-f="lyrics_url"]')?.value || '').trim();
+  const row = (label, sub, url, attrs) => `<li><span>${label}<br><small>${sub}</small></span><span><a href="${esc(url)}" target="_blank" rel="noopener">Open</a> <button ${attrs}>Use</button></span></li>`;
+  const found = lyr.cands.map((c, k) => row(`${esc(c.artist)} – ${esc(c.title)}`, `${esc(c.source)} · ${esc(MATCH[c.match] || 'match')} · ${esc(hostOf(c.url))}`, c.url, `data-a="lyruse" data-k="${k}"`));
+  const search = lyr.searches.map((c, k) => row(esc(c.label), 'Search page, not a specific song', c.url, `data-a="lyruse" data-s="${k}"`));
+  const have = cur ? `<li><span>Your current link<br><small>${esc(hostOf(cur) || cur)}</small></span><span>${safe(cur) ? `<a href="${esc(cur)}" target="_blank" rel="noopener">Open</a> ` : ''}<button data-a="lyrclear">Remove</button></span></li>` : '';
+  ul.innerHTML = (lyr.note ? `<li><small>${esc(lyr.note)}</small></li>` : '') + found.join('') + search.join('') + have
+    + '<li><small>Nothing is saved until you tap Save changes. Open a link to check it is the right song. The app only suggests links and never copies lyrics.</small></li>';
+}
+async function findLyrics(art) {
+  const ul = art.querySelector('[data-lyr]'); if (!ul) return;
+  const val = (k) => art.querySelector(`[data-f="${k}"]`).value.trim(), title = val('title'), artist = val('artist');
+  if (!title) return say('Type a title first');
+  const more = art.querySelector('details[data-more]'); if (more && !more.open) more.open = true; // the box lives under More in the wide panel
+  lyr = { cands: [], searches: searchLinks(title, artist), note: '' };
+  ul.innerHTML = '<li><small>Looking for a lyrics link…</small></li>'; ul.scrollIntoView?.({ block: 'nearest' });
+  try {
+    const { data, error } = await sb.functions.invoke('find-lyrics-link', { body: { title, artist } });
+    if (error) throw error;
+    lyr.cands = (data?.candidates || []).map((c) => ({ ...c, url: cleanLink(c.url) })).filter((c) => c.url);
+    lyr.note = data?.note || '';
+  } catch { lyr.note = 'Could not look up a specific page just now (you may be offline, or the lookup is not set up). The search links below still work.'; }
+  drawLyr(art);
+}
 async function loadLinks(sid) {
   const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
   try {
@@ -1013,7 +1059,7 @@ async function loadLinks(sid) {
 $('split').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
-  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink'].includes(a) && !canEdit()) return say('You have view-only access in this band');
+  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
     if (a === 'toggle') { openId = dual() ? sid : openId === sid ? null : sid; render(); }
     else if (a === 'up' || a === 'down') {
@@ -1081,7 +1127,16 @@ $('split').onclick = async (e) => {
       set('bpm', m.tempo); set('musical_key', m.key_of); set('time_signature', m.time_sig); set('version_label', m.artist);
       if (!art.querySelector('[data-f="artist"]').value.trim()) set('artist', m.artist);
       art.dataset.ref = m.id || ''; say('Filled in. Tap Save changes to keep it.');
+      if (!art.querySelector('[data-f="lyrics_url"]').value.trim()) findLyrics(art); // the song is identified: offer a lyrics link, unless one is already there
     }
+    else if (a === 'lyrfind') { await findLyrics(art); }
+    else if (a === 'lyruse') {
+      const pick = b.dataset.s !== undefined ? lyr.searches[+b.dataset.s] : lyr.cands[+b.dataset.k]; if (!pick) return;
+      const box = art.querySelector('[data-f="lyrics_url"]'), cur = box.value.trim();
+      if (cur && cur !== pick.url && !confirm(`Replace your current lyrics link?\n\nCurrent: ${cur}\nNew: ${pick.url}`)) return; // never overwrite without permission
+      box.value = pick.url; drawLyr(art); say('Filled in. Open it to check, then tap Save changes to keep it.');
+    }
+    else if (a === 'lyrclear') { art.querySelector('[data-f="lyrics_url"]').value = ''; drawLyr(art); say('Cleared. Tap Save changes to remove the link.'); }
     else if (a === 'addlink') {
       const g = (k) => art.querySelector(`[data-l="${k}"]`).value.trim(), url = norm(g('url')); if (!url) return say('Add a link first');
       const row = { id: uuid(), band_id: bandId, song_id: sid, kind: g('kind'), label: g('label'), url, added_by: user.id };
