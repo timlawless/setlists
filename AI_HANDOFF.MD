@@ -73,3 +73,46 @@ limited flash, offline reading, offline editing with sync.
 Web address and hosting (GitHub Pages, or a new domain), same-field conflict rule (ask, current, or later change wins),
 Google and Apple sign-in, how to rank "well known" song versions, pruning of removed songs and old history, and how long
 to keep history on the device.
+
+## 8. Phase 1 offline audit (2026-11-19)
+Audited on `codex-dev` at `f37bf91` after fetching `origin/main`, `origin/claude-dev` and `origin/codex-dev`.
+No application code or Supabase configuration was changed, and no device tests were run. The current implementation
+and proposed next steps are documented in the Offline section of `docs/architecture.md` and in the Phase 1 entry in
+`docs/roadmap.md`.
+
+- The web app implements its own cache and queue in `app/index.html`; it does not use `core/src/offlineQueue.ts`.
+  Previously opened band data, setlists, songs, library, links and members are cached in `localStorage`. There is no
+  complete-band preload. The service worker keeps the app shell and CDN library available after a successful online
+  installation, but does not cache Supabase requests.
+- The current offline chip relies on `navigator.onLine`, so it can say online when Supabase cannot be reached; it is
+  hidden when there is no local `user`. Reconnect attempts queue flush but do not guarantee refreshing cached reads
+  when there was no queued change. Some management actions and all server lookups require connectivity.
+- Startup has a provisional fast path: it reads a saved Supabase user id and draws cached data while auth initializes.
+  This is not current server authentication. If initialization yields no session, the app can hide the cache. Offline
+  access after a server revocation cannot be prevented until the device reconnects; do not describe cached access as
+  authenticated or server-confirmed.
+- The queue is persisted in `localStorage`, but storage write errors are swallowed and malformed queue JSON resets
+  in-memory queue state. Conflicts have Use mine / Keep theirs; other failed queue items can be dismissed but have no
+  retry action. Treat durable queue retention as unverified.
+- Main and Claude docs are newer than this Codex handoff. Their current `app/index.html` also has lyrics/progression
+  “Use” actions that save immediately; the Codex branch version audited here still requires the normal Save action.
+  Do not import those unrelated UI changes as part of Phase 1 without separate scope approval.
+
+### Phase 1 scope recorded by the audit
+The audit proposed separate connectivity/authentication state, clear offline and pending-sync status, explanations for
+server-only actions, cached viewing during offline auth initialization, and careful recovery after reconnect. Stage 1 was
+subsequently approved and implemented below. Stage 2 and Stage 3 remain to be approved. Keep Supabase auth configuration,
+SQL, database/Edge Functions, IndexedDB, queue redesign and new authentication mechanisms out of scope unless separately
+authorized. Test on desktop browsers and actual iOS/Android devices before claiming PWA/offline behavior is verified.
+
+### Stage 1 implementation status (2026-11-19)
+Stage 1 is implemented on Codex `codex-dev` (not merged or deployed). `app/offline-state.mjs` contains the pure
+four-state reducer; `app/index.html` records browser events, Supabase fetch outcomes, cache reads/scans and remote
+`getUser()` confirmation. Auth remains unknown when an offline check cannot complete. Locally queued edits and view
+preferences do not sync until the online identity check confirms the same user. The service worker precaches the new
+module and uses cache version 2 so installed app copies can obtain it.
+
+Reducer tests are in `test/offline-state.test.mjs`. The environment's shell has no `node` executable, but the 10-case
+suite passed in the embedded Node test runner and the app module passed a syntax parse. No browser, Supabase project or
+real device was available for integration tests.
+Next task is Stage 2: a clear offline/pending-sync experience and explanatory behavior for actions requiring Supabase.
