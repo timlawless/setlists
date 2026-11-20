@@ -114,6 +114,27 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
        Also: apply `cleanLink` to every stored link, as `AGENTS.md` requires (the web app currently only checks for http
        and https).
 
+## Phase 1 offline reliability
+- [x] **Stage 1 – separate connectivity and access state.** Frontend state model tracks browser connectivity,
+      Supabase reachability, cached-data availability and server-confirmed authentication independently. A restored
+      session is checked with Supabase while online; cached access is retained during offline initialization and never
+      treated as authorization. Queued edits and view preferences wait for confirmed authentication before sync.
+      The 10-case reducer suite passed in the embedded Node test runner, and the app module passed a syntax parse. Real
+      browsers/devices were unavailable in this environment.
+- [ ] **Stage 2 – offline and sync experience.** Show clear offline and pending-sync status with local-data context;
+      explain or disable actions that require Supabase while unavailable. Preserve offline-capable viewing and local
+      metronome, flash and search-link generation. **Frontend; medium.**
+- [ ] **Stage 3 – reconnection and recovery.** Report sync progress and refresh stale data safely when no edit is in
+      progress. Retain the existing queue design; do not discard pending work on refresh or auth failure. **Frontend;
+      medium.**
+- [ ] **Device validation.** Test offline startup, loss/restoration, cached/uncached records, expired session and
+      service-worker behavior on desktop browsers and real iOS/Android devices before marking the phase done.
+      **Testing; medium.**
+
+The earlier “Done (checklist passed)” entry describes the original offline-editing checklist, not complete verification
+of offline reliability. Cached band data may remain visible on an unlocked device after server-side revocation until the
+device reconnects; local cache is not an authorization signal.
+
 ## Later and ideas
 Not committed. Move any of these up by saying so.
 - Band logo on the app icon (the home-screen icon is fixed when the app is installed, so a per-band icon needs extra handling).

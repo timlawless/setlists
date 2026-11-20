@@ -269,10 +269,27 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
 </dialog>
 
 <script type="module">
+import { createOfflineState, reduceOfflineState } from './offline-state.mjs';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let offlineState = createOfflineState(navigator.onLine);
+function recordOfflineState(event) {
+  offlineState = reduceOfflineState(offlineState, event);
+  updateChip();
+}
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: { fetch: async (...args) => {
+    try {
+      const response = await globalThis.fetch(...args);
+      recordOfflineState({ type: 'supabase-response', status: response.status });
+      return response;
+    } catch (error) {
+      recordOfflineState({ type: 'supabase-failure' });
+      throw error;
+    }
+  } }
+});
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const safe = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
@@ -288,9 +305,9 @@ let user = null, bandId = null, setlistId = null, items = [], openId = null, ban
 let matches = [], cands = [], forcePick = null;
 const ck = (k) => `c:${user.id}:${k}`;
 async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
-  if (queue.length) { const mine = localStorage.getItem(k); if (mine) return JSON.parse(mine); } // changes are waiting to sync: show the local copy
-  try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); return v; }
-  catch (e) { const c = localStorage.getItem(k); if (c) { say('Offline: showing the saved copy'); return JSON.parse(c); } throw e; }
+  if (queue.length) { const mine = localStorage.getItem(k); if (mine) { recordOfflineState({ type: 'cache-found' }); return JSON.parse(mine); } } // changes are waiting to sync: show the local copy
+  try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); return v; }
+  catch (e) { const c = localStorage.getItem(k); if (c) { recordOfflineState({ type: 'cache-found' }); say('Offline: showing the saved copy'); return JSON.parse(c); } throw e; }
 }
 
 // ---- offline editing: changes are saved on the device first and sent when there is a connection
@@ -302,10 +319,10 @@ function loadQ() { try { queue = JSON.parse(localStorage.getItem(qk()) || '[]');
 function saveQ() { try { localStorage.setItem(qk(), JSON.stringify(queue)); localStorage.setItem(ik(), JSON.stringify(issues)); } catch {} updateChip(); }
 function enqueue(...ops) {
   const now = new Date().toISOString();
-  ops.forEach((o) => queue.push({ ...o, qid: uuid(), at: now, offline: !navigator.onLine }));
+  ops.forEach((o) => queue.push({ ...o, qid: uuid(), at: now, offline: !offlineState.browserOnline }));
   saveQ(); flush();
 }
-const persist = (key, v) => { try { localStorage.setItem(ck(key), JSON.stringify(v)); } catch {} };
+const persist = (key, v) => { try { localStorage.setItem(ck(key), JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); } catch {} };
 const persistItems = () => persist('items:' + setlistId, items);
 const transient = (e) => !e.code || e.code === 'PGRST301' || /jwt/i.test(e.message || '');
 const verdict = (e, dupOk) => (!e ? 'done' : dupOk && e.code === '23505' ? 'done' : transient(e) ? 'retry' : { fail: e.message });
@@ -348,7 +365,7 @@ async function runOp(op) {
   return { fail: 'Unknown change' };
 }
 async function flush(reload = true) {
-  if (flushing || !user || !queue.length) return;
+  if (flushing || !user || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
   flushing = true; let did = false;
   try {
     while (queue.length) {
@@ -371,11 +388,11 @@ function describe(o) {
 }
 function updateChip() {
   const c = $('syncChip'); if (!c) return;
-  c.hidden = !user || !(queue.length || issues.length || !navigator.onLine);
+  c.hidden = !user || !(queue.length || issues.length || !offlineState.browserOnline);
   c.textContent = issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
 }
 function drawSync() {
-  $('syncState').textContent = !navigator.onLine ? 'You are offline. Changes are saved on this device and will sync when you are back online.' : queue.length ? 'Changes are waiting to sync.' : 'Everything is synced.';
+  $('syncState').textContent = !offlineState.browserOnline ? 'You are offline. Changes are saved on this device and will sync when you are back online.' : queue.length ? 'Changes are waiting to sync.' : 'Everything is synced.';
   $('syncPending').innerHTML = queue.map((o) => `<li><small>${esc(describe(o))}</small></li>`).join('') || '<li><small>Nothing waiting</small></li>';
   $('syncIssues').innerHTML = issues.map((o) => (o.conflicts
     ? `<li><span>${esc(describe(o))}<br>${o.conflicts.map((c) => `<small>${esc(c.field)}: yours “${esc(String(c.mine ?? ''))}”, theirs “${esc(String(c.theirs ?? ''))}”</small>`).join('<br>')}</span><span><button data-mine="${o.qid}">Use mine</button> <button data-theirs="${o.qid}">Keep theirs</button></span></li>`
@@ -390,8 +407,12 @@ $('syncIssues').onclick = (e) => {
   if (d.mine) queue.push({ t: 'song', sid: o.sid, label: o.label, qid: uuid(), at: new Date().toISOString(), offline: false, note: 'Offline edit kept over a conflicting change', base: Object.fromEntries(o.conflicts.map((c) => [c.field, c.theirs])), set: Object.fromEntries(o.conflicts.map((c) => [c.field, c.mine])) });
   saveQ(); drawSync(); if (d.mine) flush(); else reloadSoon();
 };
-window.addEventListener('online', () => { updateChip(); flush(); });
-window.addEventListener('offline', updateChip);
+window.addEventListener('online', () => {
+  recordOfflineState({ type: 'browser-online' });
+  if (user) confirmAuthenticatedAccess(user.id);
+  flush();
+});
+window.addEventListener('offline', () => recordOfflineState({ type: 'browser-offline' }));
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flush(); });
 setInterval(() => { updateChip(); if (queue.length) flush(); }, 20000);
 $('split').addEventListener('focusout', () => setTimeout(() => { if (pendingReload && !$('split').contains(document.activeElement)) reloadSoon(); }, 300));
@@ -831,10 +852,35 @@ $('email').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (authMo
 $('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode !== 'old') { e.preventDefault(); $('pw2').focus(); } });
 $('pw2').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode === 'new') { e.preventDefault(); $('inviteIn').focus(); } }); // in an invitation the name is optional, so Enter here sends the form
 $('signOut').onclick = async () => {
-  if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); $('menu').close(); await sb.auth.signOut(); };
+  if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); recordOfflineState({ type: 'cache-scan', available: false }); $('menu').close(); await sb.auth.signOut(); };
 // ---- fast start: a sign-in saved on this device shows the saved copy at once; the server is checked afterwards
 let provisional = false, quietRefresh = false;
 function savedUser() { try { for (const k of Object.keys(localStorage)) { if (/^sb-.*-auth-token$/.test(k)) { const u = JSON.parse(localStorage.getItem(k))?.user; if (u?.id) return u; } } } catch {} return null; }
+function scanCachedAccess(uid) {
+  let available = false;
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith(`c:${uid}:`)) continue;
+      try { if (JSON.parse(localStorage.getItem(key)) !== null) { available = true; break; } } catch {}
+    }
+  } catch {}
+  recordOfflineState({ type: 'cache-scan', available });
+}
+let authCheckFor = null;
+async function confirmAuthenticatedAccess(uid) {
+  if (!uid || !navigator.onLine || authCheckFor === uid) return;
+  authCheckFor = uid;
+  try {
+    const { data, error } = await sb.auth.getUser();
+    if (user?.id !== uid) return;
+    if (!error && data?.user?.id === uid) {
+      recordOfflineState({ type: 'auth-confirmed' });
+      flush(); flushViews(); syncViews();
+    }
+    else if ((error?.status >= 400 && error?.status < 500) || (!error && data?.user?.id !== uid)) recordOfflineState({ type: 'auth-rejected' });
+  } catch { /* Transport failure leaves authentication unknown; cached access stays separate. */ }
+  finally { if (authCheckFor === uid) authCheckFor = null; }
+}
 function instantFromCache() {
   try {
     const get = (k) => { const v = localStorage.getItem(ck(k)); return v ? JSON.parse(v) : null; };
@@ -853,19 +899,29 @@ function instantFromCache() {
   } catch { return false; }
 }
 setTimeout(() => { // after the page has finished loading its own code
-  if (user) return; const u = savedUser(); if (!u) return;
-  user = u; provisional = true; $('who').textContent = u.email || 'Menu'; loadQ(); instantFromCache();
+  if (user || offlineState.authenticatedAccess === 'unauthenticated') return; const u = savedUser(); if (!u) return;
+  user = u; provisional = true; recordOfflineState({ type: 'auth-unknown' }); scanCachedAccess(u.id); $('who').textContent = u.email || 'Menu'; loadQ(); instantFromCache();
 }, 0);
 
 sb.auth.onAuthStateChange((e, s) => {
-  const wasProvisional = provisional; provisional = false;
-  const before = user?.id || null; user = s?.user || null; $('who').textContent = user ? user.email : 'Menu';
+  const wasProvisional = provisional, incomingUser = s?.user || null;
+  if (wasProvisional && !incomingUser && e === 'INITIAL_SESSION' && !navigator.onLine) {
+    recordOfflineState({ type: 'auth-unknown' });
+    return; // retain only the provisional cache view while offline; this does not establish authentication
+  }
+  provisional = false;
+  const before = user?.id || null; user = incomingUser;
+  if (!user) recordOfflineState({ type: navigator.onLine ? 'auth-rejected' : 'auth-unknown' });
+  else if (user.id !== before || wasProvisional || offlineState.authenticatedAccess !== 'authenticated') recordOfflineState({ type: 'auth-unknown' });
+  $('who').textContent = user ? user.email : 'Menu';
+  if (user) scanCachedAccess(user.id);
   if (user) { try { localStorage.setItem('hadAccount', '1'); } catch {} }
   if (e === 'SIGNED_OUT') setAuthMode('old');
   if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
   if (wasProvisional && !user) say('Your saved sign-in has expired. Please sign in again.');
   if (wasProvisional && user && user.id === before) quietRefresh = true; // the saved copy is already on screen: only redraw if something changed
   if ((user?.id || null) !== before || (e === 'INITIAL_SESSION' && user)) setTimeout(loadBands, 0); // when someone signs in or out, or the saved sign-in is confirmed, not when the same person returns to the tab
+  if (user && navigator.onLine && offlineState.authenticatedAccess !== 'authenticated') confirmAuthenticatedAccess(user.id);
   else if (e === 'PASSWORD_RECOVERY') setTimeout(render, 0);
 });
 
@@ -1092,7 +1148,7 @@ function setView(sid, v) {
   savePending(); if (viewsFlushing) viewsAgain = true; else flushViews();
 }
 async function flushViews() {
-  if (viewsFlushing || !user || !navigator.onLine || !Object.keys(viewsPending).length) return;
+  if (viewsFlushing || !user || !offlineState.browserOnline || offlineState.authenticatedAccess !== 'authenticated' || !Object.keys(viewsPending).length) return;
   viewsFlushing = true;
   try {
     for (const [sid, p] of Object.entries(viewsPending)) {
@@ -1105,6 +1161,7 @@ async function flushViews() {
 }
 async function syncViews() { // after opening a band: send waiting choices, then pick up choices made on your other devices
   const mine = bandId; if (!user || !mine) return;
+  if (offlineState.authenticatedAccess !== 'authenticated') return;
   await flushViews();
   try {
     const r = await sb.from('song_views').select('song_id,view').eq('band_id', mine).eq('user_id', user.id);

@@ -131,10 +131,14 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - Per-change author and time give the "last changed by" information.
 
 ## Offline
-- Reading: bands, setlists, songs, links and members you have opened are saved on the device and shown without signal.
-- Editing (built, not yet on the site): changes to songs, setlist order, links and the song list are shown at once, saved
+- Reading: bands, setlists, songs, links and members you have opened are saved on the device and can be shown without signal.
+- Editing (built in the web app): changes to songs, setlist order, links and the song list are shown at once, saved
   on the device in a queue, and sent oldest first when a connection is available. They are retried when the device comes
   back online, when the app is opened again, and every 20 seconds while changes wait.
+- The implementation is in `app/index.html`; it does not use the separate `core/src/offlineQueue.ts` library. Cached
+  records, the pending queue and failed items are stored in `localStorage`: cached records use `c:<user id>:...`, the
+  queue uses `q:<user id>`, failed items use `qi:<user id>`, and guitar/bass view choices waiting to sync use
+  `vq:<user id>`. Only records fetched or opened on that device are cached; there is no complete-band download.
 - Each new song, setlist entry and link is created with an id made on the device, so sending the same change twice does
   nothing the second time.
 - A song edit sends only the fields that changed, together with the values they had. At sync time the app reads the song
@@ -142,14 +146,48 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   If the song changes while the app is merging, it reads again and retries.
 - A lost connection stops the queue and keeps the order. A change the server refuses (for example, the person is now a
   viewer, or the song was deleted by someone else) does not block the rest: it moves to a "Check sync" list with the
-  reason, and can be dismissed. The earlier design said to stop at the first failure; this is different so one bad
-  change cannot block everything behind it.
+  reason, and can be dismissed. Conflicts can be resolved with Use mine or Keep theirs; other failed items currently have
+  no retry action. The queue and cache writes silently ignore local-storage errors, and malformed queue JSON resets the
+  in-memory queue. These are reliability gaps identified in the Phase 1 offline audit, not guarantees of durable storage.
 - While changes are waiting, the screen shows the device's own copy. When everything has synced it refreshes from the
   server, but not while someone is typing in a song.
 - The header shows "Offline", "N waiting" or "Check sync". Signing out with unsynced changes asks first, and the queue
   stays on the device for that person's next sign-in.
+- Connectivity display uses `navigator.onLine` and its `online`/`offline` events; this reports browser network state, not
+  whether Supabase is reachable. When connectivity returns the app attempts to flush the queue, but does not always
+  refresh cached reads if there was no queued change.
+- The service worker caches the app shell and CDN library, but Supabase Auth, database and Edge Function requests always
+  require a connection. The manifest and service-worker scope are relative to the deployed app path. Cache names include
+  that path, but `localStorage` is shared by production and preview paths on the same origin.
 - Online only for now: creating, renaming, duplicating and deleting setlists, band settings, members and invites.
 - Open: how long to keep history on the device.
+
+### Offline audit findings (2026-11-19)
+- A saved Supabase session is used for a provisional fast start: `savedUser()` reads a user id from local storage and
+  `instantFromCache()` displays cached data before `INITIAL_SESSION` finishes. This is local cached access, not proof
+  that Supabase still considers the session or membership valid. When the browser is offline and auth initialization
+  returns no session, the app now retains that provisional cache view; an online auth rejection can still end the view.
+- New sign-in, history, song lookup, external pages, and direct-only setlist, band, member and invite operations require
+  a connection. Metronome timing, flash, appearance preferences and generation of local search URLs do not call Supabase.
+- `navigator.onLine` can show online while the Supabase service is unavailable. The sync chip is also hidden when there
+  is no local user, even if an offline cache exists.
+- Stage 1 is implemented by `app/offline-state.mjs`, imported by `app/index.html`. Its reducer tracks browser
+  connectivity, Supabase reachability, cached-data availability and authenticated access independently. Browser online
+  events reset server reachability to unknown; offline means unavailable. The Supabase client's fetch wrapper records
+  HTTP responses below 500 as reachable, 5xx and transport failures as unavailable. A stored cache scan and cache reads
+  mark cached access; this state does not establish identity or permission.
+- Authentication remains unknown while a restored local session is being checked. When online, `sb.auth.getUser()` must
+  confirm the current user before state becomes authenticated. Offline auth failure leaves it unknown, and the existing
+  queued song/setlist edits and guitar/bass view sync wait until that confirmation. Authenticated requests continue to
+  be authorized by Supabase and row-level security. An online 4xx identity response marks the session unauthenticated;
+  transport errors and 5xx responses leave it unknown.
+- The state model does not redesign the existing sync indicator. Stage 2 proposals remain: improve the offline and
+  pending-sync display; explain or disable direct-only actions while offline; handle recovery and refresh more clearly.
+  Do not add a new auth system, PIN/biometrics, IndexedDB, a queue redesign or a new data architecture in these stages.
+- A cached user's identity is discovered from that browser's Supabase auth storage so only that user's cache is scanned.
+  If auth storage is cleared, the app does not guess which account's cached band data to expose. Cached data can remain
+  visible on an unlocked device after server-side revocation until reconnection; it is never proof that access remains
+  authorized.
 
 ## Lyrics and links
 - Each song has a lyrics link. A text box for the band's own lyrics or cues is wanted later. The app never supplies or fetches lyrics.
