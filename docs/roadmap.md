@@ -131,6 +131,18 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
       service-worker behavior on desktop browsers and real iOS/Android devices before marking the phase done.
       **Testing; medium.**
 
+## Phase 2 offline data reliability
+- [x] **Phase 2A.1 – IndexedDB queue foundation.** New offline operations are validated and written as individual records
+  in IndexedDB before the app reports them saved locally. The app keeps the existing localStorage queue intact for
+  compatibility; no legacy queue or cached-data migration is included. Tests use Node's built-in runner and an
+  in-memory IndexedDB test double. Browser and real-device testing remains outstanding.
+- [ ] **Phase 2A.2 – Sync recovery and server acknowledgement.** Test retry/restart behavior in browsers, resolve local
+  acknowledgement edge cases, and design server-side idempotency before claiming safe recovery after lost responses.
+- [ ] **Phase 2A.3 – Legacy queue migration and recovery.** Validate and migrate pending localStorage queue/issues only
+  after a separately reviewed migration design; retain originals until verified.
+- [ ] **Phase 2C – Cached application data.** Assess and implement a separate migration for cached bands, setlists,
+  songs and links. This is not part of Phase 2A.1.
+
 The earlier “Done (checklist passed)” entry describes the original offline-editing checklist, not complete verification
 of offline reliability. Cached band data may remain visible on an unlocked device after server-side revocation until the
 device reconnects; local cache is not an authorization signal.

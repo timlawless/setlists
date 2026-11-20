@@ -160,3 +160,22 @@ Reducer tests are in `test/offline-state.test.mjs`. The environment's shell has 
 suite passed in the embedded Node test runner and the app module passed a syntax parse. No browser, Supabase project or
 real device was available for integration tests.
 Next task is Stage 2: a clear offline/pending-sync experience and explanatory behavior for actions requiring Supabase.
+
+## Phase 2A.1 durable queue implementation (2026-11-20)
+Implemented on `codex-dev` after fast-forwarding to `origin/codex-dev` at `1cc76c7`. The application now opens
+`setlists-offline-queue` IndexedDB version 1, with `operations` and `metadata` stores. New operation batches are
+validated and transactionally stored before entering the active sync queue. The existing localStorage queue and issue
+keys are retained and still loaded; this stage does not migrate or delete their existing contents. New operations are
+mirrored there when possible, and IndexedDB acknowledgement/resolution receipts prevent stale mirrored operations from
+replaying after server completion or an explicit issue resolution. Cached app data remains in localStorage.
+
+The UI reports saving, saved locally/waiting to sync, or a local persistence failure with a retry action. Failed
+IndexedDB writes remain visible as unsaved drafts only in the open page; they are not sent, and closing the page loses
+those drafts. Existing conflict detection and the Phase 1 authenticated-access gate remain in use. Service-worker cache
+version 3 precaches the new queue module.
+
+Automated tests use Node's built-in runner and an in-memory IndexedDB test double. Queue and Phase 1 state tests pass;
+the inline app module and queue module pass syntax checks. `core`'s Vitest suite could not run because Vitest is not
+installed, and dependencies were not installed. No browser, Supabase or real-device testing was performed. Follow-up:
+test with browser-native IndexedDB, implement Phase 2A.2 retry/server idempotency work, and design legacy queue migration
+as Phase 2A.3. Cached app-data migration remains Phase 2C.

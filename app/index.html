@@ -126,6 +126,8 @@ details[data-more]>summary{cursor:pointer;padding:10px 0;color:var(--mute);font-
 #auth.new{border-top:6px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card))}
 #auth.new #authTitle{color:var(--accent)}#authIntro{margin:2px 0 10px;color:var(--mute);font-size:14px}
 html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28px 12px}html.booting #boot{display:block}
+.save-notice{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px 10px;padding:6px 10px;border-radius:8px;background:var(--card);color:var(--text);text-align:center}
+.save-notice[hidden]{display:none}.save-notice.failed{border:1px solid #b42318;color:#b42318}
 </style>
 </head>
 <body class="out">
@@ -137,6 +139,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
   <button id="paneBtn" hidden></button>
   <button id="menuBtn" aria-label="Menu">☰</button>
 </header>
+<p id="localSaveNotice" class="save-notice" role="status" aria-live="polite" hidden><span id="localSaveText"></span><button id="retryLocalSave" type="button" hidden>Retry save</button></p>
 <main>
   <section id="install" class="card" hidden>
     <b id="instTitle">Install this app</b>
@@ -270,6 +273,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
 
 <script type="module">
 import { createOfflineState, reduceOfflineState } from './offline-state.mjs';
+import { openOfflineQueue } from './offline-queue.mjs';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -305,9 +309,9 @@ let user = null, bandId = null, setlistId = null, items = [], openId = null, ban
 let matches = [], cands = [], forcePick = null;
 const ck = (k) => `c:${user.id}:${k}`;
 async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
-  if (queue.length) { const mine = localStorage.getItem(k); if (mine) { recordOfflineState({ type: 'cache-found' }); return JSON.parse(mine); } } // changes are waiting to sync: show the local copy
-  try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); return v; }
-  catch (e) { const c = localStorage.getItem(k); if (c) { recordOfflineState({ type: 'cache-found' }); say('Offline: showing the saved copy'); return JSON.parse(c); } throw e; }
+  if (queue.length) { const mine = localStorage.getItem(k); if (mine) { recordOfflineState({ type: 'cache-found' }); return overlayQueueCache(k, JSON.parse(mine)); } } // changes are waiting to sync: show the local copy
+  try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); return queue.length ? overlayQueueCache(k, v) : v; }
+  catch (e) { const c = localStorage.getItem(k); if (c) { recordOfflineState({ type: 'cache-found' }); say('Offline: showing the saved copy'); return overlayQueueCache(k, JSON.parse(c)); } throw e; }
 }
 
 // ---- offline editing: changes are saved on the device first and sent when there is a connection
@@ -315,15 +319,165 @@ let queue = [], issues = [], flushing = false, pendingReload = false;
 const qk = () => `q:${user.id}`, ik = () => `qi:${user.id}`;
 const uuid = () => crypto.randomUUID();
 const same = (a, b) => String(a ?? '') === String(b ?? '');
-function loadQ() { try { queue = JSON.parse(localStorage.getItem(qk()) || '[]'); issues = JSON.parse(localStorage.getItem(ik()) || '[]'); } catch { queue = []; issues = []; } updateChip(); }
+let queueLoadUser = null, queueLoadPromise = null, offlineQueuePromise = null, enqueueChain = Promise.resolve();
+let durableIds = new Set(), storedOperationIds = new Set(), unsavedByUser = new Map(), localSaveCount = 0, savedNoticeUntil = 0, savedNoticeTimer = null;
+const unsavedForUser = (uid = user?.id) => uid ? (unsavedByUser.get(uid) || []) : [];
+const queueStore = () => (offlineQueuePromise ||= openOfflineQueue().catch((error) => { offlineQueuePromise = null; throw error; }));
+function showLocalSave(state, message = '') {
+  const notice = $('localSaveNotice'); if (!notice) return;
+  clearTimeout(savedNoticeTimer);
+  if (state === 'saved') savedNoticeUntil = Date.now() + 1600;
+  if (!state && Date.now() < savedNoticeUntil) {
+    savedNoticeTimer = setTimeout(() => showLocalSave(''), savedNoticeUntil - Date.now());
+    return;
+  }
+  if (state === 'failed' || state === 'saving') savedNoticeUntil = 0;
+  const text = $('localSaveText'), retry = $('retryLocalSave');
+  notice.hidden = !state; notice.classList.toggle('failed', state === 'failed');
+  text.textContent = state === 'saving' ? 'Saving on this device…' : state === 'saved' ? 'Saved on this device · waiting to sync' : message;
+  retry.hidden = state !== 'failed';
+}
+async function loadQ() {
+  if (!user) return;
+  const uid = user.id;
+  if (queueLoadUser === uid && queueLoadPromise) return queueLoadPromise;
+  queueLoadUser = uid; queue = []; issues = []; durableIds = new Set(); storedOperationIds = new Set();
+  queueLoadPromise = (async () => {
+    try { queue = JSON.parse(localStorage.getItem(qk()) || '[]'); issues = JSON.parse(localStorage.getItem(ik()) || '[]'); }
+    catch { queue = []; issues = []; }
+    try {
+      const store = await queueStore();
+      const terminal = [];
+      for (const op of [...queue, ...issues]) {
+        if (op?.qid && (await store.isAcknowledged(uid, op.qid) || await store.isResolved(uid, op.qid))) terminal.push(op.qid);
+      }
+      if (terminal.length) { const done = new Set(terminal); queue = queue.filter((op) => !done.has(op.qid)); issues = issues.filter((op) => !done.has(op.qid)); }
+      const stored = await store.list(uid);
+      for (const row of stored) {
+        storedOperationIds.add(row.operationId);
+        const op = row.operation;
+        if (row.status === 'blocked') {
+          queue = queue.filter((queued) => queued.qid !== row.operationId);
+          if (!issues.some((issue) => issue.qid === row.operationId)) issues.push({ ...op, ...(row.error || { fail: 'Needs attention' }) });
+          continue;
+        }
+        if (row.status === 'inFlight') {
+          try { await (await queueStore()).setStatus(uid, row.operationId, 'pending'); } catch {}
+        }
+        durableIds.add(row.operationId);
+        if (!queue.some((queued) => queued.qid === row.operationId)) queue.push(op);
+      }
+    } catch { /* Existing localStorage queue remains usable; new edits will report IDB failure. */ }
+    updateChip();
+    if (queue.length) showLocalSave('saved');
+  })();
+  return queueLoadPromise;
+}
 function saveQ() { try { localStorage.setItem(qk(), JSON.stringify(queue)); localStorage.setItem(ik(), JSON.stringify(issues)); } catch {} updateChip(); }
 function enqueue(...ops) {
   const now = new Date().toISOString();
-  ops.forEach((o) => queue.push({ ...o, qid: uuid(), at: now, offline: !offlineState.browserOnline }));
-  saveQ(); flush();
+  const ownerId = user?.id;
+  const prepared = ops.map((o) => ({ ...o, qid: o.qid || uuid(), at: now, offline: !offlineState.browserOnline }));
+  if (!prepared.length) return Promise.resolve(true);
+  const save = async () => {
+    const uid = ownerId;
+    if (!uid) return false;
+    const pending = [...unsavedForUser(uid).flat(), ...prepared]; unsavedByUser.delete(uid);
+    localSaveCount++; showLocalSave('saving');
+    try {
+      await (await queueStore()).enqueueMany(pending, uid);
+      if (user?.id !== uid) { localSaveCount--; return true; } // leave the durable records for that account's next load
+      pending.forEach((op) => { if (!durableIds.has(op.qid) && !queue.some((queued) => queued.qid === op.qid)) queue.push(op); durableIds.add(op.qid); });
+      persistQueuedViews(pending);
+      saveQ();
+      localSaveCount--;
+      if (!localSaveCount && !unsavedForUser(uid).length) showLocalSave('saved');
+      void flush();
+      return true;
+    } catch (error) {
+      localSaveCount--;
+      unsavedByUser.set(uid, [pending]);
+      if (user?.id === uid) showLocalSave('failed', `Couldn't save on this device. This change is visible only while this page stays open. Retry before closing or refreshing. ${error?.message || ''}`);
+      return false;
+    }
+  };
+  const result = enqueueChain.then(save, save);
+  enqueueChain = result.catch(() => false);
+  return result;
 }
+function retryLocalSaves() {
+  const ownerId = user?.id;
+  const retry = async () => {
+    const uid = ownerId, batches = unsavedForUser(uid);
+    if (!uid || !batches.length) return;
+    const pending = batches.flat(); unsavedByUser.delete(uid); localSaveCount++; showLocalSave('saving');
+    try {
+      await (await queueStore()).enqueueMany(pending, uid);
+      if (user?.id !== uid) { localSaveCount--; return; }
+      pending.forEach((op) => { if (!durableIds.has(op.qid) && !queue.some((queued) => queued.qid === op.qid)) queue.push(op); durableIds.add(op.qid); });
+      persistQueuedViews(pending);
+    } catch { unsavedByUser.set(uid, [pending]); }
+    localSaveCount--;
+    if (unsavedForUser(uid).length) showLocalSave('failed', `Couldn't save on this device. This change is visible only while this page stays open. Retry before closing or refreshing.`);
+    else { saveQ(); showLocalSave('saved'); void flush(); }
+  };
+  const result = enqueueChain.then(retry, retry);
+  enqueueChain = result.catch(() => false);
+  return result;
+}
+$('retryLocalSave').onclick = retryLocalSaves;
 const persist = (key, v) => { try { localStorage.setItem(ck(key), JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); } catch {} };
-const persistItems = () => persist('items:' + setlistId, items);
+function overlayQueueCache(key, value) {
+  if (!user || !Array.isArray(value)) return value;
+  const prefix = `c:${user.id}:`, name = key.startsWith(prefix) ? key.slice(prefix.length) : key;
+  const rows = value.map((row) => ({ ...row }));
+  if (name.startsWith('items:')) {
+    const songs = new Map();
+    try { (JSON.parse(localStorage.getItem(ck('lib:' + bandId)) || '[]')).forEach((song) => songs.set(song.id, song)); } catch {}
+    rows.forEach((entry) => { if (entry.songs) songs.set(entry.songs.id, entry.songs); });
+    for (const op of queue) {
+      if (op.t === 'songNew') songs.set(op.row.id, { version_label: '', time_signature: '4/4', chords: '', root_notes: '', notes: '', lyrics_url: null, youtube_url: null, ...op.row });
+      if (op.t === 'song') {
+        const song = songs.get(op.sid); if (song) Object.assign(song, op.set);
+        rows.forEach((entry) => { if (entry.songs?.id === op.sid) Object.assign(entry.songs, op.set); });
+      }
+      if (op.t === 'songDel') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].songs?.id === op.sid) rows.splice(i, 1);
+      if (op.t === 'slRemove') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].id === op.id) rows.splice(i, 1);
+      if (op.t === 'slPos') { const entry = rows.find((row) => row.id === op.id); if (entry) entry.position = op.position; }
+      if (op.t === 'slAdd' && op.row.setlist_id === name.slice('items:'.length) && !rows.some((row) => row.id === op.row.id)) {
+        const song = songs.get(op.row.song_id); if (song) rows.push({ id: op.row.id, position: op.row.position, songs: song });
+      }
+    }
+    return rows.sort((a, b) => a.position - b.position);
+  }
+  if (name.startsWith('lib:')) {
+    for (const op of queue) {
+      if (op.t === 'songNew' && op.row.band_id === name.slice('lib:'.length) && !rows.some((song) => song.id === op.row.id)) rows.push({ ...op.row });
+      if (op.t === 'song') { const song = rows.find((row) => row.id === op.sid); if (song) Object.assign(song, op.set); }
+      if (op.t === 'songDel') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].id === op.sid) rows.splice(i, 1);
+    }
+    return rows.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  }
+  if (name.startsWith('links:')) {
+    const sid = name.slice('links:'.length);
+    for (const op of queue) {
+      if (op.t === 'linkAdd' && op.row.song_id === sid && !rows.some((link) => link.id === op.row.id)) rows.push({ id: op.row.id, kind: op.row.kind, label: op.row.label, url: op.row.url });
+      if (op.t === 'linkDel') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].id === op.id) rows.splice(i, 1);
+    }
+  }
+  return rows;
+}
+function persistQueuedViews(operations) {
+  let keys = [];
+  try { keys = Object.keys(localStorage).filter((key) => key.startsWith(`c:${user.id}:`)); } catch { return; }
+  for (const key of keys) {
+    if (!/:(items:|lib:|links:)/.test(key)) continue;
+    try { const value = JSON.parse(localStorage.getItem(key)); persist(key.slice(`c:${user.id}:`.length), overlayQueueCache(key, value)); } catch {}
+  }
+  for (const op of operations) if (op.t === 'linkAdd') {
+    try { if (!localStorage.getItem(ck('links:' + op.row.song_id))) persist('links:' + op.row.song_id, overlayQueueCache(ck('links:' + op.row.song_id), [])); } catch {}
+  }
+}
 const transient = (e) => !e.code || e.code === 'PGRST301' || /jwt/i.test(e.message || '');
 const verdict = (e, dupOk) => (!e ? 'done' : dupOk && e.code === '23505' ? 'done' : transient(e) ? 'retry' : { fail: e.message });
 async function upd(table, vals, col, val) {
@@ -369,13 +523,30 @@ async function flush(reload = true) {
   flushing = true; let did = false;
   try {
     while (queue.length) {
-      let r; try { r = await runOp(queue[0]); } catch { r = 'retry'; }
-      if (r === 'retry') break; // no connection: try again later
-      const op = queue.shift(); did = true;
+      const op = queue[0], durable = durableIds.has(op.qid);
+      if (durable) {
+        try { await (await queueStore()).setStatus(user.id, op.qid, 'inFlight'); }
+        catch { break; } // never send a durable item if its in-flight state could not be recorded
+      }
+      let r; try { r = await runOp(op); } catch { r = 'retry'; }
+      if (r === 'retry') {
+        if (durable) { try { await (await queueStore()).setStatus(user.id, op.qid, 'pending'); } catch {} }
+        break; // no connection: try again later
+      }
+      if (durable) {
+        try {
+          if (r === 'done') await (await queueStore()).acknowledge(user.id, op.qid);
+          else await (await queueStore()).setStatus(user.id, op.qid, 'blocked', r);
+        } catch { break; } // keep the operation visible until its local acknowledgement state is committed
+      }
+      queue.shift(); did = true;
       if (r !== 'done') issues.push({ ...op, ...r });
+      durableIds.delete(op.qid);
+      if (r === 'done') storedOperationIds.delete(op.qid);
       saveQ();
     }
   } finally { flushing = false; saveQ(); }
+  if (!queue.length && !unsavedForUser().length && !localSaveCount) showLocalSave('');
   if (did && !queue.length && reload) reloadSoon();
 }
 function reloadSoon() { // refresh from the server, but not while someone is typing in a song
@@ -401,11 +572,18 @@ function drawSync() {
 $('syncChip').onclick = () => { drawSync(); $('syncDlg').showModal(); };
 $('syncClose').onclick = () => $('syncDlg').close();
 $('syncNow').onclick = async () => { await flush(); drawSync(); };
-$('syncIssues').onclick = (e) => {
+$('syncIssues').onclick = async (e) => {
   const d = e.target.dataset, o = issues.find((x) => x.qid === (d.mine || d.theirs || d.dis)); if (!o) return;
-  issues = issues.filter((x) => x !== o);
-  if (d.mine) queue.push({ t: 'song', sid: o.sid, label: o.label, qid: uuid(), at: new Date().toISOString(), offline: false, note: 'Offline edit kept over a conflicting change', base: Object.fromEntries(o.conflicts.map((c) => [c.field, c.theirs])), set: Object.fromEntries(o.conflicts.map((c) => [c.field, c.mine])) });
-  saveQ(); drawSync(); if (d.mine) flush(); else reloadSoon();
+  if (d.mine) {
+    const saved = await enqueue({ t: 'song', sid: o.sid, label: o.label, qid: uuid(), at: new Date().toISOString(), offline: false, note: 'Offline edit kept over a conflicting change', base: Object.fromEntries(o.conflicts.map((c) => [c.field, c.theirs])), set: Object.fromEntries(o.conflicts.map((c) => [c.field, c.mine])) });
+    if (!saved) return;
+  }
+  if (storedOperationIds.has(o.qid)) {
+    try { await (await queueStore()).remove(user.id, o.qid); storedOperationIds.delete(o.qid); }
+    catch (error) { showLocalSave('failed', `Couldn't update this sync issue safely. ${error?.message || ''}`); return; }
+  }
+  issues = issues.filter((x) => x !== o); saveQ(); drawSync();
+  if (d.mine) void flush(); else reloadSoon();
 };
 window.addEventListener('online', () => {
   recordOfflineState({ type: 'browser-online' });
@@ -852,7 +1030,9 @@ $('email').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (authMo
 $('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode !== 'old') { e.preventDefault(); $('pw2').focus(); } });
 $('pw2').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode === 'new') { e.preventDefault(); $('inviteIn').focus(); } }); // in an invitation the name is optional, so Enter here sends the form
 $('signOut').onclick = async () => {
-  if ((queue.length || issues.length) && !confirm('Some changes have not synced yet. They stay on this device for your next sign-in, but sign out anyway?')) return; Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); recordOfflineState({ type: 'cache-scan', available: false }); $('menu').close(); await sb.auth.signOut(); };
+  const unsaved = unsavedForUser();
+  if ((queue.length || issues.length || unsaved.length) && !confirm(`Some changes have not synced yet. Persisted changes stay on this device for your next sign-in. ${unsaved.length ? 'The change marked “Couldn’t save on this device” is not safely stored and will be lost if you sign out.' : ''} Sign out anyway?`)) return;
+  if (user?.id) unsavedByUser.delete(user.id); showLocalSave(''); Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); recordOfflineState({ type: 'cache-scan', available: false }); $('menu').close(); await sb.auth.signOut(); };
 // ---- fast start: a sign-in saved on this device shows the saved copy at once; the server is checked afterwards
 let provisional = false, quietRefresh = false;
 function savedUser() { try { for (const k of Object.keys(localStorage)) { if (/^sb-.*-auth-token$/.test(k)) { const u = JSON.parse(localStorage.getItem(k))?.user; if (u?.id) return u; } } } catch {} return null; }
@@ -883,7 +1063,7 @@ async function confirmAuthenticatedAccess(uid) {
 }
 function instantFromCache() {
   try {
-    const get = (k) => { const v = localStorage.getItem(ck(k)); return v ? JSON.parse(v) : null; };
+    const get = (k) => { const v = localStorage.getItem(ck(k)); return v ? overlayQueueCache(ck(k), JSON.parse(v)) : null; };
     const rows = get('bands'); if (!rows?.length) return false;
     bandRows = rows; $('band').replaceChildren(...rows.map((r) => new Option(r.bands.name, r.bands.id)));
     const last = localStorage.getItem('band'); if (last && rows.some((r) => r.bands.id === last)) $('band').value = last;
@@ -900,7 +1080,7 @@ function instantFromCache() {
 }
 setTimeout(() => { // after the page has finished loading its own code
   if (user || offlineState.authenticatedAccess === 'unauthenticated') return; const u = savedUser(); if (!u) return;
-  user = u; provisional = true; recordOfflineState({ type: 'auth-unknown' }); scanCachedAccess(u.id); $('who').textContent = u.email || 'Menu'; loadQ(); instantFromCache();
+  user = u; provisional = true; recordOfflineState({ type: 'auth-unknown' }); scanCachedAccess(u.id); $('who').textContent = u.email || 'Menu'; void loadQ().then(() => { if (provisional) instantFromCache(); }); instantFromCache();
 }, 0);
 
 sb.auth.onAuthStateChange((e, s) => {
@@ -911,6 +1091,8 @@ sb.auth.onAuthStateChange((e, s) => {
   }
   provisional = false;
   const before = user?.id || null; user = incomingUser;
+  if (user?.id && unsavedForUser().length) showLocalSave('failed', `Couldn't save on this device. An earlier change for this account is still only in this page. Retry before closing or refreshing.`);
+  else if (before !== (user?.id || null)) showLocalSave('');
   if (!user) recordOfflineState({ type: navigator.onLine ? 'auth-rejected' : 'auth-unknown' });
   else if (user.id !== before || wasProvisional || offlineState.authenticatedAccess !== 'authenticated') recordOfflineState({ type: 'auth-unknown' });
   $('who').textContent = user ? user.email : 'Menu';
@@ -928,7 +1110,7 @@ sb.auth.onAuthStateChange((e, s) => {
 // ---- bands and setlists
 async function loadBands() {
   if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
-  await redeemPending(); loadQ(); await flush(false);
+  await redeemPending(); await loadQ(); await flush(false);
   try {
     bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme,logo,slug)').eq('user_id', user.id)));
     $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
@@ -1223,7 +1405,7 @@ $('split').onclick = async (e) => {
     else if (a === 'up' || a === 'down') {
       const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
       x.position = py; y.position = px; items.sort((m, n) => m.position - n.position);
-      persistItems(); enqueue({ t: 'slPos', id: x.id, position: py, label: x.songs.title }, { t: 'slPos', id: y.id, position: px, label: y.songs.title }); render();
+      enqueue({ t: 'slPos', id: x.id, position: py, label: x.songs.title }, { t: 'slPos', id: y.id, position: px, label: y.songs.title }); render();
     }
     else if (a === 'play') { await toggleClick(items[i].songs); }
     else if (a === 'save') {
@@ -1234,16 +1416,14 @@ $('split').onclick = async (e) => {
       Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
       if (!Object.keys(set).length) return say('Nothing has changed');
       Object.assign(song, set); const l = libFor === bandId ? lib.find((x) => x.id === sid) : null; if (l) Object.assign(l, set);
-      persistItems(); persistLib();
-      enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null });
-      say(navigator.onLine ? 'Saved' : 'Saved on this device. It will sync when you are back online.'); render();
+      enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null }); render();
     }
-    else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { const x = items[i]; items.splice(i, 1); openId = null; persistItems(); enqueue({ t: 'slRemove', id: x.id, label: x.songs.title }); render(); } }
+    else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { const x = items[i]; items.splice(i, 1); openId = null; enqueue({ t: 'slRemove', id: x.id, label: x.songs.title }); render(); } }
     else if (a === 'delsong') {
       const t = items[i].songs.title;
       if (!confirm(`Delete “${t}” from this band? It will disappear from every setlist.`)) return;
       items = items.filter((x) => x.songs.id !== sid); if (libFor === bandId) lib = lib.filter((x) => x.id !== sid);
-      persistItems(); persistLib(); enqueue({ t: 'songDel', sid, label: t }); openId = null; say('Song deleted'); render();
+      enqueue({ t: 'songDel', sid, label: t }); openId = null; render();
     }
     else if (a === 'hist') {
       const [rows, mem] = await Promise.all([
@@ -1298,29 +1478,26 @@ $('split').onclick = async (e) => {
     else if (a === 'addlink') {
       const g = (k) => art.querySelector(`[data-l="${k}"]`).value.trim(), url = norm(g('url')); if (!url) return say('Add a link first');
       const row = { id: uuid(), band_id: bandId, song_id: sid, kind: g('kind'), label: g('label'), url, added_by: user.id };
-      const lk = ck('links:' + sid), have = localStorage.getItem(lk);
-      if (have) persist('links:' + sid, [...JSON.parse(have), { id: row.id, kind: row.kind, label: row.label, url }]);
-      enqueue({ t: 'linkAdd', row, label: items[i].songs.title });
-      art.querySelector('[data-l="url"]').value = ''; art.querySelector('[data-l="label"]').value = ''; loadLinks(sid);
+      const saved = await enqueue({ t: 'linkAdd', row, label: items[i].songs.title });
+      if (saved) { art.querySelector('[data-l="url"]').value = ''; art.querySelector('[data-l="label"]').value = ''; }
+      loadLinks(sid);
     }
     else if (a === 'dellink') {
-      const lk = ck('links:' + sid), have = localStorage.getItem(lk);
-      if (have) persist('links:' + sid, JSON.parse(have).filter((x) => x.id !== b.dataset.lid));
-      enqueue({ t: 'linkDel', id: b.dataset.lid, label: items[i].songs.title }); loadLinks(sid);
+      await enqueue({ t: 'linkDel', id: b.dataset.lid, label: items[i].songs.title }); loadLinks(sid);
     }
   } catch { /* the error toast has already been shown */ }
 };
 
 // ---- song library: search, add to the setlist, delete
 let lib = [], libFor = null;
-const persistLib = () => { if (libFor === bandId) persist('lib:' + bandId, lib); };
-function addToSetlist(song, keepOpen) {
+function addToSetlist(song, keepOpen, queueOperation = true) {
   const position = (items.length ? Math.max(...items.map((x) => x.position)) : 0) + 1;
   const row = { id: uuid(), band_id: bandId, setlist_id: setlistId, song_id: song.id, position };
   items.push({ id: row.id, position, songs: song }); items.sort((m, n) => m.position - n.position);
-  persistItems(); enqueue({ t: 'slAdd', row, label: song.title });
+  if (queueOperation) enqueue({ t: 'slAdd', row, label: song.title });
   if (!keepOpen) $('addDlg').close();
   render(); if (keepOpen) drawLib();
+  return row;
 }
 function drawLib() {
   const q = $('songSearch').value.trim().toLowerCase(), used = new Set(items.map((x) => x.songs.id));
@@ -1344,16 +1521,20 @@ $('libList').onclick = (e) => {
     const x = lib.find((y) => y.id === del);
     if (!x || !confirm(`Delete “${x.title}” from this band? It will disappear from every setlist.`)) return;
     lib = lib.filter((y) => y.id !== del); items = items.filter((y) => y.songs.id !== del); if (openId === del) openId = null;
-    persistLib(); persistItems(); enqueue({ t: 'songDel', sid: del, label: x.title }); say('Song deleted'); drawLib(); render();
+    enqueue({ t: 'songDel', sid: del, label: x.title }); drawLib(); render();
   }
 };
 $('addNew').onclick = () => {
   const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
   if (!setlistId) return say('Create or pick a setlist first');
   const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
-  enqueue({ t: 'songNew', label: title, row: { id: song.id, band_id: bandId, title, artist: song.artist, bpm: song.bpm, musical_key: song.musical_key, created_by: user.id } });
-  if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); persistLib(); }
-  ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = '')); addToSetlist(song);
+  if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); }
+  const entry = addToSetlist(song, false, false);
+  enqueue(
+    { t: 'songNew', label: title, row: { id: song.id, band_id: bandId, title, artist: song.artist, bpm: song.bpm, musical_key: song.musical_key, created_by: user.id } },
+    { t: 'slAdd', row: entry, label: title }
+  );
+  ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = ''));
 };
 
 // ---- gig mode

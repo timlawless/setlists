@@ -36,7 +36,7 @@ Band member's phone, tablet or laptop (browser, or installed from the home scree
   index.html      the whole interface and its logic, in one file
   config.js       Supabase project URL and publishable key
   sw.js           service worker: keeps an offline copy of the app
-  localStorage    saved copies of bands, setlists, songs and links; the queue of changes waiting to sync
+  localStorage    cached app data and legacy queue compatibility; IndexedDB holds new durable operations
         |  HTTPS
         v
 Supabase project
@@ -136,8 +136,8 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   on the device in a queue, and sent oldest first when a connection is available. They are retried when the device comes
   back online, when the app is opened again, and every 20 seconds while changes wait.
 - The implementation is in `app/index.html`; it does not use the separate `core/src/offlineQueue.ts` library. Cached
-  records, the pending queue and failed items are stored in `localStorage`: cached records use `c:<user id>:...`, the
-  queue uses `q:<user id>`, failed items use `qi:<user id>`, and guitar/bass view choices waiting to sync use
+  records use `c:<user id>:...` in `localStorage`; legacy queued operations and issues remain at `q:<user id>` and
+  `qi:<user id>`; new durable operations are in IndexedDB. Guitar/bass view choices waiting to sync use
   `vq:<user id>`. Only records fetched or opened on that device are cached; there is no complete-band download.
 - Each new song, setlist entry and link is created with an id made on the device, so sending the same change twice does
   nothing the second time.
@@ -147,8 +147,9 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - A lost connection stops the queue and keeps the order. A change the server refuses (for example, the person is now a
   viewer, or the song was deleted by someone else) does not block the rest: it moves to a "Check sync" list with the
   reason, and can be dismissed. Conflicts can be resolved with Use mine or Keep theirs; other failed items currently have
-  no retry action. The queue and cache writes silently ignore local-storage errors, and malformed queue JSON resets the
-  in-memory queue. These are reliability gaps identified in the Phase 1 offline audit, not guarantees of durable storage.
+  no retry action. Legacy queue and cache writes still silently ignore local-storage errors, and malformed legacy queue
+  JSON resets in-memory queue state. New operations are committed to IndexedDB before they enter the live queue; cached
+  view writes remain best-effort. These remaining gaps are not guarantees of durable storage for legacy records.
 - While changes are waiting, the screen shows the device's own copy. When everything has synced it refreshes from the
   server, but not while someone is typing in a song.
 - The header shows "Offline", "N waiting" or "Check sync". Signing out with unsynced changes asks first, and the queue
@@ -188,6 +189,38 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   If auth storage is cleared, the app does not guess which account's cached band data to expose. Cached data can remain
   visible on an unlocked device after server-side revocation until reconnection; it is never proof that access remains
   authorized.
+
+### Durable offline operation queue (Phase 2A.1, 2026-11-20)
+- The web app now opens IndexedDB database `setlists-offline-queue`, version 1. It creates an `operations` store keyed by
+  `operationId`, with unique per-user sequence and per-user/status/sequence indexes, and a `metadata` store for the
+  monotonic sequence counter plus acknowledgement and resolution receipts. The queue module is `app/offline-queue.mjs`; `app/sw.js`
+  precaches it and uses cache version 3.
+- Each operation record associates the existing operation payload and `qid` with a user ID, FIFO sequence, status,
+  attempt count, creation time and last error. Current operation formats remain in use for song edits, new songs,
+  setlist entry creation, positions, removals, song deletion and link additions/deletions. Song edits retain their
+  changed fields and base values; device-generated IDs and setlist relationships are preserved.
+- New operations enter the live sync queue only after an IndexedDB transaction commits. Batch enqueue allocates sequence
+  values and writes all records in one transaction. A failed open, request or transaction rejects the enqueue. The UI
+  displays “Saving on this device…”, then “Saved on this device · waiting to sync” only after commit, or “Couldn't save
+  on this device” with Retry. Failed writes remain as clearly unsaved drafts in the current page only; they are not
+  sent or represented as durable, and will be lost if the page closes before a successful retry.
+- Existing `q:<user id>` and `qi:<user id>` localStorage data is not migrated or deleted. Existing queue entries remain
+  readable and sync through the existing path. New IndexedDB-backed operations are also mirrored to the legacy queue
+  when possible; on startup, the two sources are combined by operation ID. IndexedDB acknowledgement receipts suppress
+  a stale mirrored localStorage operation after a successful server response. Cached app data remains in localStorage;
+  cache migration is Phase 2C.
+- IndexedDB operations transition through `pending`, `inFlight` and `blocked`. Startup returns interrupted `inFlight`
+  operations to `pending`; transient sync failures do likewise. A successful server response is recorded as an
+  acknowledgement and removes the IndexedDB operation in one transaction. Permanent failures remain as `blocked`
+  records and reappear in the existing sync issues list. Existing field-level song conflict detection and resolution,
+  FIFO sync, and the Phase 1 confirmed-authentication gate remain in place.
+- These client receipts do not provide server idempotency. If Supabase applies a write but the response is lost, the
+  client can retry the same operation. Existing operation behavior remains responsible for that case until a separate
+  server-side idempotency stage is designed and approved. There is no multi-tab lease or cross-tab coordination yet.
+- Existing localStorage queue entries are not made more durable by this stage; their prior best-effort storage behavior
+  remains. Browser-native IndexedDB, PWA restart behavior, real-device behavior, and Supabase sync were not tested here.
+  Unit tests use a small in-memory IndexedDB test double and cover the queue transaction contract, not browser IDB
+  implementation details.
 
 ## Lyrics and links
 - Each song has a lyrics link. A text box for the band's own lyrics or cues is wanted later. The app never supplies or fetches lyrics.
