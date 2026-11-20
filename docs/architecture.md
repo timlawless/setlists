@@ -15,11 +15,12 @@ Last updated: November 2026. This version keeps the earlier reasoning and adds w
 - **Decided:** each song has an optional free-text Song structure (for example `V C V C M8 V C Outro`), shown in the
   song details only for now.
 - **Decided:** the app can suggest a lyrics link for a song (a specific Genius page when one is found, otherwise search links). It only ever
-  suggests links: it never fetches or copies lyrics, never saves a link without the person tapping Save changes, and never replaces an
+  suggests links: it never fetches or copies lyrics, never saves a link unless the person taps Use (which saves it at once), and never replaces an
   existing link without asking.
 - **Decided:** the Root notes box is removed from the app for now (song details, song rows, and the bass panel in gig mode). The
   `songs.root_notes` column stays in the database so existing values are kept and the box can be brought back later. The history
-  still reads old Root notes changes correctly. A bass player's gig mode currently shows the tempo and key tiles and the song notes only.
+  still reads old Root notes changes correctly. A bass player's gig mode showed only the tempo and key tiles and the song notes while the box was gone; the box has since returned as the Bass line (see Guitar or bass view).
+- **Decided:** the chord/progression box has a Guitar chords / Bass line switch. Which view shows is remembered per person and song, defaults to bass for bassists and guitar for everyone else, and anyone can switch on any song. A lookup suggests chord or bass tab links, to begin with only as links that open in a new page.
 - **Decided:** sharing arrived early so it can be tested with bandmates.
 - **Decided:** a user can belong to several bands. Each band has several setlists (one per gig or arrangement).
 - **Decided:** every change to a song is recorded. Who can edit depends on the access level (see Access control).
@@ -68,6 +69,7 @@ User ──< Membership >── Band ──< Setlist ──< Entry
 As built, songs belong to the band and a setlist only places them:
 ```
 Band ──< Song ──< SongLink
+Song ──< SongView >── Profile   (a person's last guitar or bass view of a song)
 Band ──< Setlist ──< SetlistSong >── Song
 Band ──< Membership (access level, instrument roles) >── Profile
 Band ──< Invite
@@ -80,8 +82,9 @@ Band ──< ChangeLog   (filled by a database trigger)
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
 | band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles; last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
-| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (kept in the database, no longer shown in the app), notes, song_structure (SQL v10), lyrics_url, youtube_url, catalog_ref, change_note, deleted_at |
+| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, catalog_ref, change_note, deleted_at |
 | song_links | Labelled links on a song (sheet music, tab, lyrics, video, other). This is the earlier `charts` list. |
+| song_views | One row per person per song (SQL v11): whether they last used the guitar or the bass view of the progression box. Private to that person, only for bands they belong to, removed with the song or band. |
 | setlists | name, gig_date, venue, notes, deleted_at. Gig date, venue and notes are not shown yet. |
 | setlist_songs | A song's place in a setlist. position is a decimal number, so reordering does not rewrite every row. Override columns exist but are unused. |
 | change_log | Every insert, update and delete on songs, links, setlists and setlist songs: who, when, old and new values, optional reason |
@@ -181,7 +184,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - The function searches Genius (`api.genius.com/search`) with the client access token, keeps only ordinary `https://genius.com/...` song pages, ranks them
   by exact title and the artist typed, ranks karaoke, tribute and translation pages out, drops pages whose lyrics state is not complete, and returns at
   most three, each marked exact, close or possible. Answers are kept in memory for ten minutes.
-- The person reviews the result: **Open** shows the page in a new tab, **Use** only fills the Lyrics link box, and nothing is stored until Save changes. If the
+- The person reviews the result: **Open** shows the page in a new tab, **Use** fills the Lyrics link box and saves it at once (it runs the same save as Save changes, so any other edits typed in the panel are saved with it), and nothing is stored before then. If the
   box already holds a link, Use asks before replacing it (declining keeps the old one). **Remove** empties the box (Save changes then removes the link). The box
   can always be typed in by hand.
 - Suggested addresses go through the `cleanLink` rule (http and https only, Google redirect links unwrapped, tracking removed), ported from `core/src/links.ts`
@@ -189,6 +192,15 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - **Lyrics rule:** neither the function nor the page ever downloads a lyrics page or any lyrics text, not even to check a match. Only search metadata is read.
 - **Status:** prepared, not yet on the site. The ranking was tested on sample Genius-style data and the page flow in headless Chromium against stand-ins; the live Genius
   answer has not been checked from here. The Genius API terms have been read by the owner: no link back or credit is needed, so the footer has none.
+
+## Guitar or bass view and progression links
+- The chord/progression area of the song details has a switch: Guitar chords or Bass line. Guitar edits `songs.chords`; bass edits `songs.root_notes` (the old Root notes column, so no new column). Both boxes stay in the page and one is hidden, so text typed but not yet saved is kept when switching, and Save changes saves both. Both are recorded in the history like any other field.
+- Which view shows: the person's remembered choice for that song, otherwise bass if their instrument roles in that band include Bassist, otherwise guitar. Anyone, including viewers, can switch on any song. The same switch and panel appear in gig mode for guitarists, keyboards and bassists.
+- Remembering: the choice is stored in `song_views` (SQL v11), one row per person per song, and also kept on the device (`c:<user>:views:<band>`). A change is written to the device first and sent in the background (`vq:<user>` holds choices still waiting). Offline, or before v11 has been run, it stays on the device and is sent later; opening a band picks up choices made on other devices. A choice that cannot ever be saved (the song or band is gone) is dropped.
+- `song_views` access: a person reads, adds, changes and removes only their own rows, and only for bands they belong to (row-level security with `is_band_member`); the song and band must match; the view must be `guitar` or `bass`. It is not part of the change history.
+- Find chords link / Find bass tab link (in the view you are on) lists search pages: Ultimate Guitar, Songsterr and Google, for chords or for bass tabs. Each has Open (new page) and, for people who can edit, Use. Use puts the link in the box for the current view, asks first if something is already written there (Cancel keeps it, OK replaces it), and saves it at once (it runs the same save as Save changes, so any other edits typed in the panel are saved with it). Every link goes through `cleanLink`. The app fetches nothing and never copies chords, bass lines or lyrics.
+- A box that holds just one link shows a larger Open button beside its label (as does a saved lyrics link), "Chords: link" on song rows, and an Open chords or Open bass line button in gig mode.
+- Planned: a separate link field beside the manual chords and bass line, so both can be kept.
 
 ## Layout: phones and tablets
 - Phone: one column. This is what the web app does at every width today.
@@ -346,6 +358,7 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v8 | Band link ending (slug), unique across all bands |
 | v9 | `invite_preview(code)`: the band name and level for a valid invite code, usable before sign-in |
 | v10 | `songs.song_structure`: an optional free-text Song structure (text, not null, empty by default) |
+| v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
 | check_schema | A read-only checklist of which updates are present |
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
@@ -356,6 +369,7 @@ The `lookup-song` Edge Function is deployed separately under Edge Functions and 
 - All text from the database is escaped before display, links are accepted only if they start with http or https, and
   the band logo is checked again before it is shown.
 - Emails contain codes, not links, and codes expire. Passwords must be at least 8 characters.
+- `song_views` can be read and changed only by the person it belongs to, and only for their own bands. It holds a view name, not the chords themselves.
 
 ## Testing so far
 Database changes were tested on a local PostgreSQL 16 with a stand-in for Supabase's auth layer: 97 permission checks
@@ -366,6 +380,7 @@ repository and never run on a real phone or the real database. None of these tes
 repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) and the removal of the
 GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet. The lyrics link suggestions were tested with 24 checks in headless Chromium against a stand-in for Supabase and the functions (suggest, review, use, replace prompt, remove, save, error fallback, viewer, phone layout) and the ranking was run on sample data, but the live Genius service, a real phone and a real signed-in session were not used.
+SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-in for Supabase's auth layer: it runs twice without error, a person reads and writes only their own rows, another member and an outsider are refused, a row whose song and band do not match is refused, only guitar or bass is accepted, a signed-out visitor has no access, `updated_at` moves on a change and the rows go with the song (16 checks). The guitar or bass view, the progression link finder, Use with its overwrite question, and the gig mode switch were tested in a simulated browser (jsdom) with a stand-in database (about 35 checks, two-pane layout). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the switch, and whether the Songsterr and Ultimate Guitar search addresses land on a useful page.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
@@ -387,6 +402,7 @@ GetSongBPM footer link and the Root notes box have not been tested yet. The comp
 - The install steps were written from how iOS and Android normally behave and have not been tried on a real phone yet; the wording of the iOS menus can change between versions.
 - An invite link remembered in Safari does not reach the installed iPhone app, so those testers type the code. A mistyped email at sign-up cannot be recovered while email is off; the app only catches common domain typos.
 - The home-screen icon is the same for every band.
+- The guitar or bass choice is per song and person. Until SQL v11 is run it stays on one device. The suggested links are search pages, not specific songs, and a link and written notes share one box until a separate link field is built.
 
 ## Open questions
 1. ~~PWA first or Expo first.~~ Answered: PWA first.
