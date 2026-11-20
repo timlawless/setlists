@@ -53,9 +53,10 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | iPhone install help | An Install card on the first screen (iPhone: Share, Add to Home Screen, with a Copy link button for people stuck in WhatsApp's browser; Android: Install app button); Not now, and a menu button to bring it back; the invite code is shown for retyping in the installed app | none | Built, not yet on the site; tested only in a simulated browser |
 | App at the site root | The app is served from `app/`, so https://timlawless.github.io/setlists/ opens it; the old `/setlist-pwa-v2/` address redirects | none | Built, not yet on the site |
 | Song structure | An optional free-text Song structure box (for example `V C V C M8 V C Outro`) in the song details editor; no list of sections and no checking; viewers see it only when it has text; saved, synced offline and recorded in the history like any other song field; not in the song list, the Create a new song box or gig mode | v10 | Prepared, awaiting review; not yet built into the site; nothing tested |
-| Lyrics link suggestions | A Find lyrics link button under the Lyrics link box (and an offer after a key and BPM match is used when the box is empty): a ranked Genius song page when one is found, plus search links for Genius, Ultimate Guitar and Google; Open to check, Use to fill the box, a prompt before replacing an existing link, Remove to clear it; nothing is saved until Save changes; links only, never lyrics text | none (new Edge Function `find-lyrics-link`, secret `GENIUS_ACCESS_TOKEN`) | Prepared, awaiting review; tested in headless Chromium against stand-ins, not against live Genius or on a real phone |
+| Lyrics link suggestions | A Find lyrics link button under the Lyrics link box (and an offer after a key and BPM match is used when the box is empty): a ranked Genius song page when one is found, plus search links for Genius, Ultimate Guitar and Google; Open to check, Use fills the box and saves it at once (after a prompt before replacing an existing link), Remove to clear it (then Save changes), a larger Open button beside a stored link; links only, never lyrics text | none (new Edge Function `find-lyrics-link`, secret `GENIUS_ACCESS_TOKEN`) | Prepared, awaiting review; tested in headless Chromium against stand-ins, not against live Genius or on a real phone |
 | Compact details panel (desktop) | On a wide screen the right-hand song details panel is shorter so a lightly filled song fits without scrolling: Song structure on one line, Chords and Notes side by side and one line high until they hold text, smaller buttons on mouse-and-keyboard screens, and the reason for change, lyrics and YouTube links and sheet music and tab links under a closed More section. Phones and one-pane view are unchanged | none | Prepared, awaiting review; measured in headless Chromium at three desktop sizes, not on a real desktop |
 | Simplify: no GetSongBPM link, no Root notes | The GetSongBPM link is removed from the page footer (Song Finder stays); the Root notes box is removed from the song details, the "Root:" line on song rows and the bass panel in gig mode; the database column and old values are kept | none | Prepared, awaiting review; nothing tested |
+| Guitar or bass view, progression link finder | The chord/progression box has a Guitar chords / Bass line switch (guitar edits Chords; bass edits the Bass line, which is the old Root notes column brought back). The view is remembered per person and song, on the account (default: bass for bassists, guitar for everyone else; anyone can switch on any song). Find chords link / Find bass tab link lists search pages (Ultimate Guitar, Songsterr, Google) with Open and Use: Use puts the link in the box, asks before it replaces anything already written, and saves it at once; a larger Open button sits beside a stored link. Gig mode has the same switch for guitarists, keyboards and bassists, and a stored link shows as an Open button there | v11 | Built, not yet on the site; the SQL was tested on in-memory Postgres and the page in a simulated browser, not on real devices or the real database |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -86,6 +87,12 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 8. **Lyrics link suggestions (awaiting review).** The secret `GENIUS_ACCESS_TOKEN` is already saved in Supabase. When approved: deploy the new Edge Function `find-lyrics-link` from `sql/find-lyrics-link.ts` (Verify JWT off, like `lookup-song`), then upload `app/index.html`. Test on real devices: Find lyrics link for a song you know, check the Genius page is the right song, Use then Save, try it on a song that already has a link (it must ask before replacing), Remove then Save, and try the search links. The Genius API terms have been read: no link back or credit is needed, so the footer stays as it is.
 9. **Another lookup source (waiting).** Song Finder is the only source in use. A second source for songs Song Finder cannot find
    needs the current `lookup-song` code from `sql/` in the repository, which has not been reviewed yet.
+10. **Guitar or bass view and progression links (awaiting review).** SQL v11 (`sql/schema_v11_song_views.sql`) and the new `app/index.html`
+    are built. When approved: run SQL v11 in the Supabase SQL Editor first, then upload `app/index.html`, leave `config.js`
+    alone. Test on real devices: the switch in the right-hand panel and in the phone layout; a bassist defaults to Bass line and
+    everyone else to Guitar chords; switch a song on one device and see it on another after reopening the band; Find link opens a
+    sensible search page; Use saves at once, and over written notes it asks first (Cancel keeps them and saves nothing); Save changes keeps both boxes;
+    gig mode switch and panel; a stored link shows Open in gig mode. Until v11 is run the choice stays on the device.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -141,8 +148,9 @@ Not committed. Move any of these up by saying so.
 - Default label for a link (the site name) and adding a typed link on save.
 - A setlist note shown large in gig mode.
 - Song structure in gig mode, and in the Create a new song box (left out of the first version on purpose).
-- What a bass player sees in gig mode (chords, or root notes brought back). Interim plan: the Chords box doubles as root notes and bassists see it.
+- What a bass player sees in gig mode (chords, or root notes brought back). Resolved by the guitar or bass view: bassists see the Bass line (the root notes box, brought back) by default.
 - Keep Save pinned at the bottom of the right-hand panel when it does scroll.
+- A separate progression link field beside the manual chords and bass line, so a link and written notes can both be kept (today a link goes into the same box and replaces notes only after you agree).
 - Membership changes (promotions, removals) in the history.
 - Single-use invite codes and cancelling an unused code.
 - Pruning of removed songs and old history (open question).
@@ -178,7 +186,8 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 24 | Another key and BPM source for when Song Finder finds nothing | You | Needs the updated `lookup-song` file from `sql/` in the repo and a choice of source (free, no paid plan, terms checked). Edge Function redeploy, no SQL expected. | Next | Planned |
 | 25 | Compact right-hand panel on desktop | You | Fit a lightly filled song without scrolling: one-line Chords and Notes that grow with their text, smaller buttons, rarely used parts under More. Wide-screen panel only. Prepared, awaiting review; needs a look on a real desktop and laptop. | Now | Planned |
 | 26 | Automatically find a lyrics link | You | When a song is identified, offer a lyrics link to review: a specific Genius page when found, else search links. Manual replace and remove, never overwrite without asking, links only. New Edge Function and secret, no SQL. Prepared, awaiting review; not tested against live Genius. | Now | Planned |
-| 27 | (add your next change here) |  |  |  |  |
+| 27 | Guitar or bass view and progression link finder | You | Switch the chord/progression box between guitar chords and a bass line, remembered per person and song (bass is the default for bassists). A lookup like the lyrics one: it suggests chord or bass tab search pages, and Use puts the link in the box, asking before it overwrites notes. May become a separate link field beside manual notes. SQL v11. Needs a test on real devices. | Now | Built |
+| 28 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
@@ -195,7 +204,10 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 - **Lyrics stay a link for now.**
 - **Song structure is free text, in the song details only for now.** No sections to pick, no checking of the notation.
 - **Lyrics links are suggested, never fetched.** The app and the function only handle links; nothing downloads a lyrics page or copies lyrics, and the person always reviews a link before it is saved.
-- **Root notes are hidden, not deleted.** The box is gone from the app; the database column and its values stay so it can return.
+- **Root notes are hidden, not deleted.** The box is gone from the app; the database column and its values stay so it can return. Update: it has since returned as the Bass line (see below).
+- **The Bass line is the old Root notes column.** No new column was needed. Guitar edits Chords, bass edits the Bass line, both saved and recorded in the history like any other field.
+- **The guitar or bass view is remembered per person and song, on the account.** One small table (SQL v11), readable and changeable only by that person. A copy is kept on the device, so it works offline and before v11 is run.
+- **Progression links are suggested, never fetched.** Find chords link and Find bass tab link only list search pages that open in a new page; Use puts the link in the box after asking before it replaces written notes. Nothing downloads chords, bass lines or lyrics.
 - **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
 ## Notes for whoever picks this up
@@ -205,3 +217,4 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 - Lyrics: never ship or fetch lyrics. See "Lyrics and links" in `architecture.md`.
 - Source accuracy for tempo and key varies. Show a confidence level and let the band's own values win.
 - Open questions are listed at the bottom of `architecture.md`.
+- Changes from this assistant go to the `claude-dev` branch and are merged into `main`. Other people and Codex work on other areas, and a deployment update now gives the branches separate live addresses, so always start from the current repository files, not an older upload.
