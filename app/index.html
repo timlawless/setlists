@@ -981,8 +981,8 @@ wideQ.addEventListener?.('change', () => render());
 function roleLine(s) {
   const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
   if (r.includes('singer') && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
-  if (r.includes('bassist') && viewOf(s.id) === 'bass' && s.root_notes) out.push('Bass: ' + first(s.root_notes));
-  else if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + first(s.chords));
+  if (r.includes('bassist') && viewOf(s.id) === 'bass' && s.root_notes) out.push('Bass: ' + (asUrl(s.root_notes) ? 'link' : first(s.root_notes)));
+  else if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + (asUrl(s.chords) ? 'link' : first(s.chords)));
   if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
   return out.length ? `<div class="rl">${out.join(' · ')}</div>` : '';
 }
@@ -1003,7 +1003,7 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const struct = ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="${compact ? 1 : 2}"${compact ? ' class="grow"' : ''} placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`;
   const bassNow = viewOf(s.id) === 'bass'; // which progression box shows: remembered per person and song
   const ta = (k, rows, ph) => `<textarea data-f="${k}" rows="${rows}" class="mono${compact ? ' grow' : ''}"${ph ? ` placeholder="${ph}"` : ''}${dis}>${esc(s[k])}</textarea>`;
-  const chords = `<label data-pl="guitar"${bassNow ? ' hidden' : ''}>Chords${ta('chords', compact ? 1 : 4, '')}</label><label data-pl="bass"${bassNow ? '' : ' hidden'}>Bass line (root notes)${ta('root_notes', compact ? 1 : 4, 'e.g. E  A  B  E')}</label>`;
+  const chords = `<label data-pl="guitar"${bassNow ? ' hidden' : ''}>Chords${opn(s.chords)}${ta('chords', compact ? 1 : 4, '')}</label><label data-pl="bass"${bassNow ? '' : ' hidden'}>Bass line (root notes)${opn(s.root_notes)}${ta('root_notes', compact ? 1 : 4, 'e.g. E  A  B  E')}</label>`;
   const bar = `<div class="progbar"><div class="seg" role="group" aria-label="Guitar or bass"><button type="button" data-a="pv" data-view="guitar" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" data-a="pv" data-view="bass" aria-pressed="${bassNow}">Bass line</button></div><button type="button" data-a="progfind">${bassNow ? 'Find bass tab link' : 'Find chords link'}</button></div>`;
   const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 1 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
@@ -1073,6 +1073,8 @@ async function findLyrics(art) {
 // so it works offline and also before v11 has been run (changes wait on the device and are sent once the table exists).
 let views = {}, viewsPending = {}, viewsFlushing = false, viewsAgain = false;
 const vk = () => ck('views:' + bandId), vqk = () => `vq:${user.id}`;
+const asUrl = (t) => { const x = (t || '').trim(); return /^https?:\/\/\S+$/i.test(x) ? x : ''; }; // a progression box that holds just one link
+const opn = (t) => (asUrl(t) ? ` <a href="${esc(asUrl(t))}" target="_blank" rel="noopener">open</a>` : '');
 const defaultView = () => (myRoles().includes('bassist') ? 'bass' : 'guitar'); // bass for bassists, guitar for everyone else
 const viewOf = (sid) => (views[sid] === 'bass' || views[sid] === 'guitar' ? views[sid] : defaultView());
 const savePending = () => { try { localStorage.setItem(vqk(), JSON.stringify(viewsPending)); } catch {} };
@@ -1127,8 +1129,8 @@ function drawProg(art) {
   const val = (k) => (art.querySelector(`[data-f="${k}"]`)?.value || '').trim(), title = val('title'), artist = val('artist');
   if (!title) return say('Type a title first');
   const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar';
-  ul.innerHTML = progLinks(v, title, artist).map((l) => `<li><span>${esc(l.label)}<br><small>${esc(hostOf(l.url))}</small></span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open</a></li>`).join('')
-    + `<li><small>These open a search on another site in a new page. Type or paste the ${v === 'bass' ? 'bass line' : 'chords'} into the box yourself, and check it against how your band plays the song.</small></li>`;
+  ul.innerHTML = progLinks(v, title, artist).map((l) => `<li><span>${esc(l.label)}<br><small>Search page, not a specific song · ${esc(hostOf(l.url))}</small></span><span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open</a>${canEdit() ? ` <button type="button" data-a="proguse" data-url="${esc(l.url)}">Use</button>` : ''}</span></li>`).join('')
+    + `<li><small>Open a link to check it. Use puts the link in the ${v === 'bass' ? 'bass line' : 'chords'} box, and nothing is saved until you tap Save changes. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
 }
 async function loadLinks(sid) {
   const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
@@ -1140,7 +1142,7 @@ async function loadLinks(sid) {
 $('split').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
-  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear'].includes(a) && !canEdit()) return say('You have view-only access in this band');
+  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear', 'proguse'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
     if (a === 'toggle') { openId = dual() ? sid : openId === sid ? null : sid; render(); }
     else if (a === 'pv') { // switch between guitar chords and bass line; nobody is blocked, any role can use either
@@ -1152,6 +1154,13 @@ $('split').onclick = async (e) => {
       art.querySelectorAll('textarea.grow').forEach(grow); setView(sid, v);
     }
     else if (a === 'progfind') { drawProg(art); }
+    else if (a === 'proguse') {
+      const url = cleanLink(b.dataset.url || ''); if (!url) return;
+      const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar', what = v === 'bass' ? 'bass line' : 'chords';
+      const box = art.querySelector(`[data-f="${v === 'bass' ? 'root_notes' : 'chords'}"]`), cur = box.value.trim();
+      if (cur && cur !== url && !confirm(`Replace what is in the ${what} box with this link?\n\nCurrent: ${cur.length > 120 ? cur.slice(0, 120) + '…' : cur}\nNew: ${url}`)) return; // never overwrite notes without permission
+      box.value = url; grow(box); drawProg(art); say('Filled in. Open it to check, then tap Save changes to keep it.');
+    }
     else if (a === 'up' || a === 'down') {
       const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
       x.position = py; y.position = px; items.sort((m, n) => m.position - n.position);
@@ -1308,7 +1317,7 @@ function renderGig() {
   if (has('singer')) parts.push(safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', ''));
   if (has('guitarist') || has('keyboards') || has('bassist')) {
     const bassNow = viewOf(s.id) === 'bass';
-    parts.push(`<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>` + panel(bassNow ? 'Bass line' : 'Chords', bassNow ? s.root_notes : s.chords, true));
+    parts.push(`<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>` + (asUrl(bassNow ? s.root_notes : s.chords) ? `<section class="panel"><h3>${bassNow ? 'Bass line' : 'Chords'}</h3><a class="btnlink" href="${esc(asUrl(bassNow ? s.root_notes : s.chords))}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(bassNow ? 'Bass line' : 'Chords', bassNow ? s.root_notes : s.chords, true)));
   }
   if (s.notes) parts.push(panel('Notes', s.notes));
   const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics, chords or the bass line here.</small></p>';
