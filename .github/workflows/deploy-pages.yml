@@ -2,7 +2,7 @@ name: Deploy Setlists PWA to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, claude-dev, codex-dev]
     paths:
       - "app/**"
       - ".github/workflows/deploy-pages.yml"
@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -23,12 +23,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Upload app artifact
+      - name: Assemble production and preview apps
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin \
+            +refs/heads/main:refs/remotes/origin/main \
+            +refs/heads/claude-dev:refs/remotes/origin/claude-dev \
+            +refs/heads/codex-dev:refs/remotes/origin/codex-dev
+          mkdir -p _site/claude-dev _site/codex-dev
+          git archive origin/main app | tar -xf - -C _site --strip-components=1
+          git archive origin/claude-dev app | tar -xf - -C _site/claude-dev --strip-components=1
+          git archive origin/codex-dev app | tar -xf - -C _site/codex-dev --strip-components=1
+      - name: Upload combined Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: app
+          path: _site
   deploy:
     environment:
       name: github-pages
