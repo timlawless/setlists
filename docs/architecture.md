@@ -15,7 +15,7 @@ Last updated: November 2026. This version keeps the earlier reasoning and adds w
 - **Decided:** each song has an optional free-text Song structure (for example `V C V C M8 V C Outro`), shown in the
   song details only for now.
 - **Decided:** the app can suggest a lyrics link for a song (a specific Genius page when one is found, otherwise search links). It only ever
-  suggests links: it never fetches or copies lyrics, never saves a link without the person tapping Save changes, and never replaces an
+  suggests links: it never fetches or copies lyrics, never saves a link unless the person taps Use (which saves it at once), and never replaces an
   existing link without asking.
 - **Decided:** the Root notes box is removed from the app for now (song details, song rows, and the bass panel in gig mode). The
   `songs.root_notes` column stays in the database so existing values are kept and the box can be brought back later. The history
@@ -184,7 +184,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - The function searches Genius (`api.genius.com/search`) with the client access token, keeps only ordinary `https://genius.com/...` song pages, ranks them
   by exact title and the artist typed, ranks karaoke, tribute and translation pages out, drops pages whose lyrics state is not complete, and returns at
   most three, each marked exact, close or possible. Answers are kept in memory for ten minutes.
-- The person reviews the result: **Open** shows the page in a new tab, **Use** only fills the Lyrics link box, and nothing is stored until Save changes. If the
+- The person reviews the result: **Open** shows the page in a new tab, **Use** fills the Lyrics link box and saves it at once (it runs the same save as Save changes, so any other edits typed in the panel are saved with it), and nothing is stored before then. If the
   box already holds a link, Use asks before replacing it (declining keeps the old one). **Remove** empties the box (Save changes then removes the link). The box
   can always be typed in by hand.
 - Suggested addresses go through the `cleanLink` rule (http and https only, Google redirect links unwrapped, tracking removed), ported from `core/src/links.ts`
@@ -198,8 +198,8 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - Which view shows: the person's remembered choice for that song, otherwise bass if their instrument roles in that band include Bassist, otherwise guitar. Anyone, including viewers, can switch on any song. The same switch and panel appear in gig mode for guitarists, keyboards and bassists.
 - Remembering: the choice is stored in `song_views` (SQL v11), one row per person per song, and also kept on the device (`c:<user>:views:<band>`). A change is written to the device first and sent in the background (`vq:<user>` holds choices still waiting). Offline, or before v11 has been run, it stays on the device and is sent later; opening a band picks up choices made on other devices. A choice that cannot ever be saved (the song or band is gone) is dropped.
 - `song_views` access: a person reads, adds, changes and removes only their own rows, and only for bands they belong to (row-level security with `is_band_member`); the song and band must match; the view must be `guitar` or `bass`. It is not part of the change history.
-- Find chords link / Find bass tab link (in the view you are on) lists search pages: Ultimate Guitar, Songsterr and Google, for chords or for bass tabs. Each has Open (new page) and, for people who can edit, Use. Use puts the link in the box for the current view, asks first if something is already written there (Cancel keeps it, OK replaces it), and nothing is saved until Save changes. Every link goes through `cleanLink`. The app fetches nothing and never copies chords, bass lines or lyrics.
-- A box that holds just one link shows an open link beside its label, "Chords: link" on song rows, and an Open chords or Open bass line button in gig mode.
+- Find chords link / Find bass tab link (in the view you are on) lists search pages: Ultimate Guitar, Songsterr and Google, for chords or for bass tabs. Each has Open (new page) and, for people who can edit, Use. Use puts the link in the box for the current view, asks first if something is already written there (Cancel keeps it, OK replaces it), and saves it at once (it runs the same save as Save changes, so any other edits typed in the panel are saved with it). Every link goes through `cleanLink`. The app fetches nothing and never copies chords, bass lines or lyrics.
+- A box that holds just one link shows a larger Open button beside its label (as does a saved lyrics link), "Chords: link" on song rows, and an Open chords or Open bass line button in gig mode.
 - Planned: a separate link field beside the manual chords and bass line, so both can be kept.
 
 ## Layout: phones and tablets

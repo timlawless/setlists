@@ -108,6 +108,8 @@ textarea.grow{resize:none;overflow:hidden}
 .seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
 .seg button[aria-pressed=true]{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
 #gig>.seg{margin-bottom:8px}
+a.openbtn{display:inline-block;margin-left:8px;padding:5px 14px;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg);color:var(--accent);font-size:14px;font-weight:600;text-decoration:none;vertical-align:middle}
+@media (pointer:coarse){a.openbtn{display:inline-flex;align-items:center;min-height:40px;padding:6px 18px}}
 @media (min-width:900px) and (pointer:fine){
 body.dual #pane article.pane{padding:10px}
 body.dual #pane label{margin-top:5px;font-size:12px}
@@ -997,7 +999,7 @@ function card(it, i) {
 function detail(s, compact) { // compact is the wide-screen right-hand panel: shorter boxes, Chords beside Notes, rarely used parts under More
   const ro = !canEdit(), dis = ro ? ' disabled' : '', i = items.findIndex((x) => x.songs.id === s.id);
   const f = (k, l, t = 'text') => `<label>${l}<input data-f="${k}" type="${t}" value="${esc(s[k] ?? '')}"${dis}></label>`;
-  const lk = (k, l) => `<label>${l}${safe(s[k]) ? `<a href="${esc(s[k])}" target="_blank" rel="noopener">open</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"${dis}></label>`;
+  const lk = (k, l, big) => `<label>${l}${safe(s[k]) ? `<a ${big ? 'class="openbtn" ' : ''}href="${esc(s[k])}" target="_blank" rel="noopener">${big ? 'Open' : 'open'}</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"${dis}></label>`;
   const top = ro ? '' : `<div class="btns"><button data-a="up" ${i > 0 ? '' : 'disabled'}>▲ Move up</button><button data-a="down" ${i >= 0 && i < items.length - 1 ? '' : 'disabled'}>▼ Move down</button></div>`;
   const grid = `<div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>`;
   const struct = ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="${compact ? 1 : 2}"${compact ? ' class="grow"' : ''} placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`;
@@ -1007,7 +1009,7 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const bar = `<div class="progbar"><div class="seg" role="group" aria-label="Guitar or bass"><button type="button" data-a="pv" data-view="guitar" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" data-a="pv" data-view="bass" aria-pressed="${bassNow}">Bass line</button></div><button type="button" data-a="progfind">${bassNow ? 'Find bass tab link' : 'Find chords link'}</button></div>`;
   const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 1 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
-  const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)')}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}${lk('youtube_url', 'YouTube link')}`;
+  const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)', true)}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}${lk('youtube_url', 'YouTube link')}`;
   const buttons = `<div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
   const note = ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>';
   const sheet = `<h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
@@ -1052,7 +1054,7 @@ function drawLyr(art) {
   const search = lyr.searches.map((c, k) => row(esc(c.label), 'Search page, not a specific song', c.url, `data-a="lyruse" data-s="${k}"`));
   const have = cur ? `<li><span>Your current link<br><small>${esc(hostOf(cur) || cur)}</small></span><span>${safe(cur) ? `<a href="${esc(cur)}" target="_blank" rel="noopener">Open</a> ` : ''}<button data-a="lyrclear">Remove</button></span></li>` : '';
   ul.innerHTML = (lyr.note ? `<li><small>${esc(lyr.note)}</small></li>` : '') + found.join('') + search.join('') + have
-    + '<li><small>Nothing is saved until you tap Save changes. Open a link to check it is the right song. The app only suggests links and never copies lyrics.</small></li>';
+    + '<li><small>Use saves the link straight away. Open a link to check it is the right song. The app only suggests links and never copies lyrics.</small></li>';
 }
 async function findLyrics(art) {
   const ul = art.querySelector('[data-lyr]'); if (!ul) return;
@@ -1074,7 +1076,7 @@ async function findLyrics(art) {
 let views = {}, viewsPending = {}, viewsFlushing = false, viewsAgain = false;
 const vk = () => ck('views:' + bandId), vqk = () => `vq:${user.id}`;
 const asUrl = (t) => { const x = (t || '').trim(); return /^https?:\/\/\S+$/i.test(x) ? x : ''; }; // a progression box that holds just one link
-const opn = (t) => (asUrl(t) ? ` <a href="${esc(asUrl(t))}" target="_blank" rel="noopener">open</a>` : '');
+const opn = (t) => (asUrl(t) ? ` <a class="openbtn" href="${esc(asUrl(t))}" target="_blank" rel="noopener">Open</a>` : '');
 const defaultView = () => (myRoles().includes('bassist') ? 'bass' : 'guitar'); // bass for bassists, guitar for everyone else
 const viewOf = (sid) => (views[sid] === 'bass' || views[sid] === 'guitar' ? views[sid] : defaultView());
 const savePending = () => { try { localStorage.setItem(vqk(), JSON.stringify(viewsPending)); } catch {} };
@@ -1130,7 +1132,7 @@ function drawProg(art) {
   if (!title) return say('Type a title first');
   const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar';
   ul.innerHTML = progLinks(v, title, artist).map((l) => `<li><span>${esc(l.label)}<br><small>Search page, not a specific song · ${esc(hostOf(l.url))}</small></span><span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open</a>${canEdit() ? ` <button type="button" data-a="proguse" data-url="${esc(l.url)}">Use</button>` : ''}</span></li>`).join('')
-    + `<li><small>Open a link to check it. Use puts the link in the ${v === 'bass' ? 'bass line' : 'chords'} box, and nothing is saved until you tap Save changes. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
+    + `<li><small>Open a link to check it. Use puts the link in the ${v === 'bass' ? 'bass line' : 'chords'} box and saves it straight away. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
 }
 async function loadLinks(sid) {
   const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
@@ -1159,7 +1161,7 @@ $('split').onclick = async (e) => {
       const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar', what = v === 'bass' ? 'bass line' : 'chords';
       const box = art.querySelector(`[data-f="${v === 'bass' ? 'root_notes' : 'chords'}"]`), cur = box.value.trim();
       if (cur && cur !== url && !confirm(`Replace what is in the ${what} box with this link?\n\nCurrent: ${cur.length > 120 ? cur.slice(0, 120) + '…' : cur}\nNew: ${url}`)) return; // never overwrite notes without permission
-      box.value = url; grow(box); drawProg(art); say('Filled in. Open it to check, then tap Save changes to keep it.');
+      box.value = url; grow(box); art.querySelector('[data-a="save"]')?.click(); // Use saves straight away, the same as Save changes
     }
     else if (a === 'up' || a === 'down') {
       const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
@@ -1233,7 +1235,7 @@ $('split').onclick = async (e) => {
       const pick = b.dataset.s !== undefined ? lyr.searches[+b.dataset.s] : lyr.cands[+b.dataset.k]; if (!pick) return;
       const box = art.querySelector('[data-f="lyrics_url"]'), cur = box.value.trim();
       if (cur && cur !== pick.url && !confirm(`Replace your current lyrics link?\n\nCurrent: ${cur}\nNew: ${pick.url}`)) return; // never overwrite without permission
-      box.value = pick.url; drawLyr(art); say('Filled in. Open it to check, then tap Save changes to keep it.');
+      box.value = pick.url; art.querySelector('[data-a="save"]')?.click(); // Use saves straight away, the same as Save changes
     }
     else if (a === 'lyrclear') { art.querySelector('[data-f="lyrics_url"]').value = ''; drawLyr(art); say('Cleared. Tap Save changes to remove the link.'); }
     else if (a === 'addlink') {
