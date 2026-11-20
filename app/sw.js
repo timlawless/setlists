@@ -1,5 +1,7 @@
-// Bump VERSION whenever you want installed copies to drop old cached files.
-const VERSION = 'band-setlist-1';
+// Bump VERSION whenever you want this deployment path's installed copies to drop old cached files.
+const DEPLOYMENT_PATH = new URL(self.registration.scope).pathname.replace(/\/+$/, '').split('/').pop() || 'root';
+const CACHE_PREFIX = `band-setlist-${DEPLOYMENT_PATH}-`;
+const VERSION = `${CACHE_PREFIX}1`;
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const WAIT_MS = 1000; // how long to wait for the network before using the saved copy of an app file
 const FILES = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', CDN];
@@ -8,8 +10,8 @@ self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
-  // Only remove this app's own old caches: github.io hosts other projects on the same origin, and their caches are not ours to delete.
-  const ours = (k) => (k.startsWith('band-setlist-') && k !== VERSION) || k.startsWith('setlist-v');
+  // Each Pages path has its own cache namespace, so activating one copy cannot clear another copy's caches.
+  const ours = (k) => k.startsWith(CACHE_PREFIX) && k !== VERSION;
   e.waitUntil(caches.keys().then((ks) => Promise.all(ks.filter(ours).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', (e) => {
