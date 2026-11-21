@@ -160,7 +160,7 @@ begin
     if jsonb_typeof(v_set) is distinct from 'object' or jsonb_typeof(v_base) is distinct from 'object' then
       return jsonb_build_object('status', 'permanent', 'message', 'The song edit is missing its changed fields or base values.');
     end if;
-    if v_set = '{}'::jsonb then return jsonb_build_object('status', 'permanent', 'message', 'The song edit has no changed fields.'); end if;
+    if jsonb_object_length(v_set) = 0 then return jsonb_build_object('status', 'permanent', 'message', 'The song edit has no changed fields.'); end if;
     select to_jsonb(s) into v_current from public.songs s where s.id = v_song_id and s.deleted_at is null for update;
     if v_current is null then return jsonb_build_object('status', 'permanent', 'message', 'This song was deleted by someone else, or is not accessible.'); end if;
     for v_pair in select key, value from jsonb_each(v_set) loop
