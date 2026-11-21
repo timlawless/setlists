@@ -1,5 +1,8 @@
--- Setlists schema v12: make queued offline writes safe to repeat after a lost response.
--- Run before uploading the matching app/index.html. Safe to run more than once.
+-- Setlists schema v14: make queued offline writes safe to repeat after a lost response.
+-- Apply after schema v12 (Spotify/Moises song links) and schema v13 (Backing singer role),
+-- and before uploading the matching app/index.html. Safe to run more than once.
+-- Column compatibility checked against the project SQL: catalog_ref is in v1, change_note in v2,
+-- root_notes in v3, song_structure in v10, and spotify_url/moises_url in v12.
 --
 -- The RPC is SECURITY INVOKER. Writes to songs, setlist_songs and song_links therefore
 -- continue to use the caller's existing grants and row-level security policies. The
@@ -82,10 +85,11 @@ begin
 
   if v_type = 'songNew' then
     v_id := (v_row->>'id')::uuid; v_band_id := (v_row->>'band_id')::uuid;
-    insert into public.songs (id, band_id, title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes, notes, song_structure, lyrics_url, youtube_url, catalog_ref, created_by)
+    insert into public.songs (id, band_id, title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes, notes, song_structure, lyrics_url, youtube_url, spotify_url, moises_url, catalog_ref, created_by)
       values (v_id, v_band_id, v_row->>'title', coalesce(v_row->>'artist', ''), coalesce(v_row->>'version_label', ''), nullif(v_row->>'bpm', '')::integer,
         v_row->>'musical_key', coalesce(v_row->>'time_signature', '4/4'), coalesce(v_row->>'chords', ''), coalesce(v_row->>'root_notes', ''),
-        coalesce(v_row->>'notes', ''), coalesce(v_row->>'song_structure', ''), v_row->>'lyrics_url', v_row->>'youtube_url', v_row->>'catalog_ref', v_user)
+        coalesce(v_row->>'notes', ''), coalesce(v_row->>'song_structure', ''), v_row->>'lyrics_url', v_row->>'youtube_url',
+        v_row->>'spotify_url', v_row->>'moises_url', v_row->>'catalog_ref', v_user)
       on conflict (id) do nothing;
     get diagnostics v_count = row_count;
     if v_count = 0 then
@@ -106,7 +110,11 @@ begin
     get diagnostics v_count = row_count;
     if v_count = 0 then
       select to_jsonb(s) into v_current from public.setlist_songs s where s.id = v_id;
-      if v_current is null or not (v_current @> jsonb_build_object('band_id', v_band_id, 'setlist_id', v_setlist_id, 'song_id', v_song_id, 'position', v_position)) then
+      if v_current is null or not (v_current @> jsonb_build_object(
+        'band_id', v_band_id, 'setlist_id', v_setlist_id, 'song_id', v_song_id, 'position', v_position,
+        'bpm_override', nullif(v_row->>'bpm_override', '')::integer,
+        'key_override', v_row->>'key_override', 'notes_override', v_row->>'notes_override'
+      )) then
         return jsonb_build_object('status', 'permanent', 'message', 'A setlist entry with this ID already exists with different data, or is not accessible.');
       end if;
     end if;
@@ -156,7 +164,7 @@ begin
     select to_jsonb(s) into v_current from public.songs s where s.id = v_song_id and s.deleted_at is null for update;
     if v_current is null then return jsonb_build_object('status', 'permanent', 'message', 'This song was deleted by someone else, or is not accessible.'); end if;
     for v_pair in select key, value from jsonb_each(v_set) loop
-      if v_pair.key not in ('title','artist','version_label','bpm','musical_key','time_signature','chords','root_notes','notes','song_structure','lyrics_url','youtube_url','catalog_ref') then
+      if v_pair.key not in ('title','artist','version_label','bpm','musical_key','time_signature','chords','root_notes','notes','song_structure','lyrics_url','youtube_url','spotify_url','moises_url','catalog_ref') then
         return jsonb_build_object('status', 'permanent', 'message', 'The song edit includes an unsupported field.');
       end if;
       if coalesce(v_current->>(v_pair.key), '') = coalesce(v_pair.value #>> '{}', '') then continue; end if;

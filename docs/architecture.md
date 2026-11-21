@@ -82,7 +82,7 @@ Band ──< ChangeLog   (filled by a database trigger)
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
 | band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles; last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
-| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, catalog_ref, change_note, deleted_at |
+| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, spotify_url, moises_url (SQL v12), catalog_ref, change_note, deleted_at |
 | song_links | Labelled links on a song (sheet music, tab, lyrics, video, other). This is the earlier `charts` list. |
 | song_views | One row per person per song (SQL v11): whether they last used the guitar or the bass view of the progression box. Private to that person, only for bands they belong to, removed with the song or band. |
 | setlists | name, gig_date, venue, notes, deleted_at. Gig date, venue and notes are not shown yet. |
@@ -269,7 +269,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   queue changes. If Web Locks are unavailable, an IndexedDB lease is renewed while syncing and expires automatically
   after a crashed tab stops renewing. The server receipt remains the final duplicate-write protection if an old lease
   holder finishes a request after ownership has expired.
-- The queue calls `public.apply_offline_operation` for every existing operation type. SQL v12 records each result in a
+- The queue calls `public.apply_offline_operation` for every existing operation type. SQL v14 records each result in a
   per-user receipt in the same transaction as the row change. Repeated requests with the same ID and payload return the
   prior result; reusing an ID with different data is rejected. The function is `SECURITY INVOKER`, and writes to band
   data continue through the existing grants and RLS policies. Receipt rows have user-scoped RLS and no anon access.
@@ -280,7 +280,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   rate-limit and service failures retain the operation with capped exponential backoff and jitter. Authentication errors
   pause sync for re-confirmation; permission, validation and conflict outcomes remain visible as blocked issues.
 - `sw.js` cache version 5 refreshes installed copies of the changed app and queue module. Apply
-  `sql/schema_v12_offline_operation_idempotency.sql` before serving the updated app. The migration and rollback-only
+  `sql/schema_v14_offline_operation_idempotency.sql` after v12 and v13 are applied and before serving the updated app. The migration and rollback-only
   integration check are committed, but neither has been run against a PostgreSQL/Supabase runtime in this environment;
   lost-acknowledgement protection must not be considered validated or live yet.
 - Automated queue and offline-state suites pass using the in-memory IndexedDB test double. The SQL check is
@@ -495,12 +495,14 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v9 | `invite_preview(code)`: the band name and level for a valid invite code, usable before sign-in |
 | v10 | `songs.song_structure`: an optional free-text Song structure (text, not null, empty by default) |
 | v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
-| v12 | `offline_operation_receipts` and `apply_offline_operation(...)`: transactional, per-user idempotency for offline queue writes; SECURITY INVOKER |
+| v12 | `songs.spotify_url` and `songs.moises_url` (added on Claude branch) |
+| v13 | Adds the Backing singer instrument role where an existing role rule limits names (added on Claude branch) |
+| v14 | `offline_operation_receipts` and `apply_offline_operation(...)`: transactional, per-user idempotency for offline queue writes; SECURITY INVOKER |
 | check_schema | A read-only checklist of which updates are present |
 
-This branch currently contains migration files v1, v2 and v9-v12. The historical v3-v8 files and `check_schema.sql`
-are not present here, so this repository alone cannot verify the live project's installed schema. Confirm the existing
-v1-v11 schema before running v12; do not try to rebuild an existing project from only the files currently present.
+This branch contains migration files v1, v2, v9-v11 and v14. The v12 and v13 migrations currently live on `claude-dev`;
+the historical v3-v8 files and `check_schema.sql` are not present here. Confirm v12, v13 and the existing v1-v11 schema
+before running v14; do not try to rebuild an existing project from only the files currently present.
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
 

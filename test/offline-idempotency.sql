@@ -1,5 +1,5 @@
--- Phase 2A.3 integration check for schema_v12_offline_operation_idempotency.sql.
--- Run only on a non-production Supabase project after applying schema v12.
+-- Phase 2A.3 integration check for schema_v14_offline_operation_idempotency.sql.
+-- Run only on a non-production Supabase project after applying schema v14.
 -- Run the whole script in one SQL-editor session. The transaction is rolled back.
 -- Requires one band member and a second authenticated user who is not in that band.
 
@@ -53,14 +53,14 @@ declare
 begin
   v_operation := jsonb_build_object(
     'qid', v_operation_id, 't', 'songNew', 'offline', true, 'at', now(),
-    'row', jsonb_build_object('id', v_song_id, 'band_id', v_band, 'title', 'Idempotency test', 'artist', 'test', 'bpm', 120, 'musical_key', 'C', 'created_by', v_user)
+    'row', jsonb_build_object('id', v_song_id, 'band_id', v_band, 'title', 'Idempotency test', 'artist', 'test', 'bpm', 120, 'musical_key', 'C', 'spotify_url', null, 'moises_url', null, 'catalog_ref', 'test-catalog-ref', 'created_by', v_user)
   );
   v_first := public.apply_offline_operation(v_operation_id, v_operation);
   v_second := public.apply_offline_operation(v_operation_id, v_operation);
   if v_first->>'status' <> 'applied' or v_second->>'status' <> 'duplicate' then
     raise exception 'Expected applied then duplicate results, got % and %', v_first, v_second;
   end if;
-  select count(*) into v_count from public.songs where id = v_song_id;
+  select count(*) into v_count from public.songs where id = v_song_id and catalog_ref = 'test-catalog-ref';
   if v_count <> 1 then raise exception 'Retry inserted % song rows instead of one', v_count; end if;
   select count(*) into v_count from public.change_log where row_id = v_song_id and table_name = 'songs';
   if v_count <> 1 then raise exception 'Retry produced % song history rows instead of one', v_count; end if;
@@ -79,6 +79,13 @@ begin
   v_second := public.apply_offline_operation(v_operation_id, v_operation);
   if v_first->>'status' <> 'applied' or v_second->>'status' <> 'duplicate' then raise exception 'Setlist-add retry failed: % / %', v_first, v_second; end if;
 
+  v_changed := jsonb_set(jsonb_set(v_operation, '{qid}', to_jsonb(gen_random_uuid())), '{row,bpm_override}', to_jsonb(120));
+  if public.apply_offline_operation((v_changed->>'qid')::uuid, v_changed)->>'status' <> 'permanent' then raise exception 'Setlist-add duplicate comparison ignored bpm_override'; end if;
+  v_changed := jsonb_set(jsonb_set(v_operation, '{qid}', to_jsonb(gen_random_uuid())), '{row,key_override}', to_jsonb('G'::text));
+  if public.apply_offline_operation((v_changed->>'qid')::uuid, v_changed)->>'status' <> 'permanent' then raise exception 'Setlist-add duplicate comparison ignored key_override'; end if;
+  v_changed := jsonb_set(jsonb_set(v_operation, '{qid}', to_jsonb(gen_random_uuid())), '{row,notes_override}', to_jsonb('Test notes'::text));
+  if public.apply_offline_operation((v_changed->>'qid')::uuid, v_changed)->>'status' <> 'permanent' then raise exception 'Setlist-add duplicate comparison ignored notes_override'; end if;
+
   v_operation_id := gen_random_uuid();
   v_operation := jsonb_build_object('qid', v_operation_id, 't', 'slPos', 'id', v_entry_id, 'position', 2, 'at', now());
   v_first := public.apply_offline_operation(v_operation_id, v_operation);
@@ -86,10 +93,12 @@ begin
   if v_first->>'status' <> 'applied' or v_second->>'status' <> 'duplicate' then raise exception 'Setlist-position retry failed: % / %', v_first, v_second; end if;
 
   v_operation_id := gen_random_uuid();
-  v_operation := jsonb_build_object('qid', v_operation_id, 't', 'song', 'sid', v_song_id, 'base', jsonb_build_object('bpm', 120), 'set', jsonb_build_object('bpm', 130), 'offline', true, 'at', now());
+  v_operation := jsonb_build_object('qid', v_operation_id, 't', 'song', 'sid', v_song_id, 'base', jsonb_build_object('bpm', 120, 'spotify_url', null, 'moises_url', null), 'set', jsonb_build_object('bpm', 130, 'spotify_url', 'https://open.spotify.com/track/test', 'moises_url', 'https://moises.ai/test'), 'note', 'idempotency test edit', 'offline', true, 'at', now());
   v_first := public.apply_offline_operation(v_operation_id, v_operation);
   v_second := public.apply_offline_operation(v_operation_id, v_operation);
   if v_first->>'status' <> 'applied' or v_second->>'status' <> 'duplicate' then raise exception 'Song-edit retry failed: % / %', v_first, v_second; end if;
+  select count(*) into v_count from public.songs where id = v_song_id and spotify_url = 'https://open.spotify.com/track/test' and moises_url = 'https://moises.ai/test' and change_note = 'idempotency test edit';
+  if v_count <> 1 then raise exception 'Song edit did not persist the Spotify, Moises, and change-note fields'; end if;
 
   update public.songs set chords = 'C' where id = v_song_id;
   v_operation_id := gen_random_uuid();

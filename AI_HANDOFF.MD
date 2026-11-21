@@ -28,9 +28,9 @@ experiments, not as the live app, and check with Tim before building on them.
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and two Edge Functions: `lookup-song` (tempo and
   key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
   `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
-- **Database files:** migration v12 is now prepared for offline operation receipts. This branch contains v1, v2 and v9-v12;
-  historical v3-v8 files and `check_schema.sql` are missing. Do not infer the live schema from this incomplete file set.
-  v12 must be run only after confirming the existing v1-v11 schema; see `docs/architecture.md`.
+- **Database files:** offline operation receipts are prepared as migration v14, following Claude's v12 Spotify/Moises links
+  and v13 Backing singer role updates. Codex currently contains v1, v2, v9-v11 and v14; historical v3-v8 and
+  `check_schema.sql` are missing. Confirm v12/v13 and the existing v1-v11 schema before running v14; see `docs/architecture.md`.
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -222,10 +222,11 @@ time using Web Locks, with a renewable expiring IndexedDB lease fallback. Broadc
 queue changes between tabs. Retryable network, rate-limit and service failures use exponential backoff with jitter;
 authentication failures pause for re-confirmation, while conflicts, permissions and validation failures stay visible.
 
-Every operation type now uses `public.apply_offline_operation` from `sql/schema_v12_offline_operation_idempotency.sql`.
+Every operation type now uses `public.apply_offline_operation` from `sql/schema_v14_offline_operation_idempotency.sql`.
 The invoker-security RPC applies changes through the caller's existing RLS and records user-scoped receipts in the
 same transaction. Repeating the same operation ID and payload returns the prior outcome; a changed payload under the
-same ID is rejected. Song edits retain field-level base/current conflict handling. Run schema v12 before the updated
+same ID is rejected. Song edits retain field-level base/current conflict handling, including Spotify and Moises URL fields.
+Run schema v14 after v12/v13 and before the updated
 app is served; service-worker cache version is 5.
 
 The queue and offline-state suites passed (41 tests) and the inline app module parsed. `test/offline-idempotency.sql`

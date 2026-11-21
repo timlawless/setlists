@@ -146,8 +146,8 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
       operation and retained copy. Validate IndexedDB ownership metadata before user filtering. Browser-native IndexedDB
       and device behavior remain unverified.
 - [ ] **Phase 2A.3 – Reliable synchronization.** Implementation is committed on `codex-dev`: FIFO durable queue,
-      per-user cross-tab coordination, interrupted-operation recovery, capped retry backoff and the SQL v12
-      idempotency RPC. Run `sql/schema_v12_offline_operation_idempotency.sql` before uploading the app, then run
+      per-user cross-tab coordination, interrupted-operation recovery, capped retry backoff and the SQL v14
+      idempotency RPC. Run `sql/schema_v14_offline_operation_idempotency.sql` after v12/v13 and before uploading the app, then run
       `test/offline-idempotency.sql` on a non-production Supabase project and test multi-tab/restart behavior in real
       browsers. The SQL integration test and live Supabase behavior have not yet been validated, so lost-acknowledgement
       protection is not yet accepted as complete.
