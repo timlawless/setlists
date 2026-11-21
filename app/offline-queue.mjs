@@ -15,6 +15,18 @@ export class OfflineQueueError extends Error {
   }
 }
 
+export function retryDelayMs(attempt, random = Math.random) {
+  const base = Math.min(300000, 2000 * (2 ** Math.min(Math.max(0, attempt - 1), 7)));
+  return Math.min(300000, Math.round(base * (0.8 + random() * 0.4)));
+}
+
+export function classifySyncFailure(error) {
+  const status = Number(error?.status || error?.statusCode || 0), code = String(error?.code || ''), message = String(error?.message || 'Sync request failed');
+  if (status === 401 || code === 'PGRST301' || /jwt expired|invalid jwt|not authenticated/i.test(message)) return { auth: true, fail: 'Your sign-in needs to be confirmed before saved changes can sync.' };
+  if (status === 408 || status === 429 || status >= 500 || !status && (!code || /network|fetch|timeout|connection/i.test(message)) || /^08/.test(code) || /^53/.test(code) || /^57/.test(code) || /^PGRST00/.test(code)) return 'retry';
+  return { fail: message };
+}
+
 export function validateOperation(operation, userId) {
   if (!operation || typeof operation !== 'object' || Array.isArray(operation)) throw new OfflineQueueError('Invalid offline operation');
   if (typeof userId !== 'string' || !userId.trim()) throw new OfflineQueueError('A signed-in user is required to queue an operation');
@@ -386,7 +398,7 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
             for (const row of rows) validateStoredOwner(row, 'operationId');
             const mine = rows.filter((row) => row.userId === userId);
             for (const row of mine) {
-              if (row.operationId !== row.operation?.qid || !Number.isSafeInteger(row.sequence) || row.sequence < 1 || !VALID_STATUSES.has(row.status)) throw new OfflineQueueError('Stored operation metadata is malformed');
+              if (row.operationId !== row.operation?.qid || !Number.isSafeInteger(row.sequence) || row.sequence < 1 || !Number.isSafeInteger(row.attempts) || row.attempts < 0 || !VALID_STATUSES.has(row.status) || row.nextAttemptAt !== undefined && (typeof row.nextAttemptAt !== 'string' || !Number.isFinite(Date.parse(row.nextAttemptAt)))) throw new OfflineQueueError('Stored operation metadata is malformed');
               validateOperation(row.operation, userId);
             }
             resolve(mine.sort((a, b) => a.sequence - b.sequence));
@@ -410,6 +422,61 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
         };
         get.onerror = () => abort(get.error || new Error('Could not update operation status'));
       });
+    },
+    async scheduleRetry(userId, operationId, error, nextAttemptAt) {
+      if (typeof nextAttemptAt !== 'string' || !Number.isFinite(Date.parse(nextAttemptAt))) throw new OfflineQueueError('Retry time is malformed');
+      const tx = db.transaction(OPERATION_STORE, 'readwrite');
+      return transactionResult(tx, (abort) => {
+        const store = tx.objectStore(OPERATION_STORE), get = store.get(operationId);
+        get.onsuccess = () => {
+          if (!get.result || get.result.userId !== userId) { abort(new OfflineQueueError('Queued operation was not found for this user')); return; }
+          store.put({ ...get.result, status: 'pending', error, nextAttemptAt });
+        };
+        get.onerror = () => abort(get.error || new Error('Could not schedule operation retry'));
+      });
+    },
+    async acquireLease(userId, ownerId, now = Date.now(), ttlMs = 90000) {
+      const key = `syncLease:${userId}`;
+      const tx = db.transaction(METADATA_STORE, 'readwrite');
+      let acquired = false;
+      await transactionResult(tx, (abort) => {
+        const store = tx.objectStore(METADATA_STORE), get = store.get(key);
+        get.onsuccess = () => {
+          const lease = get.result;
+          if (lease && lease.ownerId !== ownerId && Number.isFinite(lease.expiresAt) && lease.expiresAt > now) return;
+          store.put({ key, userId, ownerId, expiresAt: now + ttlMs });
+          acquired = true;
+        };
+        get.onerror = () => abort(get.error || new Error('Could not check the sync lease'));
+      });
+      return acquired;
+    },
+    async renewLease(userId, ownerId, now = Date.now(), ttlMs = 90000) {
+      const key = `syncLease:${userId}`;
+      const tx = db.transaction(METADATA_STORE, 'readwrite');
+      let renewed = false;
+      await transactionResult(tx, (abort) => {
+        const store = tx.objectStore(METADATA_STORE), get = store.get(key);
+        get.onsuccess = () => {
+          if (get.result?.ownerId !== ownerId) return;
+          store.put({ ...get.result, expiresAt: now + ttlMs });
+          renewed = true;
+        };
+        get.onerror = () => abort(get.error || new Error('Could not renew the sync lease'));
+      });
+      return renewed;
+    },
+    async releaseLease(userId, ownerId) {
+      const key = `syncLease:${userId}`;
+      const tx = db.transaction(METADATA_STORE, 'readwrite');
+      await transactionResult(tx, (abort) => {
+        const store = tx.objectStore(METADATA_STORE), get = store.get(key);
+        get.onsuccess = () => { if (get.result?.ownerId === ownerId) store.delete(key); };
+        get.onerror = () => abort(get.error || new Error('Could not release the sync lease'));
+      });
+    },
+    async getLease(userId) {
+      return this.getMetadata(`syncLease:${userId}`);
     },
     async remove(userId, operationId) {
       const tx = db.transaction([OPERATION_STORE, METADATA_STORE, ISSUE_STORE], 'readwrite');

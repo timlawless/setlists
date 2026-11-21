@@ -28,8 +28,9 @@ experiments, not as the live app, and check with Tim before building on them.
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and two Edge Functions: `lookup-song` (tempo and
   key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
   `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
-- **Database files:** v1 to v11 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
-  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song).
+- **Database files:** migration v12 is now prepared for offline operation receipts. This branch contains v1, v2 and v9-v12;
+  historical v3-v8 files and `check_schema.sql` are missing. Do not infer the live schema from this incomplete file set.
+  v12 must be run only after confirming the existing v1-v11 schema; see `docs/architecture.md`.
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -70,8 +71,8 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 2. Help Tim finish the email setup and test reset and sign-in codes in the installed iPhone app.
 3. Test offline editing on real devices (airplane mode, then a deliberate conflict from a second account).
 4. Apply `cleanLink` to every stored link (a gap against `AGENTS.md`). The page already uses it for suggested links.
-5. Put the SQL files, `check_schema.sql` and the permission and sync tests into the repository (`sql/`). The v11 tests were run
-   on an in-memory Postgres and are not stored yet.
+5. Restore the missing v3-v8 migration files and `check_schema.sql`, and put the earlier permission tests in the repository.
+   The offline queue/state tests are stored; the v12 SQL test is prepared but still needs a non-production Supabase run.
 6. Decide whether a progression link needs its own field, then Google sign-in and history restore.
 
 ## 5. Things learned the hard way
@@ -212,4 +213,23 @@ creation dependencies take precedence, and the Sync dialog reports fallback deci
 retain the first FIFO occurrence only when there is no existing IndexedDB authority; later variants are stored and
 verified in quarantine. Ownership metadata is validated before user filtering, so malformed ownership pauses queue load.
 Tests cover interleaving, a cross-source dependency, missing timestamps, duplicate variants and malformed ownership.
-Native IndexedDB and real-device behavior remain unverified. Phase 2A.3 is still pending approval and has not started.
+Native IndexedDB and real-device behavior remain unverified. Phase 2A.3 follows in the implementation status below.
+
+## Phase 2A.3 reliable synchronization implementation (2026-11-21)
+Implemented on `codex-dev` after verifying the Phase 2A.2 correction commit and fetching `origin`. The durable queue
+remains FIFO; startup and lock acquisition recover interrupted `inFlight` rows, and only one tab syncs per user at a
+time using Web Locks, with a renewable expiring IndexedDB lease fallback. BroadcastChannel reports active sync and
+queue changes between tabs. Retryable network, rate-limit and service failures use exponential backoff with jitter;
+authentication failures pause for re-confirmation, while conflicts, permissions and validation failures stay visible.
+
+Every operation type now uses `public.apply_offline_operation` from `sql/schema_v12_offline_operation_idempotency.sql`.
+The invoker-security RPC applies changes through the caller's existing RLS and records user-scoped receipts in the
+same transaction. Repeating the same operation ID and payload returns the prior outcome; a changed payload under the
+same ID is rejected. Song edits retain field-level base/current conflict handling. Run schema v12 before the updated
+app is served; service-worker cache version is 5.
+
+The queue and offline-state suites passed (41 tests) and the inline app module parsed. `test/offline-idempotency.sql`
+provides a rollback-only Supabase integration check, but no PostgreSQL/Supabase runtime was available, so that test was
+not run. The migration is not applied to the live Supabase project; do not treat server idempotency as validated or
+deployed. Browser-native IndexedDB, multi-tab Web Locks, reconnect/crash recovery and real-device/PWA updates remain
+untested. No dependencies were installed. Phase 2B has not started.

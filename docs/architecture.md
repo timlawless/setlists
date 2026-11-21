@@ -261,6 +261,32 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - Ordering and ownership behavior is covered by queue unit tests. The in-memory test double does not validate native
   IndexedDB index enforcement, browser transaction scheduling, multi-tab behavior or real-device persistence.
 
+### Phase 2A.3 reliable synchronization implementation (2026-11-21)
+- The app still sends one durable operation at a time in IndexedDB sequence order. It refreshes the durable queue after
+  taking synchronization ownership, recovers interrupted `inFlight` rows to `pending`, and records the local
+  acknowledgement only after the server confirms a result.
+- Tabs coordinate with an exclusive Web Lock scoped to the signed-in user. A BroadcastChannel reports active sync and
+  queue changes. If Web Locks are unavailable, an IndexedDB lease is renewed while syncing and expires automatically
+  after a crashed tab stops renewing. The server receipt remains the final duplicate-write protection if an old lease
+  holder finishes a request after ownership has expired.
+- The queue calls `public.apply_offline_operation` for every existing operation type. SQL v12 records each result in a
+  per-user receipt in the same transaction as the row change. Repeated requests with the same ID and payload return the
+  prior result; reusing an ID with different data is rejected. The function is `SECURITY INVOKER`, and writes to band
+  data continue through the existing grants and RLS policies. Receipt rows have user-scoped RLS and no anon access.
+- A permanent blocked operation is a FIFO barrier: later queued operations remain available but are not submitted until
+  the member resolves or dismisses the earlier issue. This avoids sending operations that depend on an unapplied change.
+- Song edits still compare each changed field against its saved base and current server value. Non-conflicting fields
+  are applied and differing fields return the existing Use mine / Keep theirs resolution shape. Temporary network,
+  rate-limit and service failures retain the operation with capped exponential backoff and jitter. Authentication errors
+  pause sync for re-confirmation; permission, validation and conflict outcomes remain visible as blocked issues.
+- `sw.js` cache version 5 refreshes installed copies of the changed app and queue module. Apply
+  `sql/schema_v12_offline_operation_idempotency.sql` before serving the updated app. The migration and rollback-only
+  integration check are committed, but neither has been run against a PostgreSQL/Supabase runtime in this environment;
+  lost-acknowledgement protection must not be considered validated or live yet.
+- Automated queue and offline-state suites pass using the in-memory IndexedDB test double. The SQL check is
+  `test/offline-idempotency.sql`; native IndexedDB, actual Web Locks across browser tabs, Supabase RLS/RPC behavior,
+  service-worker update behavior and real-device behavior remain untested.
+
 ## Lyrics and links
 - Each song has a lyrics link. A text box for the band's own lyrics or cues is wanted later. The app never supplies or fetches lyrics.
 - Links are accepted only if they start with http or https. The earlier `cleanLink` rule (unwrap pasted Google redirect
@@ -469,7 +495,12 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v9 | `invite_preview(code)`: the band name and level for a valid invite code, usable before sign-in |
 | v10 | `songs.song_structure`: an optional free-text Song structure (text, not null, empty by default) |
 | v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
+| v12 | `offline_operation_receipts` and `apply_offline_operation(...)`: transactional, per-user idempotency for offline queue writes; SECURITY INVOKER |
 | check_schema | A read-only checklist of which updates are present |
+
+This branch currently contains migration files v1, v2 and v9-v12. The historical v3-v8 files and `check_schema.sql`
+are not present here, so this repository alone cannot verify the live project's installed schema. Confirm the existing
+v1-v11 schema before running v12; do not try to rebuild an existing project from only the files currently present.
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
 
@@ -486,8 +517,9 @@ Database changes were tested on a local PostgreSQL 16 with a stand-in for Supaba
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
 (run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 90 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, the welcome screen with one-step sign-up, confirm password, the fast start and the invitation page), plus 183 checks in headless Chromium (layout at phone, tablet and laptop sizes, the two-column view, the metronome with a real audio engine and with fake ones that refuse to start, the real Enter key, the launch screens with a slow fake server, the service worker against a server made slow, broken or offline, and the invitation page) at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
-repository and never run on a real phone or the real database. None of these tests are in the
-repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
+repository and never run on a real phone or the real database. Most earlier permission, browser and device tests are not
+in the repository and nothing re-runs them automatically. The offline queue/state suites and Phase 2A.3 SQL integration
+check are now stored under `test/`. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) and the removal of the
 GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet. The lyrics link suggestions were tested with 24 checks in headless Chromium against a stand-in for Supabase and the functions (suggest, review, use, replace prompt, remove, save, error fallback, viewer, phone layout) and the ranking was run on sample data, but the live Genius service, a real phone and a real signed-in session were not used.
 SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-in for Supabase's auth layer: it runs twice without error, a person reads and writes only their own rows, another member and an outsider are refused, a row whose song and band do not match is refused, only guitar or bass is accepted, a signed-out visitor has no access, `updated_at` moves on a change and the rows go with the song (16 checks). The guitar or bass view, the progression link finder, Use with its overwrite question, and the gig mode switch were tested in a simulated browser (jsdom) with a stand-in database (about 35 checks, two-pane layout). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the switch, and whether the Songsterr and Ultimate Guitar search addresses land on a useful page.

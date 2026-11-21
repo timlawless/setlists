@@ -275,7 +275,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
 
 <script type="module">
 import { createOfflineState, reduceOfflineState } from './offline-state.mjs';
-import { openOfflineQueue } from './offline-queue.mjs';
+import { openOfflineQueue, classifySyncFailure, retryDelayMs } from './offline-queue.mjs';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -317,11 +317,29 @@ async function cached(k, fn) { // read from Supabase, keep a copy for offline vi
 }
 
 // ---- offline editing: changes are saved on the device first and sent when there is a connection
-let queue = [], issues = [], flushing = false, pendingReload = false, queueReady = false, queueLoadError = '', queueWarning = '';
+let queue = [], issues = [], flushing = false, syncingElsewhere = false, authPaused = false, pendingReload = false, queueReady = false, queueLoadError = '', queueWarning = '';
 const qk = () => `q:${user.id}`, ik = () => `qi:${user.id}`;
 const uuid = () => crypto.randomUUID();
+const syncOwnerId = uuid(), retryAtById = new Map(), sequenceById = new Map();
+let blockedBarrierSequence = Infinity;
+const syncChannel = (() => { try { return typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('setlists-queue-sync'); } catch { return null; } })();
+syncChannel?.addEventListener('message', (event) => {
+  const message = event.data;
+  if (!user || message?.userId !== user.id || message.ownerId === syncOwnerId) return;
+  if (message.type === 'start') syncingElsewhere = true;
+  if (message.type === 'queue-change') {
+    if (flushing) queueRefreshPending = true;
+    else { queueLoadUser = null; queueLoadPromise = null; void loadQ().then(() => { updateChip(); if ($('syncDlg').open) drawSync(); }); }
+  }
+  if (message.type === 'stop') {
+    syncingElsewhere = false;
+    queueLoadUser = null; queueLoadPromise = null;
+    void loadQ().then(() => { updateChip(); if ($('syncDlg').open) drawSync(); });
+  }
+  updateChip(); if ($('syncDlg').open) drawSync();
+});
 const same = (a, b) => String(a ?? '') === String(b ?? '');
-let queueLoadUser = null, queueLoadPromise = null, offlineQueuePromise = null, enqueueChain = Promise.resolve();
+let queueLoadUser = null, queueLoadPromise = null, offlineQueuePromise = null, enqueueChain = Promise.resolve(), queueRefreshPending = false;
 let durableIds = new Set(), storedOperationIds = new Set(), storedIssueIds = new Set(), unsavedByUser = new Map(), localSaveCount = 0, savedNoticeUntil = 0, savedNoticeTimer = null;
 const unsavedForUser = (uid = user?.id) => uid ? (unsavedByUser.get(uid) || []) : [];
 const queueStore = () => (offlineQueuePromise ||= openOfflineQueue().catch((error) => { offlineQueuePromise = null; throw error; }));
@@ -375,6 +393,7 @@ async function loadQ() {
         if (row.status === 'inFlight') {
           await store.setStatus(uid, row.operationId, 'pending');
         }
+        if (row.nextAttemptAt) retryAtById.set(row.operationId, row.nextAttemptAt); else retryAtById.delete(row.operationId);
         durableIds.add(row.operationId);
         if (!queue.some((queued) => queued.qid === row.operationId)) queue.push(op);
       }
@@ -434,6 +453,7 @@ function enqueue(...ops) {
       pending.forEach((op) => { if (!durableIds.has(op.qid) && !queue.some((queued) => queued.qid === op.qid)) queue.push(op); durableIds.add(op.qid); });
       persistQueuedViews(pending);
       saveQ();
+      syncChannel?.postMessage({ type: 'queue-change', userId: uid, ownerId: syncOwnerId });
       localSaveCount--;
       if (!localSaveCount && !unsavedForUser(uid).length) showLocalSave('saved');
       void flush();
@@ -460,6 +480,7 @@ function retryLocalSaves() {
       if (user?.id !== uid) { localSaveCount--; return; }
       pending.forEach((op) => { if (!durableIds.has(op.qid) && !queue.some((queued) => queued.qid === op.qid)) queue.push(op); durableIds.add(op.qid); });
       persistQueuedViews(pending);
+      syncChannel?.postMessage({ type: 'queue-change', userId: uid, ownerId: syncOwnerId });
     } catch { unsavedByUser.set(uid, [pending]); }
     localSaveCount--;
     if (unsavedForUser(uid).length) showLocalSave('failed', `Couldn't save on this device. This change is visible only while this page stays open. Retry before closing or refreshing.`);
@@ -522,75 +543,113 @@ function persistQueuedViews(operations) {
     try { if (!localStorage.getItem(ck('links:' + op.row.song_id))) persist('links:' + op.row.song_id, overlayQueueCache(ck('links:' + op.row.song_id), [])); } catch {}
   }
 }
-const transient = (e) => !e.code || e.code === 'PGRST301' || /jwt/i.test(e.message || '');
-const verdict = (e, dupOk) => (!e ? 'done' : dupOk && e.code === '23505' ? 'done' : transient(e) ? 'retry' : { fail: e.message });
-async function upd(table, vals, col, val) {
-  const r = await sb.from(table).update(vals).eq(col, val).select('id');
-  if (r.error) return verdict(r.error);
-  return r.data.length ? 'done' : { fail: 'That item no longer exists, or you no longer have permission to change it' };
-}
-async function runSongEdit(op) {
-  for (let tries = 0; tries < 3; tries++) {
-    const cur = await sb.from('songs').select('*').eq('id', op.sid).maybeSingle();
-    if (cur.error) return verdict(cur.error);
-    const row = cur.data;
-    if (!row || row.deleted_at) return { fail: 'This song was deleted by someone else' };
-    const apply = {}, conflicts = [];
-    for (const [k, v] of Object.entries(op.set)) {
-      if (same(row[k], v)) continue;
-      if (same(row[k], op.base[k])) apply[k] = v; else conflicts.push({ field: k, mine: v, theirs: row[k] });
-    }
-    if (Object.keys(apply).length) {
-      const r = await sb.from('songs').update({ ...apply, change_note: op.note || (op.offline ? 'Edited offline' : null) }).eq('id', op.sid).eq('updated_at', row.updated_at).select('id');
-      if (r.error) return verdict(r.error);
-      if (!r.data.length) continue; // someone changed the song meanwhile: merge again
-    }
-    return conflicts.length ? { conflicts } : 'done';
-  }
-  return 'retry';
-}
 async function runOp(op) {
-  switch (op.t) {
-    case 'songNew': return verdict((await sb.from('songs').insert(op.row)).error, true);
-    case 'slAdd': return verdict((await sb.from('setlist_songs').insert(op.row)).error, true);
-    case 'linkAdd': return verdict((await sb.from('song_links').insert(op.row)).error, true);
-    case 'slPos': return upd('setlist_songs', { position: op.position }, 'id', op.id);
-    case 'slRemove': return upd('setlist_songs', { deleted_at: op.at }, 'id', op.id);
-    case 'songDel': return upd('songs', { deleted_at: op.at }, 'id', op.sid);
-    case 'linkDel': return upd('song_links', { deleted_at: op.at }, 'id', op.id);
-    case 'song': return runSongEdit(op);
-  }
-  return { fail: 'Unknown change' };
+  let response;
+  try { response = await sb.rpc('apply_offline_operation', { p_operation_id: op.qid, p_operation: op }); }
+  catch (error) { return classifySyncFailure(error); }
+  if (response.error) return classifySyncFailure(response.error);
+  const result = response.data;
+  if (result?.status === 'applied' || result?.status === 'duplicate') return 'done';
+  if (result?.status === 'conflict') return { conflicts: Array.isArray(result.conflicts) ? result.conflicts : [], fail: result.message || undefined };
+  if (result?.status === 'auth') return { auth: true, fail: result.message || 'Your sign-in needs to be confirmed before saved changes can sync.' };
+  if (result?.status === 'retry') return 'retry';
+  return { fail: result?.message || 'The server rejected this saved change.' };
 }
-async function flush(reload = true) {
-  if (flushing || !user || !queueReady || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
-  flushing = true; let did = false;
+async function refreshQueueFromStore(uid) {
+  const store = await queueStore();
+  const [rows, savedIssues] = await Promise.all([store.list(uid), store.listIssues(uid)]);
+  queue = []; issues = savedIssues.map((row) => row.issue); durableIds = new Set();
+  storedOperationIds = new Set(rows.map((row) => row.operationId)); storedIssueIds = new Set(savedIssues.map((row) => row.issueId));
+  retryAtById.clear(); sequenceById.clear(); blockedBarrierSequence = Infinity;
+  for (const row of rows) {
+    sequenceById.set(row.operationId, row.sequence);
+    if (row.status === 'blocked') { blockedBarrierSequence = Math.min(blockedBarrierSequence, row.sequence); if (!issues.some((issue) => issue.qid === row.operationId)) issues.push({ ...row.operation, ...(row.error || { fail: 'Needs attention' }) }); continue; }
+    if (row.status === 'inFlight') await store.setStatus(uid, row.operationId, 'pending');
+    if (row.nextAttemptAt) retryAtById.set(row.operationId, row.nextAttemptAt);
+    durableIds.add(row.operationId); queue.push(row.operation);
+  }
+  queueReady = true; queueLoadError = '';
+  updateChip();
+}
+async function withSyncOwnership(uid, work) {
+  const report = (type) => syncChannel?.postMessage({ type, userId: uid, ownerId: syncOwnerId });
+  const runOwned = async (stillOwned = async () => true) => {
+    syncingElsewhere = false; report('start'); updateChip();
+    try { return await work(stillOwned); }
+    finally { report('stop'); }
+  };
+  if (navigator.locks?.request) {
+    let acquired = false, lockApiWorked = false;
+    try {
+      await navigator.locks.request(`setlists-sync:${uid}`, { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+        if (!lock) { syncingElsewhere = true; updateChip(); return; }
+        acquired = true; return runOwned();
+      });
+      lockApiWorked = true;
+    } catch { /* Use the expiring IndexedDB lease if Web Locks are unavailable or fail. */ }
+    if (acquired || lockApiWorked) return;
+  }
+  const store = await queueStore(), now = Date.now(), ttl = 90000;
+  if (!await store.acquireLease(uid, syncOwnerId, now, ttl)) { syncingElsewhere = true; updateChip(); return; }
+  let leaseHealthy = true;
+  const renew = setInterval(() => { void store.renewLease(uid, syncOwnerId, Date.now(), ttl).then((ok) => { leaseHealthy = ok; if (!ok) updateChip(); }).catch(() => { leaseHealthy = false; }); }, 20000);
+  try { await runOwned(async () => leaseHealthy && await store.renewLease(uid, syncOwnerId, Date.now(), ttl)); }
+  finally { clearInterval(renew); await store.releaseLease(uid, syncOwnerId).catch(() => {}); }
+}
+async function flush(reload = true, manual = false) {
+  if (flushing || authPaused || !user || !queueReady || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
+  flushing = true; let did = false; const uid = user.id;
   try {
-    while (queue.length) {
-      const op = queue[0], durable = durableIds.has(op.qid);
-      if (durable) {
-        try { await (await queueStore()).setStatus(user.id, op.qid, 'inFlight'); }
-        catch { break; } // never send a durable item if its in-flight state could not be recorded
+    await withSyncOwnership(uid, async (stillOwned) => {
+      if (user?.id !== uid) return;
+      try { await refreshQueueFromStore(uid); }
+      catch (error) { queueReady = false; queueLoadError = error?.message || 'Saved changes could not be read.'; queueWarning = `Saved changes could not be read safely. Synchronisation is paused. ${queueLoadError}`; return; }
+      while (queue.length && user?.id === uid && offlineState.authenticatedAccess === 'authenticated') {
+        if (!await stillOwned()) break;
+        const op = queue[0], durable = durableIds.has(op.qid), scheduled = retryAtById.get(op.qid);
+        if ((sequenceById.get(op.qid) || 0) > blockedBarrierSequence) break;
+        if (!manual && scheduled && Date.parse(scheduled) > Date.now()) break;
+        if (durable) {
+          try { await (await queueStore()).setStatus(uid, op.qid, 'inFlight'); }
+          catch { break; } // never send a durable item if its in-flight state could not be recorded
+        }
+        let result = await runOp(op);
+        if (result === 'retry') {
+          if (durable) {
+            try { const store = await queueStore(), saved = (await store.list(uid)).find((item) => item.operationId === op.qid), delay = retryDelayMs(saved?.attempts || 1), next = new Date(Date.now() + delay).toISOString(); await store.scheduleRetry(uid, op.qid, { fail: 'Temporary service or network problem; retry scheduled.' }, next); retryAtById.set(op.qid, next); }
+            catch { break; }
+          }
+          break;
+        }
+        if (result?.auth) {
+          authPaused = true;
+          if (durable) { try { await (await queueStore()).setStatus(uid, op.qid, 'pending', result); } catch {} }
+          break;
+        }
+        if (durable) {
+          try {
+            if (result === 'done') await (await queueStore()).acknowledge(uid, op.qid);
+            else await (await queueStore()).setStatus(uid, op.qid, 'blocked', result);
+          } catch { break; } // keep the operation visible until its local acknowledgement state is committed
+        }
+        queue.shift(); did = true; retryAtById.delete(op.qid);
+        if (result !== 'done') issues.push({ ...op, ...result });
+        if (result !== 'done' && durable) blockedBarrierSequence = Math.min(blockedBarrierSequence, sequenceById.get(op.qid) || Infinity);
+        durableIds.delete(op.qid);
+        if (result === 'done') { storedOperationIds.delete(op.qid); sequenceById.delete(op.qid); }
+        saveQ();
+        if (result !== 'done') break;
       }
-      let r; try { r = await runOp(op); } catch { r = 'retry'; }
-      if (r === 'retry') {
-        if (durable) { try { await (await queueStore()).setStatus(user.id, op.qid, 'pending'); } catch {} }
-        break; // no connection: try again later
-      }
-      if (durable) {
-        try {
-          if (r === 'done') await (await queueStore()).acknowledge(user.id, op.qid);
-          else await (await queueStore()).setStatus(user.id, op.qid, 'blocked', r);
-        } catch { break; } // keep the operation visible until its local acknowledgement state is committed
-      }
-      queue.shift(); did = true;
-      if (r !== 'done') issues.push({ ...op, ...r });
-      durableIds.delete(op.qid);
-      if (r === 'done') storedOperationIds.delete(op.qid);
-      saveQ();
-    }
+    });
+  } catch (error) {
+    queueReady = false; queueLoadError = error?.message || 'Saved changes could not be synchronized safely.';
+    queueWarning = `Saved changes remain on this device. Synchronisation is paused until queue access is restored. ${queueLoadError}`;
   } finally { flushing = false; saveQ(); }
+  if (queueRefreshPending && user?.id === uid) {
+    queueRefreshPending = false; queueLoadUser = null; queueLoadPromise = null; await loadQ();
+  }
   if (!queue.length && !unsavedForUser().length && !localSaveCount) showLocalSave('');
+  updateChip(); if ($('syncDlg').open) drawSync();
   if (did && !queue.length && reload) reloadSoon();
 }
 function reloadSoon() { // refresh from the server, but not while someone is typing in a song
@@ -603,15 +662,15 @@ function describe(o) {
 }
 function updateChip() {
   const c = $('syncChip'); if (!c) return;
-  c.hidden = !user || !(queueLoadError || queueWarning || queue.length || issues.length || !offlineState.browserOnline);
-  c.textContent = queueLoadError ? 'Saved changes unavailable' : issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
+  c.hidden = !user || !(queueLoadError || queueWarning || queue.length || issues.length || syncingElsewhere || authPaused || !offlineState.browserOnline);
+  c.textContent = queueLoadError ? 'Saved changes unavailable' : authPaused ? 'Sign-in needed to sync' : syncingElsewhere ? 'Syncing in another tab' : flushing ? 'Syncing…' : issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
 }
 function drawSync() {
   $('queueWarning').hidden = !queueWarning; $('queueWarning').textContent = queueWarning;
   $('retryQueueLoad').hidden = !queueLoadError;
   $('syncNow').disabled = !queueReady;
-  $('syncState').textContent = queueLoadError ? 'Saved changes could not be read; sync is paused.' : !queueReady ? 'Checking saved changes…' : !offlineState.browserOnline ? 'You are offline. Changes saved on this device will sync when you are back online.' : queue.length ? 'Changes are waiting to sync.' : issues.length ? 'Some saved changes need your attention.' : 'Everything is synced.';
-  $('syncPending').innerHTML = queue.map((o) => `<li><small>${esc(describe(o))}</small></li>`).join('') || '<li><small>Nothing waiting</small></li>';
+  $('syncState').textContent = queueLoadError ? 'Saved changes could not be read; sync is paused.' : authPaused ? 'Your sign-in could not be confirmed. Sign in again, then choose Sync now.' : syncingElsewhere ? 'Another open tab currently owns queue synchronization.' : flushing ? 'Sending saved changes to Supabase…' : !queueReady ? 'Checking saved changes…' : !offlineState.browserOnline ? 'You are offline. Changes saved on this device will sync when you are back online.' : queue.length && retryAtById.has(queue[0]?.qid) && Date.parse(retryAtById.get(queue[0].qid)) > Date.now() ? `A temporary service or network problem delayed the next retry until ${new Date(retryAtById.get(queue[0].qid)).toLocaleTimeString()}.` : queue.length ? 'Changes are waiting to sync.' : issues.length ? 'Some saved changes need your attention.' : 'Everything is synced.';
+  $('syncPending').innerHTML = queue.map((o) => { const next = retryAtById.get(o.qid); return `<li><small>${esc(describe(o))}${next ? ` · retry after ${esc(new Date(next).toLocaleTimeString())}` : ''}</small></li>`; }).join('') || '<li><small>Nothing waiting</small></li>';
   $('syncIssues').innerHTML = issues.map((o) => (o.conflicts
     ? `<li><span>${esc(describe(o))}<br>${o.conflicts.map((c) => `<small>${esc(c.field)}: yours “${esc(String(c.mine ?? ''))}”, theirs “${esc(String(c.theirs ?? ''))}”</small>`).join('<br>')}</span><span><button data-mine="${o.qid}">Use mine</button> <button data-theirs="${o.qid}">Keep theirs</button></span></li>`
     : `<li><span>${esc(describe(o))}<br><small>Not saved: ${esc(o.fail || 'unknown problem')}</small></span><button data-dis="${o.qid}">Dismiss</button></li>`)).join('') || '<li><small>No problems</small></li>';
@@ -619,7 +678,7 @@ function drawSync() {
 $('syncChip').onclick = () => { drawSync(); $('syncDlg').showModal(); };
 $('syncClose').onclick = () => $('syncDlg').close();
 $('retryQueueLoad').onclick = async () => { queueLoadUser = null; queueLoadPromise = null; await loadQ(); if (queueReady) await flush(false); drawSync(); };
-$('syncNow').onclick = async () => { await flush(); drawSync(); };
+$('syncNow').onclick = async () => { if (authPaused && user) await confirmAuthenticatedAccess(user.id, false); await flush(true, true); drawSync(); };
 $('syncIssues').onclick = async (e) => {
   const d = e.target.dataset, o = issues.find((x) => x.qid === (d.mine || d.theirs || d.dis)); if (!o) return;
   if (d.mine) {
@@ -631,7 +690,7 @@ $('syncIssues').onclick = async (e) => {
     catch (error) { showLocalSave('failed', `Couldn't update this sync issue safely. ${error?.message || ''}`); return; }
   }
   issues = issues.filter((x) => x !== o); saveQ(); drawSync();
-  if (d.mine) void flush(); else reloadSoon();
+  if (d.mine) void flush(); else { reloadSoon(); void flush(); }
 };
 window.addEventListener('online', () => {
   recordOfflineState({ type: 'browser-online' });
@@ -1095,15 +1154,16 @@ function scanCachedAccess(uid) {
   recordOfflineState({ type: 'cache-scan', available });
 }
 let authCheckFor = null;
-async function confirmAuthenticatedAccess(uid) {
+async function confirmAuthenticatedAccess(uid, startSync = true) {
   if (!uid || !navigator.onLine || authCheckFor === uid) return;
   authCheckFor = uid;
   try {
     const { data, error } = await sb.auth.getUser();
     if (user?.id !== uid) return;
     if (!error && data?.user?.id === uid) {
+      authPaused = false;
       recordOfflineState({ type: 'auth-confirmed' });
-      flush(); flushViews(); syncViews();
+      if (startSync) flush(); flushViews(); syncViews();
     }
     else if ((error?.status >= 400 && error?.status < 500) || (!error && data?.user?.id !== uid)) recordOfflineState({ type: 'auth-rejected' });
   } catch { /* Transport failure leaves authentication unknown; cached access stays separate. */ }

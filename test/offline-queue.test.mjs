@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { openOfflineQueue, OfflineQueueError } from '../app/offline-queue.mjs';
+import { openOfflineQueue, OfflineQueueError, classifySyncFailure, retryDelayMs } from '../app/offline-queue.mjs';
 
 class FakeRequest {}
 class FakeStore {
@@ -351,4 +351,45 @@ test('valid records for another user remain isolated after ownership validation'
   const otherUser = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   await queue.enqueueMany([edit(1)], otherUser);
   assert.deepEqual(await queue.list(userId), []);
+});
+
+test('temporary retry state is retained without blocking later recovery', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'retry-state' });
+  await queue.enqueueMany([edit(1)], userId);
+  await queue.setStatus(userId, id(1), 'inFlight');
+  const nextAttemptAt = new Date(Date.now() + 5000).toISOString();
+  await queue.scheduleRetry(userId, id(1), { fail: 'temporary' }, nextAttemptAt);
+  const [row] = await queue.list(userId);
+  assert.equal(row.status, 'pending');
+  assert.equal(row.attempts, 1);
+  assert.equal(row.nextAttemptAt, nextAttemptAt);
+  assert.deepEqual(row.error, { fail: 'temporary' });
+});
+
+test('an unexpired sync lease has one owner and an expired lease can be recovered', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'sync-lease' });
+  assert.equal(await queue.acquireLease(userId, 'tab-a', 1000, 100), true);
+  assert.equal(await queue.acquireLease(userId, 'tab-b', 1050, 100), false);
+  assert.equal(await queue.renewLease(userId, 'tab-a', 1080, 100), true);
+  assert.equal(await queue.acquireLease(userId, 'tab-b', 1150, 100), false);
+  await queue.releaseLease(userId, 'tab-a');
+  assert.equal(await queue.acquireLease(userId, 'tab-b', 1150, 100), true);
+  await queue.releaseLease(userId, 'tab-b');
+  assert.equal(await queue.acquireLease(userId, 'tab-c', 1150, 100), true);
+});
+
+test('sync errors distinguish retryable network/service failures from auth and permanent failures', () => {
+  assert.equal(classifySyncFailure({ status: 503, message: 'unavailable' }), 'retry');
+  assert.equal(classifySyncFailure({ status: 429, message: 'rate limited' }), 'retry');
+  assert.equal(classifySyncFailure({ message: 'Failed to fetch' }), 'retry');
+  assert.equal(classifySyncFailure({ status: 401, message: 'expired' }).auth, true);
+  assert.match(classifySyncFailure({ status: 403, message: 'forbidden' }).fail, /forbidden/);
+  assert.match(classifySyncFailure({ code: '23514', message: 'check constraint' }).fail, /check constraint/);
+});
+
+test('retry backoff grows exponentially, is jittered, and stays capped', () => {
+  assert.equal(retryDelayMs(1, () => 0.5), 2000);
+  assert.equal(retryDelayMs(3, () => 0.5), 8000);
+  assert.equal(retryDelayMs(8, () => 0.5), 256000);
+  assert.equal(retryDelayMs(12, () => 1), 300000);
 });

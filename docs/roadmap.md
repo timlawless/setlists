@@ -145,8 +145,12 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
       equal/missing timestamps and report it in Sync. Quarantine divergent duplicate payloads while verifying the chosen
       operation and retained copy. Validate IndexedDB ownership metadata before user filtering. Browser-native IndexedDB
       and device behavior remain unverified.
-- [ ] **Phase 2A.3 – Server acknowledgement recovery.** Design and test server-side idempotency for applied writes whose
-  response or local acknowledgement is lost. This phase did not change Supabase schemas/RPCs or multi-tab behavior.
+- [ ] **Phase 2A.3 – Reliable synchronization.** Implementation is committed on `codex-dev`: FIFO durable queue,
+      per-user cross-tab coordination, interrupted-operation recovery, capped retry backoff and the SQL v12
+      idempotency RPC. Run `sql/schema_v12_offline_operation_idempotency.sql` before uploading the app, then run
+      `test/offline-idempotency.sql` on a non-production Supabase project and test multi-tab/restart behavior in real
+      browsers. The SQL integration test and live Supabase behavior have not yet been validated, so lost-acknowledgement
+      protection is not yet accepted as complete.
 - [ ] **Phase 2C – Cached application data.** Assess and implement a separate migration for cached bands, setlists,
   songs and links. This is not part of Phase 2A.1.
 
