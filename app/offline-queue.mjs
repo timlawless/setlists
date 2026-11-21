@@ -1,7 +1,9 @@
 const DATABASE_NAME = 'setlists-offline-queue';
-const DATABASE_VERSION = 1;
+const DATABASE_VERSION = 2;
 const OPERATION_STORE = 'operations';
 const METADATA_STORE = 'metadata';
+const ISSUE_STORE = 'issues';
+const QUARANTINE_STORE = 'quarantine';
 const VALID_STATUSES = new Set(['pending', 'inFlight', 'blocked']);
 const VALID_TYPES = new Set(['song', 'songNew', 'songDel', 'slAdd', 'slPos', 'slRemove', 'linkAdd', 'linkDel']);
 
@@ -49,8 +51,8 @@ function transactionResult(tx, work) {
   return new Promise((resolve, reject) => {
     let result, failure;
     tx.oncomplete = () => resolve(result);
-    tx.onabort = () => reject(new OfflineQueueError('IndexedDB transaction was aborted', failure || tx.error));
-    tx.onerror = () => { failure = tx.error || failure; };
+    tx.onabort = () => reject(new OfflineQueueError(`IndexedDB transaction failed: ${failure?.message || tx.error?.message || 'aborted'}`, failure || tx.error));
+    tx.onerror = () => { failure = failure || tx.error; };
     try {
       result = work((error) => { failure = error; try { tx.abort(); } catch {} });
     } catch (error) {
@@ -75,6 +77,14 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
         store.createIndex('byUserStatusSequence', ['userId', 'status', 'sequence'], { unique: false });
       }
       if (!database.objectStoreNames.contains(METADATA_STORE)) database.createObjectStore(METADATA_STORE, { keyPath: 'key' });
+      if (!database.objectStoreNames.contains(ISSUE_STORE)) {
+        const issues = database.createObjectStore(ISSUE_STORE, { keyPath: 'issueId' });
+        issues.createIndex('byUserSequence', ['userId', 'sequence'], { unique: true });
+      }
+      if (!database.objectStoreNames.contains(QUARANTINE_STORE)) {
+        const quarantine = database.createObjectStore(QUARANTINE_STORE, { keyPath: 'quarantineId' });
+        quarantine.createIndex('byUserCreated', ['userId', 'createdAt'], { unique: false });
+      }
     };
     request.onblocked = () => {
       if (!settled) { settled = true; reject(new OfflineQueueError('Offline queue upgrade is blocked by another open app tab')); }
@@ -91,6 +101,165 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
   });
 
   return {
+    async migrateLegacy(userId, { operations = [], issues = [], malformed = [] } = {}) {
+      if (!Array.isArray(operations) || !Array.isArray(issues) || !Array.isArray(malformed)) throw new OfflineQueueError('Legacy queue data must be supplied as arrays');
+      const validOperations = [], validIssues = [], invalid = [...malformed];
+      for (const [index, operation] of operations.entries()) {
+        try { validateOperation(operation, userId); validOperations.push({ operation, index }); }
+        catch (error) { invalid.push({ source: 'queue', index, raw: operation, reason: error.message }); }
+      }
+      for (const [index, issue] of issues.entries()) {
+        try { validateOperation(issue, userId); validIssues.push({ issue, index }); }
+        catch (error) { invalid.push({ source: 'issues', index, raw: issue, reason: error.message }); }
+      }
+      const tx = db.transaction([OPERATION_STORE, METADATA_STORE, ISSUE_STORE, QUARANTINE_STORE], 'readwrite');
+      let migrationResult;
+      await transactionResult(tx, (abort) => {
+        const opStore = tx.objectStore(OPERATION_STORE), metaStore = tx.objectStore(METADATA_STORE);
+        const issueStore = tx.objectStore(ISSUE_STORE), quarantineStore = tx.objectStore(QUARANTINE_STORE);
+        const requests = [opStore.getAll(), metaStore.getAll(), issueStore.getAll(), quarantineStore.getAll()];
+        const data = new Array(requests.length); let remaining = requests.length, finished = false;
+        const finish = () => {
+          if (--remaining || finished) return;
+          finished = true;
+          try {
+            const existingOps = new Map(data[0].map((row) => [row.operationId, row]));
+            const metadata = new Map(data[1].map((row) => [row.key, row]));
+            const existingIssues = new Map(data[2].map((row) => [row.issueId, row]));
+            const existingQuarantine = new Map(data[3].filter((row) => row.userId === userId).map((row) => [row.quarantineId, row]));
+            const legacyIssueById = new Map(validIssues.map(({ issue }) => [issue.qid, issue]));
+            let sequence = Math.max(metadata.get('nextSequence')?.value || 0, ...[...existingOps.values()].map((row) => row.sequence || 0));
+            let issueSequence = Math.max(metadata.get(`issueSequence:${userId}`)?.value || 0, ...[...existingIssues.values()].map((row) => row.sequence || 0));
+            const mismatches = [], imported = [], importedIssues = [], quarantined = [];
+            const putQuarantine = (source, index, raw, reason, stableId = '') => {
+              const quarantineId = `legacy:${userId}:${stableId || `${source}:${index}`}`;
+              if (!existingQuarantine.has(quarantineId)) {
+                const row = { quarantineId, userId, source, index, raw, reason: String(reason || 'Malformed legacy record'), createdAt: new Date().toISOString() };
+                quarantineStore.put(row); existingQuarantine.set(quarantineId, row);
+              }
+              quarantined.push(quarantineId);
+            };
+            for (const { operation, index } of validOperations) {
+              const old = existingOps.get(operation.qid);
+              if (old) {
+                if (old.userId !== userId) {
+                  putQuarantine('queue-mismatch', index, operation, 'Operation ID belongs to a different account; existing IndexedDB record was preserved', `cross-user:${operation.qid}`);
+                  mismatches.push(operation.qid);
+                } else if (JSON.stringify(old.operation) !== JSON.stringify(operation)) {
+                  const mismatchId = `mismatch:${operation.qid}`;
+                  putQuarantine('queue-mismatch', index, operation, 'IndexedDB operation is authoritative; legacy payload differs', mismatchId);
+                  mismatches.push(operation.qid);
+                }
+                continue;
+              }
+              if (metadata.get(`ack:${operation.qid}`)?.userId === userId || metadata.get(`resolved:${operation.qid}`)?.userId === userId) continue;
+              sequence += 1;
+              const relatedIssue = legacyIssueById.get(operation.qid);
+              const row = { operationId: operation.qid, userId, sequence, operation, status: relatedIssue ? 'blocked' : 'pending', attempts: 0, createdAt: operation.at || new Date().toISOString(), error: relatedIssue ? { fail: relatedIssue.fail, conflicts: relatedIssue.conflicts } : null };
+              opStore.put(row); existingOps.set(operation.qid, row); imported.push(operation.qid);
+            }
+            for (const { issue, index } of validIssues) {
+              if (metadata.get(`ack:${issue.qid}`)?.userId === userId || metadata.get(`resolved:${issue.qid}`)?.userId === userId) continue;
+              const issueId = issue.qid;
+              const old = existingIssues.get(issueId);
+              if (old) {
+                if (old.userId !== userId) {
+                  putQuarantine('issue-mismatch', index, issue, 'Issue ID belongs to a different account; existing IndexedDB record was preserved', `cross-user-issue:${issueId}`);
+                  mismatches.push(issueId);
+                } else if (JSON.stringify(old.issue) !== JSON.stringify(issue)) {
+                  putQuarantine('issue-mismatch', index, issue, 'IndexedDB issue is authoritative; legacy issue differs', `issue-mismatch:${issueId}`);
+                  mismatches.push(issueId);
+                }
+                continue;
+              }
+              issueSequence += 1;
+              const row = { issueId, userId, sequence: issueSequence, issue };
+              issueStore.put(row); existingIssues.set(issueId, row); importedIssues.push(issueId);
+            }
+            for (const item of invalid) putQuarantine(item.source || 'legacy', item.index ?? 0, item.raw, item.reason);
+            metaStore.put({ key: 'nextSequence', value: sequence });
+            metaStore.put({ key: `issueSequence:${userId}`, value: issueSequence });
+            metaStore.put({ key: `legacyMigration:${userId}`, state: 'verifying', updatedAt: new Date().toISOString() });
+            migrationResult = { imported, importedIssues, mismatches: [...new Set(mismatches)], quarantined: [...new Set(quarantined)] };
+          } catch (error) { abort(error); }
+        };
+        requests.forEach((request, index) => {
+          request.onsuccess = () => { data[index] = request.result || []; finish(); };
+          request.onerror = () => abort(request.error || new Error('Could not read legacy migration state'));
+        });
+        return undefined;
+      });
+
+      const [storedOperations, storedIssues, storedQuarantine] = await Promise.all([
+        this.list(userId), this.listIssues(userId), this.listQuarantine(userId)
+      ]);
+      const opById = new Map(storedOperations.map((row) => [row.operationId, row]));
+      const issueById = new Map(storedIssues.map((row) => [row.issueId, row]));
+      const quarantineById = new Map(storedQuarantine.map((row) => [row.quarantineId, row]));
+      for (const { operation } of validOperations) {
+        if (await this.isAcknowledged(userId, operation.qid) || await this.isResolved(userId, operation.qid)) continue;
+        const row = opById.get(operation.qid);
+        if (!row && migrationResult.mismatches.includes(operation.qid)) continue;
+        if (!row || (migrationResult.imported.includes(operation.qid) && JSON.stringify(row.operation) !== JSON.stringify(operation))) throw new OfflineQueueError('Legacy operation verification failed');
+      }
+      for (const { issue } of validIssues) {
+        if (!(await this.isAcknowledged(userId, issue.qid)) && !(await this.isResolved(userId, issue.qid)) && !issueById.has(issue.qid) && !migrationResult.mismatches.includes(issue.qid)) throw new OfflineQueueError('Legacy issue verification failed');
+      }
+      for (const id of migrationResult.quarantined) if (!quarantineById.has(id)) throw new OfflineQueueError('Quarantined record verification failed');
+      const markerTx = db.transaction(METADATA_STORE, 'readwrite');
+      await transactionResult(markerTx, () => markerTx.objectStore(METADATA_STORE).put({ key: `legacyMigration:${userId}`, state: 'complete', completedAt: new Date().toISOString() }));
+      const marker = await this.getMetadata(`legacyMigration:${userId}`);
+      if (marker?.state !== 'complete') throw new OfflineQueueError('Legacy migration completion could not be verified');
+      return { ...migrationResult, completed: true, operationCount: storedOperations.length, issueCount: storedIssues.length, quarantinedCount: storedQuarantine.length };
+    },
+    async listIssues(userId) {
+      const tx = db.transaction(ISSUE_STORE, 'readonly');
+      return new Promise((resolve, reject) => {
+        let rows = [], failure;
+        tx.oncomplete = () => {
+          try {
+            const mine = rows.filter((row) => row.userId === userId);
+            for (const row of mine) { validateOperation(row.issue, userId); if (row.issueId !== row.issue.qid || !Number.isSafeInteger(row.sequence) || row.sequence < 1) throw new OfflineQueueError('Stored issue metadata is malformed'); }
+            resolve(mine.sort((a, b) => a.sequence - b.sequence));
+          } catch (error) { reject(new OfflineQueueError('Saved sync issue data is malformed', error)); }
+        };
+        tx.onerror = () => { failure = tx.error || failure; };
+        tx.onabort = () => reject(new OfflineQueueError('Could not read saved sync issues', failure || tx.error));
+        const request = tx.objectStore(ISSUE_STORE).getAll();
+        request.onsuccess = () => { rows = request.result || []; };
+        request.onerror = () => { failure = request.error || failure; try { tx.abort(); } catch {} };
+      });
+    },
+    async listQuarantine(userId) {
+      const tx = db.transaction(QUARANTINE_STORE, 'readonly');
+      return new Promise((resolve, reject) => {
+        let rows = [], failure;
+        tx.oncomplete = () => {
+          try {
+            const mine = rows.filter((row) => row.userId === userId);
+            for (const row of mine) if (typeof row.quarantineId !== 'string' || typeof row.createdAt !== 'string' || typeof row.reason !== 'string') throw new OfflineQueueError('Quarantine metadata is malformed');
+            resolve(mine.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
+          } catch (error) { reject(new OfflineQueueError('Saved quarantine data is malformed', error)); }
+        };
+        tx.onerror = () => { failure = tx.error || failure; };
+        tx.onabort = () => reject(new OfflineQueueError('Could not read quarantined offline records', failure || tx.error));
+        const request = tx.objectStore(QUARANTINE_STORE).getAll();
+        request.onsuccess = () => { rows = request.result || []; };
+        request.onerror = () => { failure = request.error || failure; try { tx.abort(); } catch {} };
+      });
+    },
+    async getMetadata(key) {
+      const tx = db.transaction(METADATA_STORE, 'readonly');
+      return new Promise((resolve, reject) => {
+        let row = null, failure;
+        tx.oncomplete = () => resolve(row);
+        tx.onerror = () => { failure = tx.error || failure; };
+        tx.onabort = () => reject(new OfflineQueueError('Could not read queue migration state', failure || tx.error));
+        const request = tx.objectStore(METADATA_STORE).get(key);
+        request.onsuccess = () => { row = request.result || null; };
+        request.onerror = () => { failure = request.error || failure; try { tx.abort(); } catch {} };
+      });
+    },
     async enqueueMany(operations, userId) {
       if (!Array.isArray(operations) || !operations.length) throw new OfflineQueueError('At least one operation is required');
       operations.forEach((op) => validateOperation(op, userId));
@@ -138,7 +307,16 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
       const tx = db.transaction(OPERATION_STORE, 'readonly');
       return new Promise((resolve, reject) => {
         let rows = [], failure;
-        tx.oncomplete = () => resolve(rows.filter((row) => row.userId === userId && VALID_STATUSES.has(row.status)).sort((a, b) => a.sequence - b.sequence));
+        tx.oncomplete = () => {
+          try {
+            const mine = rows.filter((row) => row.userId === userId);
+            for (const row of mine) {
+              if (row.operationId !== row.operation?.qid || !Number.isSafeInteger(row.sequence) || row.sequence < 1 || !VALID_STATUSES.has(row.status)) throw new OfflineQueueError('Stored operation metadata is malformed');
+              validateOperation(row.operation, userId);
+            }
+            resolve(mine.sort((a, b) => a.sequence - b.sequence));
+          } catch (error) { reject(new OfflineQueueError('Saved operation data is malformed; synchronization is paused', error)); }
+        };
         tx.onerror = () => { failure = tx.error || failure; };
         tx.onabort = () => reject(new OfflineQueueError('Could not read the offline queue', failure || tx.error));
         const request = tx.objectStore(OPERATION_STORE).getAll();
@@ -159,13 +337,19 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
       });
     },
     async remove(userId, operationId) {
-      const tx = db.transaction([OPERATION_STORE, METADATA_STORE], 'readwrite');
+      const tx = db.transaction([OPERATION_STORE, METADATA_STORE, ISSUE_STORE], 'readwrite');
       return transactionResult(tx, (abort) => {
-        const store = tx.objectStore(OPERATION_STORE), meta = tx.objectStore(METADATA_STORE), get = store.get(operationId);
+        const store = tx.objectStore(OPERATION_STORE), meta = tx.objectStore(METADATA_STORE), issueStore = tx.objectStore(ISSUE_STORE), get = store.get(operationId);
         get.onsuccess = () => {
           if (get.result && get.result.userId !== userId) { abort(new OfflineQueueError('Queued operation belongs to another user')); return; }
           if (get.result) store.delete(operationId);
-          meta.put({ key: `resolved:${operationId}`, userId, resolvedAt: new Date().toISOString() });
+          const issueGet = issueStore.get(operationId);
+          issueGet.onsuccess = () => {
+            if (issueGet.result && issueGet.result.userId !== userId) { abort(new OfflineQueueError('Saved issue belongs to another user')); return; }
+            if (issueGet.result) issueStore.delete(operationId);
+            meta.put({ key: `resolved:${operationId}`, userId, resolvedAt: new Date().toISOString() });
+          };
+          issueGet.onerror = () => abort(issueGet.error || new Error('Could not remove saved issue'));
         };
         get.onerror = () => abort(get.error || new Error('Could not remove acknowledged operation'));
       });

@@ -228,7 +228,9 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
 
 <dialog id="syncDlg">
   <div class="row" style="margin:0"><b style="flex:3">Sync</b><button id="syncClose">Close</button></div>
+  <p id="queueWarning" class="warning" role="status" hidden></p>
   <p><small id="syncState"></small></p>
+  <div class="row"><button id="retryQueueLoad" type="button" hidden>Retry reading saved changes</button></div>
   <h3>Waiting to sync</h3><ul id="syncPending"></ul>
   <h3>Needs your attention</h3><ul id="syncIssues"></ul>
   <div class="row"><button id="syncNow" class="primary">Sync now</button></div>
@@ -315,12 +317,12 @@ async function cached(k, fn) { // read from Supabase, keep a copy for offline vi
 }
 
 // ---- offline editing: changes are saved on the device first and sent when there is a connection
-let queue = [], issues = [], flushing = false, pendingReload = false;
+let queue = [], issues = [], flushing = false, pendingReload = false, queueReady = false, queueLoadError = '', queueWarning = '';
 const qk = () => `q:${user.id}`, ik = () => `qi:${user.id}`;
 const uuid = () => crypto.randomUUID();
 const same = (a, b) => String(a ?? '') === String(b ?? '');
 let queueLoadUser = null, queueLoadPromise = null, offlineQueuePromise = null, enqueueChain = Promise.resolve();
-let durableIds = new Set(), storedOperationIds = new Set(), unsavedByUser = new Map(), localSaveCount = 0, savedNoticeUntil = 0, savedNoticeTimer = null;
+let durableIds = new Set(), storedOperationIds = new Set(), storedIssueIds = new Set(), unsavedByUser = new Map(), localSaveCount = 0, savedNoticeUntil = 0, savedNoticeTimer = null;
 const unsavedForUser = (uid = user?.id) => uid ? (unsavedByUser.get(uid) || []) : [];
 const queueStore = () => (offlineQueuePromise ||= openOfflineQueue().catch((error) => { offlineQueuePromise = null; throw error; }));
 function showLocalSave(state, message = '') {
@@ -341,18 +343,27 @@ async function loadQ() {
   if (!user) return;
   const uid = user.id;
   if (queueLoadUser === uid && queueLoadPromise) return queueLoadPromise;
-  queueLoadUser = uid; queue = []; issues = []; durableIds = new Set(); storedOperationIds = new Set();
+  queueLoadUser = uid; queue = []; issues = []; queueReady = false; queueLoadError = ''; queueWarning = 'Checking and recovering saved changes…'; durableIds = new Set(); storedOperationIds = new Set(); storedIssueIds = new Set(); updateChip();
   queueLoadPromise = (async () => {
-    try { queue = JSON.parse(localStorage.getItem(qk()) || '[]'); issues = JSON.parse(localStorage.getItem(ik()) || '[]'); }
-    catch { queue = []; issues = []; }
     try {
+      const parseLegacy = (key, source) => {
+        const raw = localStorage.getItem(key);
+        if (raw === null) return { rows: [], malformed: [] };
+        try {
+          const value = JSON.parse(raw);
+          return Array.isArray(value) ? { rows: value, malformed: [] } : { rows: [], malformed: [{ source, index: 0, raw, reason: 'Expected an array in legacy storage' }] };
+        } catch (error) { return { rows: [], malformed: [{ source, index: 0, raw, reason: `Malformed JSON: ${error.message}` }] }; }
+      };
+      const legacyQueue = parseLegacy(qk(), 'queue'), legacyIssues = parseLegacy(ik(), 'issues');
       const store = await queueStore();
-      const terminal = [];
-      for (const op of [...queue, ...issues]) {
-        if (op?.qid && (await store.isAcknowledged(uid, op.qid) || await store.isResolved(uid, op.qid))) terminal.push(op.qid);
-      }
-      if (terminal.length) { const done = new Set(terminal); queue = queue.filter((op) => !done.has(op.qid)); issues = issues.filter((op) => !done.has(op.qid)); }
+      const migration = await store.migrateLegacy(uid, {
+        operations: legacyQueue.rows,
+        issues: legacyIssues.rows,
+        malformed: [...legacyQueue.malformed, ...legacyIssues.malformed]
+      });
       const stored = await store.list(uid);
+      const storedIssues = await store.listIssues(uid);
+      const quarantined = await store.listQuarantine(uid);
       for (const row of stored) {
         storedOperationIds.add(row.operationId);
         const op = row.operation;
@@ -362,18 +373,50 @@ async function loadQ() {
           continue;
         }
         if (row.status === 'inFlight') {
-          try { await (await queueStore()).setStatus(uid, row.operationId, 'pending'); } catch {}
+          await store.setStatus(uid, row.operationId, 'pending');
         }
         durableIds.add(row.operationId);
         if (!queue.some((queued) => queued.qid === row.operationId)) queue.push(op);
       }
-    } catch { /* Existing localStorage queue remains usable; new edits will report IDB failure. */ }
-    updateChip();
-    if (queue.length) showLocalSave('saved');
+      for (const row of storedIssues) {
+        storedIssueIds.add(row.issueId);
+        if (!issues.some((issue) => issue.qid === row.issueId)) issues.push(row.issue);
+      }
+      if (storedIssues.length) {
+        const issueIds = new Set(storedIssues.map((row) => row.issueId));
+        queue = queue.filter((op) => !issueIds.has(op.qid));
+      }
+      queueReady = true; queueLoadError = '';
+      const warnings = [];
+      if (migration.mismatches.length) warnings.push(`${migration.mismatches.length} localStorage record(s) differed from IndexedDB; the IndexedDB versions are being used and the other copies were quarantined.`);
+      if (quarantined.length) warnings.push(`${quarantined.length} malformed or conflicting saved record(s) were quarantined. The original localStorage data is still retained.`);
+      const recovered = migration.imported.length + migration.importedIssues.length;
+      if (!warnings.length && recovered) warnings.push(`Recovered and verified ${recovered} earlier saved change(s) from this device.`);
+      queueWarning = warnings.join(' ');
+      if (queue.length) showLocalSave('saved');
+    } catch (error) {
+      queue = []; issues = []; durableIds.clear(); storedOperationIds.clear(); storedIssueIds.clear();
+      queueReady = false; queueLoadError = error?.message || 'Saved changes could not be read.';
+      queueWarning = `Locally saved changes cannot currently be accessed. Synchronisation is paused so an incomplete queue is not sent. ${queueLoadError}`;
+      showLocalSave('');
+    } finally { updateChip(); }
   })();
   return queueLoadPromise;
 }
-function saveQ() { try { localStorage.setItem(qk(), JSON.stringify(queue)); localStorage.setItem(ik(), JSON.stringify(issues)); } catch {} updateChip(); }
+function saveQ() {
+  const retainLegacy = (key, current) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) { localStorage.setItem(key, JSON.stringify(current)); return; }
+      const prior = JSON.parse(raw);
+      if (!Array.isArray(prior)) return; // retain malformed source bytes for recovery
+      const known = new Set(prior.filter((row) => row?.qid).map((row) => row.qid));
+      const additions = current.filter((row) => row?.qid && !known.has(row.qid));
+      localStorage.setItem(key, JSON.stringify([...prior, ...additions]));
+    } catch {} // IndexedDB is authoritative after verification; never clear legacy-only records here
+  };
+  retainLegacy(qk(), queue); retainLegacy(ik(), issues); updateChip();
+}
 function enqueue(...ops) {
   const now = new Date().toISOString();
   const ownerId = user?.id;
@@ -519,7 +562,7 @@ async function runOp(op) {
   return { fail: 'Unknown change' };
 }
 async function flush(reload = true) {
-  if (flushing || !user || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
+  if (flushing || !user || !queueReady || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
   flushing = true; let did = false;
   try {
     while (queue.length) {
@@ -559,11 +602,14 @@ function describe(o) {
 }
 function updateChip() {
   const c = $('syncChip'); if (!c) return;
-  c.hidden = !user || !(queue.length || issues.length || !offlineState.browserOnline);
-  c.textContent = issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
+  c.hidden = !user || !(queueLoadError || queueWarning || queue.length || issues.length || !offlineState.browserOnline);
+  c.textContent = queueLoadError ? 'Saved changes unavailable' : issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
 }
 function drawSync() {
-  $('syncState').textContent = !offlineState.browserOnline ? 'You are offline. Changes are saved on this device and will sync when you are back online.' : queue.length ? 'Changes are waiting to sync.' : 'Everything is synced.';
+  $('queueWarning').hidden = !queueWarning; $('queueWarning').textContent = queueWarning;
+  $('retryQueueLoad').hidden = !queueLoadError;
+  $('syncNow').disabled = !queueReady;
+  $('syncState').textContent = queueLoadError ? 'Saved changes could not be read; sync is paused.' : !queueReady ? 'Checking saved changes…' : !offlineState.browserOnline ? 'You are offline. Changes saved on this device will sync when you are back online.' : queue.length ? 'Changes are waiting to sync.' : issues.length ? 'Some saved changes need your attention.' : 'Everything is synced.';
   $('syncPending').innerHTML = queue.map((o) => `<li><small>${esc(describe(o))}</small></li>`).join('') || '<li><small>Nothing waiting</small></li>';
   $('syncIssues').innerHTML = issues.map((o) => (o.conflicts
     ? `<li><span>${esc(describe(o))}<br>${o.conflicts.map((c) => `<small>${esc(c.field)}: yours “${esc(String(c.mine ?? ''))}”, theirs “${esc(String(c.theirs ?? ''))}”</small>`).join('<br>')}</span><span><button data-mine="${o.qid}">Use mine</button> <button data-theirs="${o.qid}">Keep theirs</button></span></li>`
@@ -571,6 +617,7 @@ function drawSync() {
 }
 $('syncChip').onclick = () => { drawSync(); $('syncDlg').showModal(); };
 $('syncClose').onclick = () => $('syncDlg').close();
+$('retryQueueLoad').onclick = async () => { queueLoadUser = null; queueLoadPromise = null; await loadQ(); if (queueReady) await flush(false); drawSync(); };
 $('syncNow').onclick = async () => { await flush(); drawSync(); };
 $('syncIssues').onclick = async (e) => {
   const d = e.target.dataset, o = issues.find((x) => x.qid === (d.mine || d.theirs || d.dis)); if (!o) return;
@@ -578,8 +625,8 @@ $('syncIssues').onclick = async (e) => {
     const saved = await enqueue({ t: 'song', sid: o.sid, label: o.label, qid: uuid(), at: new Date().toISOString(), offline: false, note: 'Offline edit kept over a conflicting change', base: Object.fromEntries(o.conflicts.map((c) => [c.field, c.theirs])), set: Object.fromEntries(o.conflicts.map((c) => [c.field, c.mine])) });
     if (!saved) return;
   }
-  if (storedOperationIds.has(o.qid)) {
-    try { await (await queueStore()).remove(user.id, o.qid); storedOperationIds.delete(o.qid); }
+  if (storedOperationIds.has(o.qid) || storedIssueIds.has(o.qid)) {
+    try { await (await queueStore()).remove(user.id, o.qid); storedOperationIds.delete(o.qid); storedIssueIds.delete(o.qid); }
     catch (error) { showLocalSave('failed', `Couldn't update this sync issue safely. ${error?.message || ''}`); return; }
   }
   issues = issues.filter((x) => x !== o); saveQ(); drawSync();
@@ -1031,7 +1078,7 @@ $('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode !
 $('pw2').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode === 'new') { e.preventDefault(); $('inviteIn').focus(); } }); // in an invitation the name is optional, so Enter here sends the form
 $('signOut').onclick = async () => {
   const unsaved = unsavedForUser();
-  if ((queue.length || issues.length || unsaved.length) && !confirm(`Some changes have not synced yet. Persisted changes stay on this device for your next sign-in. ${unsaved.length ? 'The change marked “Couldn’t save on this device” is not safely stored and will be lost if you sign out.' : ''} Sign out anyway?`)) return;
+  if ((queue.length || issues.length || unsaved.length || queueLoadError) && !confirm(`Some changes have not synced yet. Persisted changes stay on this device for your next sign-in. ${queueLoadError ? 'The saved queue could not be read, so there may be changes that are not currently visible.' : ''} ${unsaved.length ? 'The change marked “Couldn’t save on this device” is not safely stored and will be lost if you sign out.' : ''} Sign out anyway?`)) return;
   if (user?.id) unsavedByUser.delete(user.id); showLocalSave(''); Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); recordOfflineState({ type: 'cache-scan', available: false }); $('menu').close(); await sb.auth.signOut(); };
 // ---- fast start: a sign-in saved on this device shows the saved copy at once; the server is checked afterwards
 let provisional = false, quietRefresh = false;

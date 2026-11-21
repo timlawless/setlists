@@ -176,6 +176,31 @@ version 3 precaches the new queue module.
 
 Automated tests use Node's built-in runner and an in-memory IndexedDB test double. Queue and Phase 1 state tests pass;
 the inline app module and queue module pass syntax checks. `core`'s Vitest suite could not run because Vitest is not
-installed, and dependencies were not installed. No browser, Supabase or real-device testing was performed. Follow-up:
-test with browser-native IndexedDB, implement Phase 2A.2 retry/server idempotency work, and design legacy queue migration
-as Phase 2A.3. Cached app-data migration remains Phase 2C.
+installed, and dependencies were not installed. No browser, Supabase or real-device testing was performed. At the time,
+legacy migration and sync acknowledgement recovery were follow-up work; migration is implemented in the Phase 2A.2
+section below. Cached app-data migration remains Phase 2C.
+
+## Phase 2A.2 migration and recovery implementation (2026-11-20)
+Implemented on `codex-dev`, based on Phase 2A.1 commit `a5b83ffd5ce222b287ed593aabd78fca3de54cca`. IndexedDB is now
+version 2, adding `issues` and `quarantine` stores. On queue load, the app reads the existing `q:<user id>` operation
+array and `qi:<user id>` issue array, validates each record, and imports valid entries in source order. The source keys
+are retained; `saveQ()` preserves their records and only appends unseen IDs. Acknowledgement/resolution receipts prevent
+retained completed operations from being re-imported.
+
+Migration uses transactional, repeatable writes and a `verifying` then `complete` metadata marker. Operations, issues and
+quarantined malformed/divergent entries are reread before completion is recorded. A retry after an aborted migration
+can safely resume from retained localStorage. IndexedDB wins for a same-ID payload mismatch; the localStorage copy is
+quarantined and reported. Malformed records are quarantined, and operation/issue ID overlap is held as blocked so an
+already rejected item is not resent.
+
+If IndexedDB cannot open/read, migration verification fails, or stored queue data is malformed, the UI warns that saved
+changes are inaccessible, exposes a queue-read retry, and blocks queue synchronization until recovery succeeds. The
+Phase 1 authentication gate and existing song conflict handling remain in place. Service-worker cache version is 4.
+
+Tests: Node's built-in runner passed the queue and Phase 1 suites (31 cases at implementation time). Coverage includes
+valid operations/issues, duplicate/repeat migration, interrupted writes, malformed data, source-array retention,
+IndexedDB precedence, account ID collisions, open/read failures and completion verification. The tests use the existing
+in-memory IndexedDB test double; browser-native IndexedDB, multiple tabs, PWA/device restart and live Supabase behavior
+were not tested. No dependencies were installed. Existing localStorage source records are retained and can grow over
+time; quarantine has no record-editor UI. Lost Supabase responses can still cause duplicate submissions because
+server-side idempotency is outside this phase. Phase 2C cache migration remains separate.

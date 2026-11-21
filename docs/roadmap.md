@@ -136,10 +136,12 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
   in IndexedDB before the app reports them saved locally. The app keeps the existing localStorage queue intact for
   compatibility; no legacy queue or cached-data migration is included. Tests use Node's built-in runner and an
   in-memory IndexedDB test double. Browser and real-device testing remains outstanding.
-- [ ] **Phase 2A.2 – Sync recovery and server acknowledgement.** Test retry/restart behavior in browsers, resolve local
-  acknowledgement edge cases, and design server-side idempotency before claiming safe recovery after lost responses.
-- [ ] **Phase 2A.3 – Legacy queue migration and recovery.** Validate and migrate pending localStorage queue/issues only
-  after a separately reviewed migration design; retain originals until verified.
+- [x] **Phase 2A.2 – Legacy queue migration and local recovery.** Import and verify legacy `q:<user>` operations and
+  `qi:<user>` issues into IndexedDB, retain originals, quarantine malformed/divergent records, make migration repeatable,
+  and pause sync with clear feedback when IndexedDB cannot be read. Automated coverage uses an in-memory IndexedDB test
+  double; browser and device behavior remains unverified.
+- [ ] **Phase 2A.3 – Server acknowledgement recovery.** Design and test server-side idempotency for applied writes whose
+  response or local acknowledgement is lost. This phase did not change Supabase schemas/RPCs or multi-tab behavior.
 - [ ] **Phase 2C – Cached application data.** Assess and implement a separate migration for cached bands, setlists,
   songs and links. This is not part of Phase 2A.1.
 

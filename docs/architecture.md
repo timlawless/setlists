@@ -147,9 +147,9 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - A lost connection stops the queue and keeps the order. A change the server refuses (for example, the person is now a
   viewer, or the song was deleted by someone else) does not block the rest: it moves to a "Check sync" list with the
   reason, and can be dismissed. Conflicts can be resolved with Use mine or Keep theirs; other failed items currently have
-  no retry action. Legacy queue and cache writes still silently ignore local-storage errors, and malformed legacy queue
-  JSON resets in-memory queue state. New operations are committed to IndexedDB before they enter the live queue; cached
-  view writes remain best-effort. These remaining gaps are not guarantees of durable storage for legacy records.
+  no retry action. Legacy queue/issue source writes and cached view writes remain best-effort. Phase 2A.2 imports and
+  quarantines malformed legacy queue data before synchronization; cached app-data writes remain localStorage-based and
+  best-effort until Phase 2C.
 - While changes are waiting, the screen shows the device's own copy. When everything has synced it refreshes from the
   server, but not while someone is typing in a song.
 - The header shows "Offline", "N waiting" or "Check sync". Signing out with unsynced changes asks first, and the queue
@@ -205,10 +205,9 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   on this device” with Retry. Failed writes remain as clearly unsaved drafts in the current page only; they are not
   sent or represented as durable, and will be lost if the page closes before a successful retry.
 - Existing `q:<user id>` and `qi:<user id>` localStorage data is not migrated or deleted. Existing queue entries remain
-  readable and sync through the existing path. New IndexedDB-backed operations are also mirrored to the legacy queue
-  when possible; on startup, the two sources are combined by operation ID. IndexedDB acknowledgement receipts suppress
-  a stale mirrored localStorage operation after a successful server response. Cached app data remains in localStorage;
-  cache migration is Phase 2C.
+  readable and sync through the existing path. Phase 2A.2 imports legacy queue and issue records into IndexedDB while
+  retaining their localStorage source records. IndexedDB operations are authoritative for duplicate IDs; differences are
+  quarantined and surfaced. Cached app data remains in localStorage; cache migration is Phase 2C.
 - IndexedDB operations transition through `pending`, `inFlight` and `blocked`. Startup returns interrupted `inFlight`
   operations to `pending`; transient sync failures do likewise. A successful server response is recorded as an
   acknowledgement and removes the IndexedDB operation in one transaction. Permanent failures remain as `blocked`
@@ -221,6 +220,33 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   remains. Browser-native IndexedDB, PWA restart behavior, real-device behavior, and Supabase sync were not tested here.
   Unit tests use a small in-memory IndexedDB test double and cover the queue transaction contract, not browser IDB
   implementation details.
+
+### Legacy queue migration and recovery (Phase 2A.2, 2026-11-20)
+- The IndexedDB schema is now version 2. It adds `issues` and `quarantine` stores while preserving existing operation
+  records and metadata. Legacy source keys remain `q:<user id>` (pending operations) and `qi:<user id>` (sync issues).
+- At account queue load, both localStorage values are read and parsed independently. Valid operation and issue payloads
+  are migrated with their original IDs, payloads and array order. Invalid JSON, non-array values, malformed records,
+  duplicate-ID payload disagreements and cross-account ID collisions are retained in the IndexedDB quarantine store;
+  the original localStorage data is never removed. A legacy issue overlapping a queued operation is represented as
+  blocked so it is not accidentally resubmitted.
+- Migration writes are transactional and idempotent. A `legacyMigration:<user id>` marker first records `verifying`;
+  the app rereads and checks operations, issues and quarantined rows, then separately commits and rereads `complete`.
+  Startup repeats migration from the retained source data, which also discovers late localStorage-only entries. If a
+  write or verification is interrupted, original data remains and a later load can safely retry.
+- IndexedDB wins for duplicate operation IDs. A differing legacy copy is quarantined and reported. If IndexedDB cannot
+  open, be read, or contains malformed stored records, queue loading reports that saved changes are inaccessible and
+  gates all Supabase queue synchronization. A retry control reruns queue recovery. Phase 1 authentication gating and
+  field-level song conflict handling are unchanged.
+- `saveQ()` now retains existing localStorage queue/issue entries and appends unseen IDs rather than clearing completed
+  items. Acknowledgement and resolution receipts suppress those retained copies during future migration. This preserves
+  migration sources but can grow localStorage over time; safe pruning needs a separate reviewed policy.
+- Migration completion is quiet when there is nothing to recover. Recovered counts, malformed/conflicting record counts,
+  and unreadable-queue failures are shown in the Sync dialog. Quarantine is retained for recovery but has no dedicated
+  user-facing record editor yet.
+- Tests run under Node's built-in runner with the repository's in-memory IndexedDB test double. Browser-native IndexedDB,
+  service-worker update behavior, real-device restarts, multiple-tab races and live Supabase behavior remain unverified.
+  Client acknowledgement still cannot prevent a duplicate server submission after an applied write loses its response;
+  server-side idempotency remains outstanding and is excluded from this phase.
 
 ## Lyrics and links
 - Each song has a lyrics link. A text box for the band's own lyrics or cues is wanted later. The app never supplies or fetches lyrics.

@@ -7,7 +7,7 @@ class FakeStore {
   constructor(transaction, name) { this.transaction = transaction; this.name = name; }
   createIndex(name, keyPath, options) { this.transaction.db.indexes.get(this.name).push({ name, keyPath, unique: !!options?.unique }); }
   get(key) { return this.transaction.request(() => this.transaction.rows(this.name).get(key)); }
-  getAll() { return this.transaction.request(() => [...this.transaction.rows(this.name).values()].map((row) => structuredClone(row))); }
+  getAll() { return this.transaction.request(() => { if (this.transaction.db.failGetAll) throw new Error('simulated read failure'); return [...this.transaction.rows(this.name).values()].map((row) => structuredClone(row)); }); }
   put(value) {
     return this.transaction.request(() => {
       const db = this.transaction.db;
@@ -92,6 +92,8 @@ test('opens and initializes the versioned stores and indexes', async () => {
   const db = indexedDB.databases.get('open-test');
   assert.ok(db.stores.has('operations'));
   assert.ok(db.stores.has('metadata'));
+  assert.ok(db.stores.has('issues'));
+  assert.ok(db.stores.has('quarantine'));
   assert.equal(db.keyPaths.get('operations'), 'operationId');
   assert.equal(db.keyPaths.get('metadata'), 'key');
   assert.deepEqual(db.indexes.get('operations').map((index) => index.name), ['byUserSequence', 'byUserStatusSequence']);
@@ -181,4 +183,114 @@ test('status can be recovered and acknowledged operations do not remain pending'
   await queue.enqueueMany([edit(2)], userId);
   await queue.remove(userId, id(2));
   assert.equal(await queue.isResolved(userId, id(2)), true);
+});
+
+test('migrates valid legacy operations and issues, then verifies completion', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-success' });
+  const operations = [edit(1), edit(2)], issues = [{ ...edit(3), conflicts: [{ field: 'bpm', mine: 120, theirs: 110 }] }];
+  const result = await queue.migrateLegacy(userId, { operations, issues });
+  assert.equal(result.completed, true);
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation), operations);
+  assert.deepEqual((await queue.listIssues(userId)).map((row) => row.issue), issues);
+  assert.equal((await queue.getMetadata(`legacyMigration:${userId}`)).state, 'complete');
+});
+
+test('a legacy operation also present in the issue list is retained as blocked, not resent', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-issue-overlap' });
+  const operation = edit(1), issue = { ...operation, fail: 'Rejected by server' };
+  await queue.migrateLegacy(userId, { operations: [operation], issues: [issue] });
+  const [row] = await queue.list(userId);
+  assert.equal(row.status, 'blocked');
+  assert.deepEqual((await queue.listIssues(userId)).map((entry) => entry.issue), [issue]);
+});
+
+test('duplicate IDs and repeated migration do not create duplicate operations', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-idempotent' });
+  const legacy = [edit(1), edit(1)];
+  await queue.migrateLegacy(userId, { operations: legacy });
+  await queue.migrateLegacy(userId, { operations: legacy });
+  assert.equal((await queue.list(userId)).length, 1);
+});
+
+test('interrupted migration can be retried without losing source operations', async () => {
+  const indexedDB = new FakeIndexedDB(), queue = await openOfflineQueue({ indexedDB, name: 'migration-interrupt' });
+  const source = [edit(1), edit(2)];
+  indexedDB.databases.get('migration-interrupt').failOnWriteNumber = 2;
+  await assert.rejects(queue.migrateLegacy(userId, { operations: source }), OfflineQueueError);
+  assert.deepEqual(source, [edit(1), edit(2)]);
+  indexedDB.databases.get('migration-interrupt').failOnWriteNumber = 0;
+  const result = await queue.migrateLegacy(userId, { operations: source });
+  assert.equal(result.completed, true);
+  assert.equal((await queue.list(userId)).length, 2);
+});
+
+test('malformed operations and issues are quarantined without mutating source arrays', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-quarantine' });
+  const operations = [edit(1), { ...edit(2), t: 'unsupported' }];
+  const issues = [{ ...edit(3), sid: '' }];
+  const originalOperations = structuredClone(operations), originalIssues = structuredClone(issues);
+  const result = await queue.migrateLegacy(userId, { operations, issues, malformed: [{ source: 'queue', index: 5, raw: '{bad', reason: 'Malformed JSON' }] });
+  assert.equal(result.completed, true);
+  assert.equal((await queue.list(userId)).length, 1);
+  assert.equal((await queue.listIssues(userId)).length, 0);
+  assert.equal((await queue.listQuarantine(userId)).length, 3);
+  assert.deepEqual(operations, originalOperations);
+  assert.deepEqual(issues, originalIssues);
+});
+
+test('IndexedDB payload wins for a duplicate ID and the mismatch is quarantined', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-authority' });
+  const durable = edit(1), stale = { ...edit(1), set: { bpm: 77 } };
+  await queue.enqueueMany([durable], userId);
+  const result = await queue.migrateLegacy(userId, { operations: [stale] });
+  assert.deepEqual((await queue.list(userId))[0].operation, durable);
+  assert.deepEqual(result.mismatches, [durable.qid]);
+  assert.match((await queue.listQuarantine(userId))[0].reason, /IndexedDB operation is authoritative/);
+});
+
+test('does not overwrite a queue record owned by another account when IDs collide', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-account-collision' });
+  const otherUser = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', existing = edit(1);
+  await queue.enqueueMany([existing], otherUser);
+  const result = await queue.migrateLegacy(userId, { operations: [existing] });
+  assert.deepEqual(await queue.list(userId), []);
+  assert.deepEqual((await queue.list(otherUser)).map((row) => row.operation), [existing]);
+  assert.deepEqual(result.mismatches, [existing.qid]);
+  assert.equal((await queue.getMetadata(`legacyMigration:${userId}`)).state, 'complete');
+});
+
+test('legacy localStorage-only operations are retained in IndexedDB and remain in their source array', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-legacy-retained' });
+  const source = [edit(1)], before = structuredClone(source);
+  await queue.migrateLegacy(userId, { operations: source });
+  assert.deepEqual(source, before);
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation), before);
+});
+
+test('opening and reading IndexedDB failures reject migration instead of reporting an empty queue', async () => {
+  await assert.rejects(openOfflineQueue({ indexedDB: null }), OfflineQueueError);
+  const indexedDB = new FakeIndexedDB(), queue = await openOfflineQueue({ indexedDB, name: 'migration-read-failure' });
+  indexedDB.databases.get('migration-read-failure').failGetAll = true;
+  await assert.rejects(queue.migrateLegacy(userId, { operations: [] }), /simulated read failure/);
+  indexedDB.databases.get('migration-read-failure').failGetAll = false;
+  assert.equal(await queue.getMetadata(`legacyMigration:${userId}`), null);
+});
+
+test('malformed stored IndexedDB operations reject retrieval instead of looking like an empty queue', async () => {
+  const indexedDB = new FakeIndexedDB(), queue = await openOfflineQueue({ indexedDB, name: 'corrupt-idb-row' });
+  await queue.enqueueMany([edit(1)], userId);
+  const db = indexedDB.databases.get('corrupt-idb-row'), row = db.stores.get('operations').get(id(1));
+  row.operation = { ...row.operation, t: 'corrupt' };
+  db.stores.get('operations').set(id(1), row);
+  await assert.rejects(queue.list(userId), /Saved operation data is malformed; synchronization is paused/);
+});
+
+test('migration does not mark completion until verification succeeds', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-verify' });
+  const list = queue.list;
+  queue.list = async () => { throw new OfflineQueueError('simulated verification read failure'); };
+  await assert.rejects(queue.migrateLegacy(userId, { operations: [edit(1)] }), /simulated verification read failure/);
+  assert.equal((await queue.getMetadata(`legacyMigration:${userId}`)).state, 'verifying');
+  queue.list = list;
+  assert.equal((await queue.migrateLegacy(userId, { operations: [edit(1)] })).completed, true);
 });
