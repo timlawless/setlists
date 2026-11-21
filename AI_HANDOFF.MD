@@ -1,7 +1,7 @@
 # Development handoff
 
 A status snapshot for whoever picks this work up next (a person or an AI). Last updated: November 2026, after the guitar or
-bass view, the progression link finder and the Use-saves-at-once change.
+bass view, the progression link finder the Use-saves-at-once change a smaller Open button and tighter progression searches, the Spotify and Moises links (SQL v12) and role-based gig mode (SQL v13).
 Read `AGENTS.md` for the rules, `docs/architecture.md` for the design and `docs/roadmap.md` for the plan.
 This file is updated with every set of files, together with the roadmap, the architecture notes and the commit message.
 If it disagrees with the repository, the repository wins: correct this file.
@@ -28,8 +28,8 @@ experiments, not as the live app, and check with Tim before building on them.
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and two Edge Functions: `lookup-song` (tempo and
   key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
   `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
-- **Database files:** v1 to v11 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
-  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song).
+- **Database files:** v1 to v13 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
+  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song), v12 `songs.spotify_url` and `songs.moises_url`, v13 allows the `backing` instrument role.
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -45,11 +45,19 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   bass edits `songs.root_notes` (the old Root notes column, brought back as the Bass line). The view is remembered per person
   and song (default bass for bassists, guitar for everyone else; anyone can switch on any song), stored in `song_views` with a
   copy on the device. Gig mode has the same switch for guitarists, keyboards and bassists.
-- **Progression link finder:** Find chords link / Find bass tab link lists search pages (Ultimate Guitar, Songsterr, Google).
+- **Progression link finder:** Find chords link / Find bass tab link lists four searches with the quoted, tidied title and artist: Google limited to Ultimate Guitar, Songsterr or Chordify, a plain Google search and, for bass, a YouTube lesson search. The artist must be filled in first.
   Open goes to a new page; Use (editors) puts the link in the box and saves it at once, after asking if something is already
   written there. Nothing is fetched. The lyrics finder behaves the same way: Use saves at once, with the same question.
 - A box that holds just one link shows a larger Open button beside its label, "Chords: link" on song rows, and an Open
   button in gig mode.
+- **Listen links (SQL v12):** a song has YouTube (the older box), Spotify and Moises link boxes, shared by the band, each with a
+  large Open button beside a stored link. Spotify and Moises entries go through `cleanLink` (Spotify's `si` tracking dropped); a bad
+  entry is refused. Moises is pasted by hand (the app cannot see a Moises library). Gig mode has a Listen panel: Moises version,
+  YouTube, Spotify, only the ones that exist.
+- **Role-based gig mode (SQL v13):** each role puts its own fields first. Singer: Lyrics, Key, Structure. Guitarist and Keyboards: Chords,
+  Key, Structure, BPM. Bassist: Chords (bass line by default), Key, BPM. Drummer: BPM, Time, Structure, Notes. Backing singer (new role,
+  `backing`, used with another role) adds the lyrics after the other fields. Roles merge in the order of the roles list. Other fields
+  that have something in them wait under a collapsed More fields bar. The Details view is unchanged.
 - The GetSongBPM link was removed from the footer while no key is in use.
 
 ## 3. State of the work
@@ -59,10 +67,12 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   the compact right-hand panel, Song structure (SQL v10), lyrics link suggestions (needs the `find-lyrics-link` function
   deployed and `GENIUS_ACCESS_TOKEN` saved), the progression link finder, and the earlier items listed in the roadmap
   (offline editing, flash limit, sign-in and invite changes, launch speed, install help).
+- **Paused by Tim:** layout tweaks to the song details after the recent additions. He will return to them once all functionality is in place. The Open button was reduced slightly after a first look.
+- **Delivered, awaiting review:** the Spotify and Moises links and the gig mode Listen panel (SQL v12: run it first, then upload `index.html`), and role-based gig mode with the Backing singer role (SQL v13: run it first; it only widens a role rule if one exists).
 - **Waiting:** the email service for reset and sign-in codes (SQL v7 needs it), the GetSongBPM API key, and a second lookup
   source for songs Song Finder cannot find.
 - **Not built:** Google sign-in, history restore, MusicBrainz and merging lookup sources, full lyrics text, per-band app icon,
-  high-contrast mode, a separate progression link field beside the manual chords and bass line, `cleanLink` on every stored link.
+  high-contrast mode, a separate progression link field beside the manual chords and bass line, `cleanLink` on every stored link (the new Spotify and Moises boxes use it; lyrics and YouTube links do not yet), automatic finding of the most popular YouTube and Spotify link.
 
 ## 4. Next tasks, in order
 1. Test the latest changes on real devices: the guitar or bass switch and Use in the right-hand panel and the phone layout,
@@ -72,7 +82,10 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 4. Apply `cleanLink` to every stored link (a gap against `AGENTS.md`). The page already uses it for suggested links.
 5. Put the SQL files, `check_schema.sql` and the permission and sync tests into the repository (`sql/`). The v11 tests were run
    on an in-memory Postgres and are not stored yet.
-6. Decide whether a progression link needs its own field, then Google sign-in and history restore.
+6. Check the tighter progression searches on real songs (roadmap backlog 29, step 1 built). If they still miss, build step 2: a function that finds specific videos.
+7. Decide whether a progression link needs its own field, then Google sign-in and history restore.
+8. Listen links stage 2: a function (`find-listen-link`) that finds the most popular YouTube video and Spotify track for a song, with Use saving at once and the overwrite question, always overridable by hand. It needs a YouTube Data API key and a Spotify client ID and secret as Supabase secrets.
+9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different.
 
 ## 5. Things learned the hard way
 - Use `@supabase/supabase-js@2` from the CDN. An older pinned version rejected the newer `sb_publishable_` keys and
@@ -94,6 +107,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 - Deleting a band cascades, so use a typed confirmation.
 - GitHub Pages cannot route paths such as `/band-name`. Use a `#` link, or move the hosting.
 - Chrome on a laptop had its own volume set to zero in the system mixer, which looked like an app bug.
+- Reading a repo file in Python text mode turns CRLF into LF without warning. Open with `newline=''` (or in binary) so the file keeps its line endings.
 - Everything in `app/` is public.
 - Testing available to the assistant: an in-memory Postgres (PGlite) with a stand-in for Supabase auth for SQL and row-level
   security, and a simulated browser (jsdom) with a stand-in database for page logic. There is no real browser, phone, tablet or
@@ -116,4 +130,4 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 ## 7. Open decisions
 Web address and hosting (GitHub Pages, or a new domain), same-field conflict rule (ask, current, or later change wins),
 Google and Apple sign-in, how to rank "well known" song versions, pruning of removed songs and old history, how long
-to keep history on the device, and whether a progression link gets its own field beside the manual chords and bass line.
+to keep history on the device, whether a progression link gets its own field beside the manual chords and bass line, and how to make the progression suggestions land on the right song, and what counts as the "most popular" version for the automatic YouTube and Spotify find, and whether other roles also want the Time signature in gig mode.
