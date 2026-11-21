@@ -62,13 +62,13 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 
 ## 3. State of the work
 `docs/roadmap.md`, "In progress and waiting", is the authoritative list of what is installed and what is awaiting review.
-- **Tried by Tim and reported working:** the iPhone install test, and SQL v11 with the guitar or bass view.
-- **Delivered, not yet confirmed on real devices:** Use saving at once and the larger Open button (lyrics and progression),
+- **Tried by Tim and reported working:** the iPhone install test, and the recent sets: SQL v11 to v13 (guitar or bass view, Spotify and Moises links, role-based gig mode with the Backing singer role), Use saving at once, and the Open button. Tim says it all works, but the views have become busy and need tidying later.
+- **Delivered, not yet confirmed on real devices:**
   the compact right-hand panel, Song structure (SQL v10), lyrics link suggestions (needs the `find-lyrics-link` function
   deployed and `GENIUS_ACCESS_TOKEN` saved), the progression link finder, and the earlier items listed in the roadmap
   (offline editing, flash limit, sign-in and invite changes, launch speed, install help).
-- **Paused by Tim:** layout tweaks to the song details after the recent additions. He will return to them once all functionality is in place. The Open button was reduced slightly after a first look.
-- **Delivered, awaiting review:** the Spotify and Moises links and the gig mode Listen panel (SQL v12: run it first, then upload `index.html`), and role-based gig mode with the Backing singer role (SQL v13: run it first; it only widens a role rule if one exists).
+- **Paused by Tim:** layout tweaks to the song details and gig mode. Tim finds the views messier after the recent additions. He will return to them once all functionality is in place. The Open button was reduced slightly after a first look.
+- **Not yet reported on:** the tighter progression searches (roadmap backlog 29). Whether they reach the right song is still unknown.
 - **Waiting:** the email service for reset and sign-in codes (SQL v7 needs it), the GetSongBPM API key, and a second lookup
   source for songs Song Finder cannot find.
 - **Not built:** Google sign-in, history restore, MusicBrainz and merging lookup sources, full lyrics text, per-band app icon,
