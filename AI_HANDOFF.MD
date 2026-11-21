@@ -234,3 +234,9 @@ provides a rollback-only Supabase integration check, but no PostgreSQL/Supabase 
 not run. The migration is not applied to the live Supabase project; do not treat server idempotency as validated or
 deployed. Browser-native IndexedDB, multi-tab Web Locks, reconnect/crash recovery and real-device/PWA updates remain
 untested. No dependencies were installed. Phase 2B has not started.
+
+## v14 migration static-check correction (2026-11-21)
+The empty song-edit field set is checked with `v_set = '{}'::jsonb` after validating that `v_set` is an object. The
+unsupported `jsonb_object_length` call has been removed. `test/offline-idempotency-migration.test.mjs` statically checks
+the object validation, empty-object comparison and absence of `jsonb_object_length`/`json_object_length`. The migration
+was not applied to Supabase; the rollback-only integration test still requires a non-production Supabase project.
