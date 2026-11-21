@@ -248,6 +248,19 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   Client acknowledgement still cannot prevent a duplicate server submission after an applied write loses its response;
   server-side idempotency remains outstanding and is excluded from this phase.
 
+### Phase 2A.2 ordering and record validation follow-up
+- Migration reorders the current user's durable operations by valid creation time while retaining source order for each
+  stream. Equal or missing timestamps use a deterministic legacy-before-IndexedDB fallback; source ordering and known
+  create-before-reference relationships (song, setlist-song and link IDs) constrain the merge. The Sync dialog reports
+  when fallback ordering was used. Existing localStorage sources remain intact.
+- When duplicate IDs conflict, an existing IndexedDB operation remains authoritative. If no durable copy exists, the
+  first valid legacy queue occurrence is used as canonical by FIFO source order and every differing later occurrence is
+  quarantined with its raw payload. Migration verifies both canonical and quarantine records before completion.
+- IndexedDB operation, issue and quarantine ownership metadata is validated before records are filtered by user. A row
+  with malformed ownership fails queue loading and keeps sync paused; valid rows for other users remain isolated.
+- Ordering and ownership behavior is covered by queue unit tests. The in-memory test double does not validate native
+  IndexedDB index enforcement, browser transaction scheduling, multi-tab behavior or real-device persistence.
+
 ## Lyrics and links
 - Each song has a lyrics link. A text box for the band's own lyrics or cues is wanted later. The app never supplies or fetches lyrics.
 - Links are accepted only if they start with http or https. The earlier `cleanLink` rule (unwrap pasted Google redirect

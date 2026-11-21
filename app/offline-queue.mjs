@@ -6,6 +6,7 @@ const ISSUE_STORE = 'issues';
 const QUARANTINE_STORE = 'quarantine';
 const VALID_STATUSES = new Set(['pending', 'inFlight', 'blocked']);
 const VALID_TYPES = new Set(['song', 'songNew', 'songDel', 'slAdd', 'slPos', 'slRemove', 'linkAdd', 'linkDel']);
+const VALID_USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class OfflineQueueError extends Error {
   constructor(message, cause) {
@@ -45,6 +46,12 @@ export function validateOperation(operation, userId) {
       break;
   }
   return operation;
+}
+
+function validateStoredOwner(row, idField) {
+  if (!row || typeof row !== 'object' || !VALID_USER_ID.test(row.userId || '') || typeof row[idField] !== 'string') {
+    throw new OfflineQueueError('Stored queue record has malformed ownership metadata');
+  }
 }
 
 function transactionResult(tx, work) {
@@ -126,20 +133,34 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
             const existingOps = new Map(data[0].map((row) => [row.operationId, row]));
             const metadata = new Map(data[1].map((row) => [row.key, row]));
             const existingIssues = new Map(data[2].map((row) => [row.issueId, row]));
+            for (const row of existingOps.values()) validateStoredOwner(row, 'operationId');
+            for (const row of existingIssues.values()) validateStoredOwner(row, 'issueId');
+            for (const row of data[3]) validateStoredOwner(row, 'quarantineId');
             const existingQuarantine = new Map(data[3].filter((row) => row.userId === userId).map((row) => [row.quarantineId, row]));
             const legacyIssueById = new Map(validIssues.map(({ issue }) => [issue.qid, issue]));
             let sequence = Math.max(metadata.get('nextSequence')?.value || 0, ...[...existingOps.values()].map((row) => row.sequence || 0));
             let issueSequence = Math.max(metadata.get(`issueSequence:${userId}`)?.value || 0, ...[...existingIssues.values()].map((row) => row.sequence || 0));
-            const mismatches = [], imported = [], importedIssues = [], quarantined = [];
+            const mismatches = [], imported = [], importedIssues = [], quarantined = [], quarantineExpected = new Map();
             const putQuarantine = (source, index, raw, reason, stableId = '') => {
               const quarantineId = `legacy:${userId}:${stableId || `${source}:${index}`}`;
               if (!existingQuarantine.has(quarantineId)) {
                 const row = { quarantineId, userId, source, index, raw, reason: String(reason || 'Malformed legacy record'), createdAt: new Date().toISOString() };
                 quarantineStore.put(row); existingQuarantine.set(quarantineId, row);
               }
+              quarantineExpected.set(quarantineId, raw);
               quarantined.push(quarantineId);
             };
-            for (const { operation, index } of validOperations) {
+            const canonicalLegacy = new Map();
+            for (const item of validOperations) {
+              const prior = canonicalLegacy.get(item.operation.qid);
+              if (!prior) canonicalLegacy.set(item.operation.qid, item);
+              else if (JSON.stringify(prior.operation) !== JSON.stringify(item.operation)) {
+                putQuarantine('queue-mismatch', item.index, item.operation, 'Duplicate legacy operation ID has a different payload; first occurrence in the retained FIFO source is authoritative', `legacy-duplicate:${item.operation.qid}:${item.index}`);
+                mismatches.push(item.operation.qid);
+              }
+            }
+            const candidates = [];
+            for (const { operation, index } of canonicalLegacy.values()) {
               const old = existingOps.get(operation.qid);
               if (old) {
                 if (old.userId !== userId) {
@@ -153,10 +174,56 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
                 continue;
               }
               if (metadata.get(`ack:${operation.qid}`)?.userId === userId || metadata.get(`resolved:${operation.qid}`)?.userId === userId) continue;
-              sequence += 1;
               const relatedIssue = legacyIssueById.get(operation.qid);
-              const row = { operationId: operation.qid, userId, sequence, operation, status: relatedIssue ? 'blocked' : 'pending', attempts: 0, createdAt: operation.at || new Date().toISOString(), error: relatedIssue ? { fail: relatedIssue.fail, conflicts: relatedIssue.conflicts } : null };
-              opStore.put(row); existingOps.set(operation.qid, row); imported.push(operation.qid);
+              candidates.push({ operation, index, relatedIssue });
+            }
+            const validTime = (value) => { const time = Date.parse(value || ''); return Number.isFinite(time) ? time : null; };
+            const allRows = [...existingOps.values()].filter((row) => row.userId === userId);
+            const legacyRows = candidates.map(({ operation, index, relatedIssue }) => ({ operationId: operation.qid, userId, operation, status: relatedIssue ? 'blocked' : 'pending', attempts: 0, createdAt: operation.at || '', error: relatedIssue ? { fail: relatedIssue.fail, conflicts: relatedIssue.conflicts } : null, _legacyIndex: index, _legacy: true }));
+            const nodes = [...allRows.map((row) => ({ ...row, _legacy: false })), ...legacyRows];
+            const compareOrder = (a, b) => {
+              const ta = validTime(a._legacy ? a.operation.at : a.createdAt), tb = validTime(b._legacy ? b.operation.at : b.createdAt);
+              if (ta !== null && tb !== null && ta !== tb) return ta - tb;
+              if (ta === null || tb === null) {
+                if (a._legacy !== b._legacy) return a._legacy ? -1 : 1; // recoverable fallback: retained legacy FIFO precedes durable-only records
+                return a._legacy ? a._legacyIndex - b._legacyIndex : a.sequence - b.sequence;
+              }
+              if (a._legacy && b._legacy) return a._legacyIndex - b._legacyIndex;
+              if (!a._legacy && !b._legacy) return a.sequence - b.sequence;
+              return a._legacy ? -1 : 1;
+            };
+            const predecessors = new Map(nodes.map((row) => [row.operationId, new Set()]));
+            let fallbackOrder = 0;
+            const sourceOrder = (a, b) => a._legacy === b._legacy && (a._legacy ? a._legacyIndex < b._legacyIndex : a.sequence < b.sequence);
+            const creates = (a, b) => {
+              const first = a.operation, next = b.operation;
+              if (first.t === 'songNew') return (next.t === 'song' && next.sid === first.row.id) || (next.t === 'songDel' && next.sid === first.row.id) || (next.t === 'slAdd' && next.row.song_id === first.row.id) || (next.t === 'linkAdd' && next.row.song_id === first.row.id);
+              if (first.t === 'slAdd') return (next.t === 'slPos' || next.t === 'slRemove') && next.id === first.row.id;
+              if (first.t === 'linkAdd') return next.t === 'linkDel' && next.id === first.row.id;
+              return false;
+            };
+            for (const a of nodes) for (const b of nodes) if (a !== b && ((sourceOrder(a, b) && !creates(b, a)) || creates(a, b))) predecessors.get(b.operationId).add(a.operationId);
+            const ordered = [], emitted = new Set();
+            while (ordered.length < nodes.length) {
+              const ready = nodes.filter((row) => !emitted.has(row.operationId) && [...predecessors.get(row.operationId)].every((id) => emitted.has(id))).sort(compareOrder);
+              if (!ready.length) {
+                // Preserve access to every record even if corrupted references form an impossible dependency cycle.
+                // Stable source/time order is the deterministic recovery choice; the original sources remain intact.
+                fallbackOrder++;
+                const remaining = nodes.filter((row) => !emitted.has(row.operationId)).sort(compareOrder);
+                for (const row of remaining) { emitted.add(row.operationId); ordered.push(row); }
+                break;
+              }
+              const row = ready[0]; emitted.add(row.operationId); ordered.push(row);
+            }
+            for (const legacy of legacyRows) for (const durable of allRows) {
+              const a = validTime(legacy.operation.at), b = validTime(durable.createdAt);
+              if (a === null || b === null || a === b) fallbackOrder++;
+            }
+            for (const orderedRow of ordered) {
+              const sequenceValue = ++sequence;
+              if (orderedRow._legacy) { const { _legacyIndex, _legacy, ...storedRow } = orderedRow; storedRow.sequence = sequenceValue; opStore.put(storedRow); imported.push(orderedRow.operationId); }
+              else { const { _legacy, ...storedRow } = orderedRow; storedRow.sequence = sequenceValue; opStore.put(storedRow); }
             }
             for (const { issue, index } of validIssues) {
               if (metadata.get(`ack:${issue.qid}`)?.userId === userId || metadata.get(`resolved:${issue.qid}`)?.userId === userId) continue;
@@ -180,7 +247,7 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
             metaStore.put({ key: 'nextSequence', value: sequence });
             metaStore.put({ key: `issueSequence:${userId}`, value: issueSequence });
             metaStore.put({ key: `legacyMigration:${userId}`, state: 'verifying', updatedAt: new Date().toISOString() });
-            migrationResult = { imported, importedIssues, mismatches: [...new Set(mismatches)], quarantined: [...new Set(quarantined)] };
+            migrationResult = { imported, importedIssues, mismatches: [...new Set(mismatches)], quarantined: [...new Set(quarantined)], quarantineExpected: [...quarantineExpected], fallbackOrder };
           } catch (error) { abort(error); }
         };
         requests.forEach((request, index) => {
@@ -196,7 +263,9 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
       const opById = new Map(storedOperations.map((row) => [row.operationId, row]));
       const issueById = new Map(storedIssues.map((row) => [row.issueId, row]));
       const quarantineById = new Map(storedQuarantine.map((row) => [row.quarantineId, row]));
-      for (const { operation } of validOperations) {
+      const canonical = new Map();
+      for (const { operation } of validOperations) if (!canonical.has(operation.qid)) canonical.set(operation.qid, operation);
+      for (const [operationId, operation] of canonical) {
         if (await this.isAcknowledged(userId, operation.qid) || await this.isResolved(userId, operation.qid)) continue;
         const row = opById.get(operation.qid);
         if (!row && migrationResult.mismatches.includes(operation.qid)) continue;
@@ -205,12 +274,15 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
       for (const { issue } of validIssues) {
         if (!(await this.isAcknowledged(userId, issue.qid)) && !(await this.isResolved(userId, issue.qid)) && !issueById.has(issue.qid) && !migrationResult.mismatches.includes(issue.qid)) throw new OfflineQueueError('Legacy issue verification failed');
       }
-      for (const id of migrationResult.quarantined) if (!quarantineById.has(id)) throw new OfflineQueueError('Quarantined record verification failed');
+      for (const [id, raw] of migrationResult.quarantineExpected) {
+        const stored = quarantineById.get(id);
+        if (!stored || JSON.stringify(stored.raw) !== JSON.stringify(raw)) throw new OfflineQueueError('Quarantined record verification failed');
+      }
       const markerTx = db.transaction(METADATA_STORE, 'readwrite');
       await transactionResult(markerTx, () => markerTx.objectStore(METADATA_STORE).put({ key: `legacyMigration:${userId}`, state: 'complete', completedAt: new Date().toISOString() }));
       const marker = await this.getMetadata(`legacyMigration:${userId}`);
       if (marker?.state !== 'complete') throw new OfflineQueueError('Legacy migration completion could not be verified');
-      return { ...migrationResult, completed: true, operationCount: storedOperations.length, issueCount: storedIssues.length, quarantinedCount: storedQuarantine.length };
+      return { ...migrationResult, quarantineExpected: undefined, completed: true, operationCount: storedOperations.length, issueCount: storedIssues.length, quarantinedCount: storedQuarantine.length };
     },
     async listIssues(userId) {
       const tx = db.transaction(ISSUE_STORE, 'readonly');
@@ -218,6 +290,7 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
         let rows = [], failure;
         tx.oncomplete = () => {
           try {
+            for (const row of rows) validateStoredOwner(row, 'issueId');
             const mine = rows.filter((row) => row.userId === userId);
             for (const row of mine) { validateOperation(row.issue, userId); if (row.issueId !== row.issue.qid || !Number.isSafeInteger(row.sequence) || row.sequence < 1) throw new OfflineQueueError('Stored issue metadata is malformed'); }
             resolve(mine.sort((a, b) => a.sequence - b.sequence));
@@ -236,6 +309,7 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
         let rows = [], failure;
         tx.oncomplete = () => {
           try {
+            for (const row of rows) validateStoredOwner(row, 'quarantineId');
             const mine = rows.filter((row) => row.userId === userId);
             for (const row of mine) if (typeof row.quarantineId !== 'string' || typeof row.createdAt !== 'string' || typeof row.reason !== 'string') throw new OfflineQueueError('Quarantine metadata is malformed');
             resolve(mine.sort((a, b) => a.createdAt.localeCompare(b.createdAt)));
@@ -309,6 +383,7 @@ export async function openOfflineQueue({ indexedDB = globalThis.indexedDB, name 
         let rows = [], failure;
         tx.oncomplete = () => {
           try {
+            for (const row of rows) validateStoredOwner(row, 'operationId');
             const mine = rows.filter((row) => row.userId === userId);
             for (const row of mine) {
               if (row.operationId !== row.operation?.qid || !Number.isSafeInteger(row.sequence) || row.sequence < 1 || !VALID_STATUSES.has(row.status)) throw new OfflineQueueError('Stored operation metadata is malformed');

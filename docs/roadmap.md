@@ -140,6 +140,11 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
   `qi:<user>` issues into IndexedDB, retain originals, quarantine malformed/divergent records, make migration repeatable,
   and pause sync with clear feedback when IndexedDB cannot be read. Automated coverage uses an in-memory IndexedDB test
   double; browser and device behavior remains unverified.
+- [x] **Phase 2A.2 follow-up – order and ownership recovery.** Interleave legacy and durable operations using timestamps
+      while preserving each source's order and known create dependencies; apply a deterministic legacy-first fallback for
+      equal/missing timestamps and report it in Sync. Quarantine divergent duplicate payloads while verifying the chosen
+      operation and retained copy. Validate IndexedDB ownership metadata before user filtering. Browser-native IndexedDB
+      and device behavior remain unverified.
 - [ ] **Phase 2A.3 – Server acknowledgement recovery.** Design and test server-side idempotency for applied writes whose
   response or local acknowledgement is lost. This phase did not change Supabase schemas/RPCs or multi-tab behavior.
 - [ ] **Phase 2C – Cached application data.** Assess and implement a separate migration for cached bands, setlists,

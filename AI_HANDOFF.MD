@@ -204,3 +204,12 @@ in-memory IndexedDB test double; browser-native IndexedDB, multiple tabs, PWA/de
 were not tested. No dependencies were installed. Existing localStorage source records are retained and can grow over
 time; quarantine has no record-editor UI. Lost Supabase responses can still cause duplicate submissions because
 server-side idempotency is outside this phase. Phase 2C cache migration remains separate.
+
+## Phase 2A.2 correction follow-up
+The follow-up on `codex-dev` preserves source order within IndexedDB and legacy localStorage while interleaving by valid
+timestamps. Equal or missing timestamps use a deterministic legacy-first fallback; known song, setlist-song and link
+creation dependencies take precedence, and the Sync dialog reports fallback decisions. Divergent duplicate legacy IDs
+retain the first FIFO occurrence only when there is no existing IndexedDB authority; later variants are stored and
+verified in quarantine. Ownership metadata is validated before user filtering, so malformed ownership pauses queue load.
+Tests cover interleaving, a cross-source dependency, missing timestamps, duplicate variants and malformed ownership.
+Native IndexedDB and real-device behavior remain unverified. Phase 2A.3 is still pending approval and has not started.

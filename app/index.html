@@ -389,6 +389,7 @@ async function loadQ() {
       queueReady = true; queueLoadError = '';
       const warnings = [];
       if (migration.mismatches.length) warnings.push(`${migration.mismatches.length} localStorage record(s) differed from IndexedDB; the IndexedDB versions are being used and the other copies were quarantined.`);
+      if (migration.fallbackOrder) warnings.push(`${migration.fallbackOrder} cross-source ordering decision(s) used a deterministic fallback because timestamps were missing, invalid, or equal. Each source's original order and recognized dependencies were preserved; all queued changes remain available to sync.`);
       if (quarantined.length) warnings.push(`${quarantined.length} malformed or conflicting saved record(s) were quarantined. The original localStorage data is still retained.`);
       const recovered = migration.imported.length + migration.importedIssues.length;
       if (!warnings.length && recovered) warnings.push(`Recovered and verified ${recovered} earlier saved change(s) from this device.`);

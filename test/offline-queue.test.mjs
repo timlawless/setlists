@@ -243,9 +243,12 @@ test('IndexedDB payload wins for a duplicate ID and the mismatch is quarantined'
   const durable = edit(1), stale = { ...edit(1), set: { bpm: 77 } };
   await queue.enqueueMany([durable], userId);
   const result = await queue.migrateLegacy(userId, { operations: [stale] });
+  assert.equal(result.completed, true);
   assert.deepEqual((await queue.list(userId))[0].operation, durable);
   assert.deepEqual(result.mismatches, [durable.qid]);
-  assert.match((await queue.listQuarantine(userId))[0].reason, /IndexedDB operation is authoritative/);
+  const quarantined = (await queue.listQuarantine(userId))[0];
+  assert.match(quarantined.reason, /IndexedDB operation is authoritative/);
+  assert.deepEqual(quarantined.raw, stale);
 });
 
 test('does not overwrite a queue record owned by another account when IDs collide', async () => {
@@ -293,4 +296,59 @@ test('migration does not mark completion until verification succeeds', async () 
   assert.equal((await queue.getMetadata(`legacyMigration:${userId}`)).state, 'verifying');
   queue.list = list;
   assert.equal((await queue.migrateLegacy(userId, { operations: [edit(1)] })).completed, true);
+});
+
+test('migration interleaves legacy and IndexedDB operations by timestamp without changing either source order', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-interleaved' });
+  const durable = { ...edit(2), at: '2026-11-20T00:00:02.000Z' };
+  const legacy = { ...edit(1), at: '2026-11-20T00:00:01.000Z' };
+  await queue.enqueueMany([durable], userId);
+  await queue.migrateLegacy(userId, { operations: [legacy] });
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation.qid), [legacy.qid, durable.qid]);
+});
+
+test('migration preserves a recognized create-before-reference dependency even when timestamps disagree', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-dependency' });
+  const song = { qid: id(1), t: 'songNew', row: { id: id(101), band_id: id(201) }, at: '2026-11-20T00:00:02.000Z' };
+  const add = { qid: id(2), t: 'slAdd', row: { id: id(102), setlist_id: id(202), song_id: id(101) }, at: '2026-11-20T00:00:01.000Z' };
+  await queue.enqueueMany([add], userId);
+  await queue.migrateLegacy(userId, { operations: [song] });
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation.qid), [song.qid, add.qid]);
+});
+
+test('missing or invalid timestamps use retained source order and report the deterministic recovery fallback', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-missing-time' });
+  const durable = { ...edit(2), at: 'not-a-timestamp' };
+  const legacy = { ...edit(1), at: undefined };
+  await queue.enqueueMany([durable], userId);
+  const result = await queue.migrateLegacy(userId, { operations: [legacy] });
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation.qid), [legacy.qid, durable.qid]);
+  assert.ok(result.fallbackOrder > 0);
+});
+
+test('divergent duplicate legacy IDs complete using the first source occurrence and verify each quarantine payload', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'migration-divergent-legacy-duplicate' });
+  const canonical = edit(1), divergent = { ...edit(1), set: { bpm: 77 } };
+  const result = await queue.migrateLegacy(userId, { operations: [canonical, divergent] });
+  assert.equal(result.completed, true);
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation), [canonical]);
+  const quarantined = await queue.listQuarantine(userId);
+  assert.equal(quarantined.length, 1);
+  assert.deepEqual(quarantined[0].raw, divergent);
+  assert.ok(result.mismatches.includes(canonical.qid));
+});
+
+test('malformed operation ownership metadata rejects a queue read before user filtering', async () => {
+  const indexedDB = new FakeIndexedDB(), queue = await openOfflineQueue({ indexedDB, name: 'malformed-owner' });
+  await queue.enqueueMany([edit(1)], userId);
+  const db = indexedDB.databases.get('malformed-owner'), row = db.stores.get('operations').get(id(1));
+  delete row.userId; db.stores.get('operations').set(id(1), row);
+  await assert.rejects(queue.list(userId), /Saved operation data is malformed/);
+});
+
+test('valid records for another user remain isolated after ownership validation', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'valid-other-owner' });
+  const otherUser = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  await queue.enqueueMany([edit(1)], otherUser);
+  assert.deepEqual(await queue.list(userId), []);
 });
