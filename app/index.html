@@ -1013,13 +1013,24 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const bar = `<div class="progbar"><div class="seg" role="group" aria-label="Guitar or bass"><button type="button" data-a="pv" data-view="guitar" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" data-a="pv" data-view="bass" aria-pressed="${bassNow}">Bass line</button></div><button type="button" data-a="progfind">${bassNow ? 'Find bass tab link' : 'Find chords link'}</button></div>`;
   const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 1 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
-  const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)', true)}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}${lk('youtube_url', 'YouTube link', true)}${lk('spotify_url', 'Spotify link', true)}${lk('moises_url', "Moises link (the band's own or edited version, if you have one)", true)}<small>Moises links are pasted by hand: the app cannot look inside your Moises library.</small>`;
+  const lyricsBlk = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)', true)}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}`;
+  const listenBlk = `${lk('youtube_url', 'YouTube link', true)}${lk('spotify_url', 'Spotify link', true)}${lk('moises_url', "Moises link (the band's own or edited version, if you have one)", true)}<small>Moises links are pasted by hand: the app cannot look inside your Moises library.</small>`;
   const buttons = `<div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
   const note = ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>';
   const sheet = `<h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
   <div class="btns"><button data-a="addlink">Add link</button></div>`}`;
-  if (compact) return `<div>${top}${grid}${struct}${bar}<div class="two">${chords}${notes}</div><ul data-prog-links></ul>${buttons}<ul data-lookup></ul>${note}<ul data-hist></ul><details data-more${moreOpen ? ' open' : ''}><summary>More: links, sheet music${ro ? '' : ', reason for change'}</summary>${reason}${links}${sheet}</details></div>`;
-  return `<div>${top}${grid}${struct}${bar}${chords}<ul data-prog-links></ul>${notes}${reason}${links}${buttons}<ul data-lookup></ul>${note}${sheet}<ul data-hist></ul></div>`;
+  // After the grid (Title to Key, the same for everyone) the fields come in the order of the person's roles, as in gig mode, and then
+  // the rest in the usual order. Key, BPM and Time are in the grid already, so only these four fields are placed here.
+  const first = detailOrder(myRoles()), base = compact ? ['structure', 'chords', 'notes'] : ['structure', 'chords', 'notes', 'reason', 'lyrics', 'listen'];
+  const seq = [...first]; base.forEach((x) => { if (!seq.includes(x)) seq.push(x); });
+  const blk = { structure: struct, chords: `${bar}${chords}<ul data-prog-links></ul>`, notes, reason, lyrics: lyricsBlk, listen: listenBlk };
+  let body = '';
+  for (let k = 0; k < seq.length; k++) {
+    if (compact && seq[k] === 'chords' && seq[k + 1] === 'notes') { body += `${bar}<div class="two">${chords}${notes}</div><ul data-prog-links></ul>`; k++; } // Chords beside Notes when they are next to each other
+    else body += blk[seq[k]] ?? '';
+  }
+  if (compact) return `<div>${top}${grid}${body}${buttons}<ul data-lookup></ul>${note}<ul data-hist></ul><details data-more${moreOpen ? ' open' : ''}><summary>More: links, sheet music${ro ? '' : ', reason for change'}</summary>${['reason', 'lyrics', 'listen'].filter((x) => !seq.includes(x)).map((x) => blk[x]).join('')}${sheet}</details></div>`;
+  return `<div>${top}${grid}${body}${buttons}<ul data-lookup></ul>${note}${sheet}<ul data-hist></ul></div>`;
 }
 const CONF = { high: 'confidence: high', medium: 'confidence: medium', check: 'check this tempo' };
 function drawLookup(ul) { // matches already have tempo and key; candidates are recordings to pick from
@@ -1339,6 +1350,8 @@ function gigGo(d) { const n = gigIdx + d; if (n < 0 || n >= items.length) return
 const GIG_FIELDS = { singer: ['lyrics', 'key', 'structure'], guitarist: ['chords', 'key', 'structure', 'bpm'], bassist: ['chords', 'key', 'bpm'], drummer: ['bpm', 'time', 'structure', 'notes'], keyboards: ['chords', 'key', 'structure', 'bpm'], backing: ['lyrics'] };
 const GIG_TILES = ['key', 'bpm', 'time'];
 const gigOrder = (roles) => { const out = []; ROLES.forEach(([r]) => { if (roles.includes(r)) (GIG_FIELDS[r] || []).forEach((f) => { if (!out.includes(f)) out.push(f); }); }); return out.length ? out : ['bpm', 'key']; };
+// The fields the Details view puts first for a role: the gig mode order, without Key, BPM and Time (they sit in the grid). Kept apart so it can change later.
+const detailOrder = (roles) => gigOrder(roles).filter((f) => ['lyrics', 'chords', 'structure', 'notes'].includes(f));
 let gigMoreOpen = false;
 function renderGig() {
   if (!items.length) { closeGig(); return; }
