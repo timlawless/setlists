@@ -1,7 +1,7 @@
 # Development handoff
 
 A status snapshot for whoever picks this work up next (a person or an AI). Last updated: November 2026, after the guitar or
-bass view, the progression link finder the Use-saves-at-once change a smaller Open button and tighter progression searches and the Spotify and Moises links (SQL v12).
+bass view, the progression link finder the Use-saves-at-once change a smaller Open button and tighter progression searches, the Spotify and Moises links (SQL v12) and role-based gig mode (SQL v13).
 Read `AGENTS.md` for the rules, `docs/architecture.md` for the design and `docs/roadmap.md` for the plan.
 This file is updated with every set of files, together with the roadmap, the architecture notes and the commit message.
 If it disagrees with the repository, the repository wins: correct this file.
@@ -28,8 +28,8 @@ experiments, not as the live app, and check with Tim before building on them.
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and two Edge Functions: `lookup-song` (tempo and
   key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
   `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
-- **Database files:** v1 to v12 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
-  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song), v12 `songs.spotify_url` and `songs.moises_url`.
+- **Database files:** v1 to v13 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
+  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song), v12 `songs.spotify_url` and `songs.moises_url`, v13 allows the `backing` instrument role.
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -54,6 +54,10 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   large Open button beside a stored link. Spotify and Moises entries go through `cleanLink` (Spotify's `si` tracking dropped); a bad
   entry is refused. Moises is pasted by hand (the app cannot see a Moises library). Gig mode has a Listen panel: Moises version,
   YouTube, Spotify, only the ones that exist.
+- **Role-based gig mode (SQL v13):** each role puts its own fields first. Singer: Lyrics, Key, Structure. Guitarist and Keyboards: Chords,
+  Key, Structure, BPM. Bassist: Chords (bass line by default), Key, BPM. Drummer: BPM, Time, Structure, Notes. Backing singer (new role,
+  `backing`, used with another role) adds the lyrics after the other fields. Roles merge in the order of the roles list. Other fields
+  that have something in them wait under a collapsed More fields bar. The Details view is unchanged.
 - The GetSongBPM link was removed from the footer while no key is in use.
 
 ## 3. State of the work
@@ -64,7 +68,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   deployed and `GENIUS_ACCESS_TOKEN` saved), the progression link finder, and the earlier items listed in the roadmap
   (offline editing, flash limit, sign-in and invite changes, launch speed, install help).
 - **Paused by Tim:** layout tweaks to the song details after the recent additions. He will return to them once all functionality is in place. The Open button was reduced slightly after a first look.
-- **Delivered, awaiting review:** the Spotify and Moises links and the gig mode Listen panel (SQL v12: run it first, then upload `index.html`).
+- **Delivered, awaiting review:** the Spotify and Moises links and the gig mode Listen panel (SQL v12: run it first, then upload `index.html`), and role-based gig mode with the Backing singer role (SQL v13: run it first; it only widens a role rule if one exists).
 - **Waiting:** the email service for reset and sign-in codes (SQL v7 needs it), the GetSongBPM API key, and a second lookup
   source for songs Song Finder cannot find.
 - **Not built:** Google sign-in, history restore, MusicBrainz and merging lookup sources, full lyrics text, per-band app icon,
@@ -81,6 +85,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 6. Check the tighter progression searches on real songs (roadmap backlog 29, step 1 built). If they still miss, build step 2: a function that finds specific videos.
 7. Decide whether a progression link needs its own field, then Google sign-in and history restore.
 8. Listen links stage 2: a function (`find-listen-link`) that finds the most popular YouTube video and Spotify track for a song, with Use saving at once and the overwrite question, always overridable by hand. It needs a YouTube Data API key and a Spotify client ID and secret as Supabase secrets.
+9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different.
 
 ## 5. Things learned the hard way
 - Use `@supabase/supabase-js@2` from the CDN. An older pinned version rejected the newer `sb_publishable_` keys and
@@ -125,4 +130,4 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 ## 7. Open decisions
 Web address and hosting (GitHub Pages, or a new domain), same-field conflict rule (ask, current, or later change wins),
 Google and Apple sign-in, how to rank "well known" song versions, pruning of removed songs and old history, how long
-to keep history on the device, whether a progression link gets its own field beside the manual chords and bass line, and how to make the progression suggestions land on the right song, and what counts as the "most popular" version for the automatic YouTube and Spotify find.
+to keep history on the device, whether a progression link gets its own field beside the manual chords and bass line, and how to make the progression suggestions land on the right song, and what counts as the "most popular" version for the automatic YouTube and Spotify find, and whether other roles also want the Time signature in gig mode.

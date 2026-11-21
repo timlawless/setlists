@@ -11,7 +11,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
   The Expo (native) option is parked and can be revisited if a native feature is ever needed.
 - Sharing is built and can be tested with bandmates: sign-in, invite codes, shared songs and setlists, shared history.
 - The app has four access levels (owner, admin, editor, viewer) and instrument roles (singer, guitarist, bassist,
-  drummer, keyboards) that change what gig mode puts first.
+  drummer, keyboards, backing singer) that change what gig mode puts first.
 - The installed iPhone test was reported good. The main items in flight are the email setup for password reset and
   sign-in codes, and the live test of offline editing, the flash limit and the backup lookup (all built, not yet on the site).
 
@@ -58,6 +58,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Simplify: no GetSongBPM link, no Root notes | The GetSongBPM link is removed from the page footer (Song Finder stays); the Root notes box is removed from the song details, the "Root:" line on song rows and the bass panel in gig mode; the database column and old values are kept | none | Prepared, awaiting review; nothing tested |
 | Guitar or bass view, progression link finder | The chord/progression box has a Guitar chords / Bass line switch (guitar edits Chords; bass edits the Bass line, which is the old Root notes column brought back). The view is remembered per person and song, on the account (default: bass for bassists, guitar for everyone else; anyone can switch on any song). Find chords link / Find bass tab link lists searches (quoted title and artist; Google limited to Ultimate Guitar, Songsterr and Chordify; a plain Google search; for bass a YouTube lesson search; the artist is required and brackets and "feat." are dropped from the search) with Open and Use: Use puts the link in the box, asks before it replaces anything already written, and saves it at once; a larger Open button sits beside a stored link. Gig mode has the same switch for guitarists, keyboards and bassists, and a stored link shows as an Open button there | v11 | Built, not yet on the site; the SQL was tested on in-memory Postgres and the page in a simulated browser, not on real devices or the real database |
 | Spotify and Moises links | Two new link boxes on a song beside the YouTube link: Spotify, and Moises for the band's own or edited version (pasted by hand, because the app cannot look inside a Moises library). Each stored link has a large Open button in the details view; Spotify and Moises entries go through the link cleaner (Spotify's share tracking is dropped) and a bad entry is refused with a message; gig mode has a Listen panel with buttons for the Moises version, YouTube and Spotify; History records the changes | v12 | Built, not yet on the site; the SQL was tested on in-memory Postgres and the page in a simulated browser, not on real devices or the real database |
+| Role-based gig mode, Backing singer role | In gig mode each instrument role puts its own fields first, in order: Singer: Lyrics, Key, Structure. Guitarist and Keyboards: Chords, Key, Structure, BPM. Bassist: Chords/bass line, Key, BPM. Drummer: BPM, Time, Structure, Notes. Backing singer (a new role, used with another role): adds the lyrics after the other fields. Several roles are merged (each field once, in the order of the roles list). Every other field that has something in it waits under a collapsed "More fields" bar; empty fields are not listed. The Guitar/Bass switch still works. Song rows give a backing singer the lyrics link | v13 | Built, not yet on the site; the SQL was tested on in-memory Postgres in five situations and the page in a simulated browser, not on real devices or the real database |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -100,6 +101,12 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
     refused; a stored link of each kind shows a large Open button that opens in a new page; the Listen panel in gig mode shows the
     Moises version first, then YouTube, then Spotify, and only the links that exist; History shows the changes; a viewer sees the
     Open buttons but cannot edit.
+12. **Role-based gig mode and Backing singer (awaiting review).** SQL v13 (`sql/schema_v13_backing_singer_role.sql`) and the new `app/index.html`
+    are built. When approved: run SQL v13 in the Supabase SQL Editor first (it only widens a role rule if one exists; the Notice
+    lines in the result say which case applied), then upload `app/index.html`, leave `config.js` alone. Test on real devices, for each
+    role and for two roles: the order of the fields in gig mode matches the table in this document; the Guitar/Bass switch works
+    there; the More fields bar is closed at first, stays open once you open it, and lists only fields that have something in them;
+    choosing Backing singer in the menu saves; a backing singer gets the lyrics after their other fields. Try it sideways on a music stand.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -133,7 +140,7 @@ Not committed. Move any of these up by saying so.
 - Link cleaning on paste (unwrap Google redirect links, strip tracking), using the `cleanLink` rule from `core/`.
 - Default label for a link (the site name) and adding a typed link on save.
 - A setlist note shown large in gig mode.
-- Song structure in gig mode, and in the Create a new song box (left out of the first version on purpose).
+- Song structure in the Create a new song box (gig mode now shows it, by role; it was left out of the first version on purpose).
 - What a bass player sees in gig mode (chords, or root notes brought back). Resolved by the guitar or bass view: bassists see the Bass line (the root notes box, brought back) by default.
 - Keep Save pinned at the bottom of the right-hand panel when it does scroll.
 - A separate progression link field beside the manual chords and bass line, so a link and written notes can both be kept (today a link goes into the same box and replaces notes only after you agree).
@@ -178,7 +185,8 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 29 | Better progression suggestions | You | Suggested links often landed on pages without the song. Step 1 built: quoted title and artist, Google searches limited to Ultimate Guitar, Songsterr and Chordify, a YouTube lesson search for bass, brackets and "feat." dropped from the search, artist required. Step 2, a function that finds specific videos or pages, waits to see how step 1 does on real songs. | Now | Built (step 1) |
 | 30 | Spotify and Moises links | You | Option to attach external listening links to a song: YouTube (already there), Spotify and a manual Moises link for a band's own or edited version. Stage 1 built: the boxes, safe link handling, Open buttons and a Listen panel in gig mode. SQL v12. Needs a test on real devices. | Now | Built |
 | 31 | Find the most popular version's YouTube and Spotify link | You | Stage 2: a function (`find-listen-link`) that finds the link to the most popular version of the song, with Use saving at once and the overwrite question, always overridable by hand. Needs a YouTube Data API key and a Spotify client ID and secret as Supabase secrets. | Next | Planned |
-| 32 | (add your next change here) |  |  |  |  |
+| 32 | Role-based field views in gig mode | You | Re-order the fields in gig mode by instrument role (singer: lyrics, key, structure; guitarist and keyboards: chords, key, structure, BPM; bassist: chords or bass line, key, BPM; drummer: BPM, structure, notes), with a Backing singer role that adds lyrics. Fields not on a role's list sit under a collapsed More fields bar. Drummers keep the Time tile next to BPM. SQL v13. Needs a test on real devices. | Now | Built |
+| 33 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
@@ -200,6 +208,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 - **The guitar or bass view is remembered per person and song, on the account.** One small table (SQL v11), readable and changeable only by that person. A copy is kept on the device, so it works offline and before v11 is run.
 - **Progression links are suggested, never fetched.** Find chords link and Find bass tab link only list search pages that open in a new page; Use puts the link in the box after asking before it replaces written notes. Nothing downloads chords, bass lines or lyrics.
 - **Spotify and Moises links are two new song columns, shared by the whole band.** The YouTube box stays as it was. Moises is manual only: the app cannot look inside a band's Moises library. The automatic find of the most popular YouTube and Spotify link is the planned next step, and a manual entry always wins.
+- **Gig mode shows each role's priority fields first and keeps everything else one tap away.** Fields not on a role's list are collapsed under More fields, not hidden, so nothing is lost on stage. Backing singer is a role that is used with another role, and it adds the lyrics after the other fields. The Details view is unchanged.
 - **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
 ## Notes for whoever picks this up

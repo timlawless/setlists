@@ -64,6 +64,10 @@ li select{width:auto}
 .tiles{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
 .tile{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;text-align:center}
 .tile b{display:block;font-size:clamp(44px,14vw,96px);line-height:1.05;color:var(--accent)}
+.tiles.one .tile{flex:0 1 260px}
+#gig details.more{margin:10px 0}
+#gig details.more>summary{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--mute);font-weight:600;cursor:pointer}
+#gig details.more[open]>summary{margin-bottom:10px}
 .tile.xl{flex-basis:100%}.tile.xl b{font-size:clamp(80px,30vw,200px)}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
 .panel h3{margin:0 0 6px;color:var(--mute)}
@@ -416,7 +420,7 @@ $('accentSave').onclick = () => bandId && saveAccent($('accent').value);
 $('accentReset').onclick = () => bandId && saveAccent('');
 
 // ---- roles
-const ROLES = [['singer', 'Singer'], ['guitarist', 'Guitarist'], ['bassist', 'Bassist'], ['drummer', 'Drummer'], ['keyboards', 'Keyboards']];
+const ROLES = [['singer', 'Singer'], ['guitarist', 'Guitarist'], ['bassist', 'Bassist'], ['drummer', 'Drummer'], ['keyboards', 'Keyboards'], ['backing', 'Backing singer']];
 const myRoles = () => bandRows.find((x) => x.bands.id === bandId)?.roles || [];
 function drawRoles() {
   const mine = myRoles();
@@ -982,7 +986,7 @@ function drawPane() {
 wideQ.addEventListener?.('change', () => render());
 function roleLine(s) {
   const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
-  if (r.includes('singer') && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
+  if ((r.includes('singer') || r.includes('backing')) && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
   if (r.includes('bassist') && viewOf(s.id) === 'bass' && s.root_notes) out.push('Bass: ' + (asUrl(s.root_notes) ? 'link' : first(s.root_notes)));
   else if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + (asUrl(s.chords) ? 'link' : first(s.chords)));
   if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
@@ -1330,31 +1334,51 @@ function openGig() {
 }
 function closeGig() { $('gig').hidden = true; gigLock?.release?.(); gigLock = null; }
 function gigGo(d) { const n = gigIdx + d; if (n < 0 || n >= items.length) return; gigIdx = n; loadSong(items[n].songs); renderGig(); $('gig').scrollTop = 0; }
+// Gig mode: each role puts its own fields first, in this order. Several roles are merged (in the order of the roles list, each field
+// once), and Backing singer adds the lyrics after the other fields. Everything else with something in it sits under "More fields".
+const GIG_FIELDS = { singer: ['lyrics', 'key', 'structure'], guitarist: ['chords', 'key', 'structure', 'bpm'], bassist: ['chords', 'key', 'bpm'], drummer: ['bpm', 'time', 'structure', 'notes'], keyboards: ['chords', 'key', 'structure', 'bpm'], backing: ['lyrics'] };
+const GIG_TILES = ['key', 'bpm', 'time'];
+const gigOrder = (roles) => { const out = []; ROLES.forEach(([r]) => { if (roles.includes(r)) (GIG_FIELDS[r] || []).forEach((f) => { if (!out.includes(f)) out.push(f); }); }); return out.length ? out : ['bpm', 'key']; };
+let gigMoreOpen = false;
 function renderGig() {
   if (!items.length) { closeGig(); return; }
   gigIdx = Math.max(0, Math.min(items.length - 1, gigIdx));
-  const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), has = (r) => roles.includes(r), drummer = has('drummer');
+  const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), drummer = roles.includes('drummer');
   const tile = (l, v, c = '') => `<div class="tile ${c}"><small>${l}</small><b>${esc(v || '–')}</b></div>`;
   const panel = (t, body, mono) => `<section class="panel"><h3>${t}</h3>${body ? `<div class="pbody${mono ? ' mono' : ''}">${esc(body)}</div>` : '<small>Nothing entered yet. Add it under Details.</small>'}</section>`;
-  const parts = [];
-  if (has('singer')) parts.push(safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', ''));
-  if (has('guitarist') || has('keyboards') || has('bassist')) {
-    const bassNow = viewOf(s.id) === 'bass';
-    parts.push(`<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>` + (asUrl(bassNow ? s.root_notes : s.chords) ? `<section class="panel"><h3>${bassNow ? 'Bass line' : 'Chords'}</h3><a class="btnlink" href="${esc(asUrl(bassNow ? s.root_notes : s.chords))}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(bassNow ? 'Bass line' : 'Chords', bassNow ? s.root_notes : s.chords, true)));
-  }
-  if (s.notes) parts.push(panel('Notes', s.notes));
+  const bassNow = viewOf(s.id) === 'bass', prog = bassNow ? s.root_notes : s.chords, pName = bassNow ? 'Bass line' : 'Chords';
+  const seg = `<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>`;
+  const block = {
+    lyrics: () => (safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', '')),
+    chords: () => seg + (asUrl(prog) ? `<section class="panel"><h3>${pName}</h3><a class="btnlink" href="${esc(asUrl(prog))}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(pName, prog, true)),
+    structure: () => panel('Structure', s.song_structure),
+    notes: () => (s.notes ? panel('Notes', s.notes) : ''),
+    key: () => tile('Key', s.musical_key),
+    bpm: () => tile('BPM', s.bpm, drummer ? 'xl' : ''),
+    time: () => tile('Time', s.time_signature || '4/4'),
+  };
+  const draw = (fields) => { // tiles that sit next to each other share a row
+    let out = '', run = [];
+    const flush = () => { if (run.length) { out += `<div class="tiles${run.length === 1 && !(drummer && run[0] === 'bpm') ? ' one' : ''}">${run.map((f) => block[f]()).join('')}</div>`; run = []; } };
+    fields.forEach((f) => { if (GIG_TILES.includes(f)) run.push(f); else { flush(); out += block[f](); } });
+    flush(); return out;
+  };
+  const order = gigOrder(roles), txt = (v) => !!(v || '').trim();
+  const filled = { lyrics: !!safe(s.lyrics_url), chords: txt(s.chords) || txt(s.root_notes), key: !!s.musical_key, bpm: !!s.bpm, time: !!s.time_signature && s.time_signature !== '4/4', structure: txt(s.song_structure), notes: txt(s.notes) };
+  const rest = ['lyrics', 'chords', 'key', 'bpm', 'time', 'structure', 'notes'].filter((f) => !order.includes(f) && filled[f]);
   const listen = [["Band's Moises version", s.moises_url], ['YouTube', s.youtube_url], ['Spotify', s.spotify_url]].filter(([, u]) => safe(u));
-  if (listen.length) parts.push(`<section class="panel"><h3>Listen</h3>${listen.map(([n, u]) => `<a class="btnlink" style="margin:0 8px 8px 0" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join('')}</section>`);
-  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics, chords or the bass line here.</small></p>';
+  const listenHtml = listen.length ? `<section class="panel"><h3>Listen</h3>${listen.map(([n, u]) => `<a class="btnlink" style="margin:0 8px 8px 0" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join('')}</section>` : '';
+  const more = rest.length ? `<details id="gigMore" class="more"${gigMoreOpen ? ' open' : ''}><summary>More fields (${rest.length})</summary>${draw(rest)}</details>` : '';
+  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) and your own fields come first here.</small></p>';
   $('gig').innerHTML = `<div class="gtop"><span style="display:flex;align-items:center;gap:8px">${bandLogo() ? `<img src="${bandLogo()}" alt="" style="height:30px;width:30px;object-fit:contain">` : ''}<small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small></span><button id="gigClose">✕ Close</button></div>
   <h1>${esc(s.title)}</h1><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small>
-  <div class="tiles">${tile('BPM', s.bpm, drummer ? 'xl' : '')}${tile('Key', s.musical_key)}${drummer ? tile('Time', s.time_signature || '4/4') : ''}</div>
-  ${hint}${parts.join('')}
+  ${hint}${draw(order)}${listenHtml}${more}
   <div class="next">${nx ? `Next: <b>${esc(nx.title)}</b> · ${nx.bpm || '–'} bpm · ${esc(nx.musical_key || '–')}` : 'Last song in the setlist'}</div>
   <div class="gnav"><button id="gPrev" ${gigIdx ? '' : 'disabled'}>◀ Previous</button><button id="gPlay" class="primary">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button><button id="gNext" ${gigIdx < items.length - 1 ? '' : 'disabled'}>Next ▶</button></div>`;
   $('gigClose').onclick = closeGig; $('gPrev').onclick = () => gigGo(-1); $('gNext').onclick = () => gigGo(1);
   $('gPlay').onclick = () => toggleClick(items[gigIdx].songs);
   if ($('gvG')) { $('gvG').onclick = () => { setView(s.id, 'guitar'); renderGig(); }; $('gvB').onclick = () => { setView(s.id, 'bass'); renderGig(); }; }
+  if ($('gigMore')) $('gigMore').ontoggle = () => { gigMoreOpen = $('gigMore').open; };
 }
 $('gigBtn').onclick = openGig;
 document.addEventListener('keydown', (e) => { if ($('gig').hidden) return; if (e.key === 'ArrowRight') gigGo(1); else if (e.key === 'ArrowLeft') gigGo(-1); else if (e.key === 'Escape') closeGig(); });

@@ -80,7 +80,7 @@ Band ──< ChangeLog   (filled by a database trigger)
 | --- | --- |
 | profiles | One row per user: display name. Created automatically at sign-up. |
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
-| band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles; last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
+| band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles (singer, guitarist, bassist, drummer, keyboards and backing, the last from SQL v13); last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
 | songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, spotify_url, moises_url, catalog_ref, change_note, deleted_at |
 | song_links | Labelled links on a song (sheet music, tab, lyrics, video, other). This is the earlier `charts` list. |
@@ -117,7 +117,7 @@ Hiding a button in the app is a convenience. The database enforces all of this.
 
 A band has exactly one owner, who cannot be removed, demoted or leave. People can edit only their own instrument roles
 and last-used setlist. Joining, changing a level, removing and transferring go through database functions, never direct edits.
-Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate and only change what gig mode puts first.
+Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer) are separate and only change what gig mode puts first.
 
 ## Versioning (change history)
 - The earlier design was an append-only list of `Change` records with an inverse for each, and a restore that applies the
@@ -169,7 +169,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   (with spaces trimmed from each end).
 - It is edited in the song details (the inline row on a phone, the right-hand pane on a wide screen), between the
   Title to Key boxes and Chords. Viewers see it only when it has text, and cannot change it; editors always see the box.
-- It is not shown in the song list rows, in the Create a new song box or in gig mode. Adding it to gig mode later is a
+- It is not shown in the song list rows or in the Create a new song box. Gig mode shows it for singers, guitarists, drummers and keyboards (see Gig mode by role). Adding it to the other places later is a
   small change.
 - It follows the same path as every other song field: shown at once, saved on the device in the offline queue, merged
   field by field at sync time (a same-field conflict is shown for the person to resolve), and recorded in the history,
@@ -210,10 +210,23 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - Changes to the two new columns are recorded by the existing history trigger with no change to it, and appear in History as Spotify link and Moises link. Access follows the songs table: members read, editors and above change.
 - Planned (stage 2): a function that finds the link to the most popular version of the song on YouTube and Spotify, with Use saving at once and the overwrite question as for lyrics and progression. It needs a YouTube Data API key and a Spotify client ID and secret held as Supabase secrets. A manual entry always wins. Not built.
 
+## Gig mode by role
+- Each instrument role puts its own fields first in gig mode, in this order (`GIG_FIELDS` in the page):
+  - Singer: Lyrics, Key, Structure.
+  - Guitarist and Keyboards: Chords, Key, Structure, BPM.
+  - Bassist: Chords (shown as the Bass line by default), Key, BPM.
+  - Drummer: BPM (extra large), Time, Structure, Notes. Time is kept next to BPM because the drummer's tile was already there.
+  - Backing singer (stored as `backing`): Lyrics, added after the other fields. It is meant to be used with another role, and on its own it shows the lyrics.
+- A person with several roles gets the fields merged: roles are taken in the order of the roles list (singer, guitarist, bassist, drummer, keyboards, backing), and each field appears once, at its first position. With no role chosen the order is BPM, Key, plus a hint to pick a role.
+- Fields that are not on the person's list but have something in them (and a time signature other than 4/4) sit under a collapsed More fields bar, so nothing is hidden for good. Empty fields are not listed there. The bar stays open or closed as the person left it while moving between songs and switching views. A priority field with nothing in it says so, except Notes, which is left out when empty.
+- Key, BPM and Time are tiles; tiles next to each other share a row and a lone tile is kept to a sensible width. Lyrics is a button that opens the lyrics link. The progression panel keeps its Guitar chords / Bass line switch, and a stored link shows as an Open button.
+- The Listen panel (Moises version, YouTube, Spotify) follows the priority fields. The song list rows give a backing singer the lyrics link, as for a singer. The Details view is unchanged.
+- The roles list in the menu has a sixth box, Backing singer. SQL v13 widens the rule on `band_members.roles` if one exists.
+
 ## Layout: phones and tablets
 - Phone: one column. This is what the web app does at every width today.
 - Tablet (about 768 px wide and up): two panes, setlist on the left and the selected song on the right. **Not built yet.**
-- Gig mode is the stage view: large BPM and key, the next song, and panels chosen by instrument role.
+- Gig mode is the stage view: large BPM and key, the next song, and the fields in an order chosen by instrument role (see Gig mode by role).
 - Test landscape and large text on a tablet.
 
 ## Metronome
@@ -368,6 +381,7 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v10 | `songs.song_structure`: an optional free-text Song structure (text, not null, empty by default) |
 | v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
 | v12 | `songs.spotify_url` and `songs.moises_url`: optional links to a Spotify track and to the band's own Moises version |
+| v13 | Allows the `backing` instrument role: widens the rule on `band_members.roles` if there is one (check rule or list type), and changes nothing if there is none |
 | check_schema | A read-only checklist of which updates are present |
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
@@ -391,6 +405,7 @@ delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL
 GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet. The lyrics link suggestions were tested with 24 checks in headless Chromium against a stand-in for Supabase and the functions (suggest, review, use, replace prompt, remove, save, error fallback, viewer, phone layout) and the ranking was run on sample data, but the live Genius service, a real phone and a real signed-in session were not used.
 SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-in for Supabase's auth layer: it runs twice without error, a person reads and writes only their own rows, another member and an outsider are refused, a row whose song and band do not match is refused, only guitar or bass is accepted, a signed-out visitor has no access, `updated_at` moves on a change and the rows go with the song (16 checks). The guitar or bass view, the progression link finder, Use with its overwrite question, and the gig mode switch were tested in a simulated browser (jsdom) with a stand-in database (about 35 checks, two-pane layout). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the switch, and whether the Google, site-limited and YouTube searches land on the right page for real songs.
 SQL v12 (the two link columns) was run on an in-memory PostgreSQL with a stand-in for Supabase's auth layer: it runs twice without error, both columns are optional text, existing rows are untouched, a band member can set both links, an outsider can neither change nor read them, and the history trigger records them (7 checks). The Spotify and Moises boxes, safe link handling (cleaning, refusing a javascript: or unusable entry, clearing a link), the Open buttons, the gig mode Listen panel and the viewer's read-only view were tested in a simulated browser (jsdom) with a stand-in database (14 checks, with the earlier checks re-run). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the new boxes, and whether real Spotify and Moises links open the right place.
+SQL v13 (the Backing singer role) was run on an in-memory PostgreSQL in five situations: a text list with a limiting check rule (backing refused before, allowed after, an unknown role still refused, the old roles still work), a text list with no rule (nothing created), a list type (the value is added), existing rows (kept), and no roles column (the script ends quietly); it runs twice without error (11 checks). Role-based gig mode was tested in a simulated browser (jsdom) with a stand-in database (28 checks): the field order for each role, merged roles, Backing singer on its own and with other roles, the More fields bar (contents, empty fields left out, unusual time signature, stays open), placeholders, the no-role case, the Guitar/Bass switch in gig mode, the roles list and the lyrics link on song rows; the earlier checks were re-run. Not tested: the real Supabase project, a real browser or any phone or tablet (including sideways on a music stand), and how the order feels to real players.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
@@ -414,6 +429,7 @@ SQL v12 (the two link columns) was run on an in-memory PostgreSQL with a stand-i
 - The home-screen icon is the same for every band.
 - The guitar or bass choice is per song and person. Until SQL v11 is run it stays on one device. The suggested links are searches (the first result is usually the song's page but can miss), not specific songs, and a link and written notes share one box until a separate link field is built.
 - Listen links: Moises links are manual and there is no automatic find of the most popular YouTube or Spotify link yet. The YouTube box does not yet use `cleanLink`.
+- Role-based gig mode: the order follows the table agreed with Tim and has not been tried by real players. Time shows only for drummers (or under More fields for an unusual time signature). Which fields other roles want first is an open tuning question.
 
 ## Open questions
 1. ~~PWA first or Expo first.~~ Answered: PWA first.
