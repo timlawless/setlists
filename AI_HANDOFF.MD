@@ -29,7 +29,7 @@ experiments, not as the live app, and check with Tim before building on them.
   key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
   `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
 - **Database files:** v1 to v15 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
-  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song), v12 `songs.spotify_url` and `songs.moises_url`, v13 allows the `backing` instrument role, v14 was added on the Codex branch (not described here yet), v15 `add_song_note` (reason-only notes).
+  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song), v12 `songs.spotify_url` and `songs.moises_url`, v13 allows the `backing` instrument role, v14 was made on the Codex branch for a better offline experience with cached information (details not seen), v15 `add_song_note` (reason-only notes).
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -97,7 +97,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different. Do the same for the role-ordered Details view. Also check the Settings changes: that saving your own name works against the real database.
 10. Confirm that a reason typed WITH a change shows in History on the real database (the History trigger may have lost the copy in a later SQL file), and find out why one save writes two History rows for the same song a fraction of a second apart. The three read-only queries are in the roadmap, item 15.
 11. `docs/tester-guide.md` and `docs/go-live-checklist.md` still say instrument roles are chosen in the menu; update them when the current copies are available.
-12. Find out what SQL v14 (made on the Codex branch) changes and describe it in `docs/architecture.md` and here. Check it does not clash with v15 (`add_song_note`).
+12. SQL v14 (Codex branch) is described by Tim as changes for a better offline experience, with cached information available without internet. Get its SQL file and the Codex `index.html`, describe v14 in `docs/architecture.md` and here, and check it does not clash with v15 (`add_song_note`). Both branches change the offline queue in `index.html` (this branch added a `note` item for reason-only notes), so compare the queue, `runOp`, `flush` and the cached-read code before merging into `main`.
 
 ## 5. Things learned the hard way
 - Use `@supabase/supabase-js@2` from the CDN. An older pinned version rejected the newer `sb_publishable_` keys and
@@ -121,6 +121,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 - Chrome on a laptop had its own volume set to zero in the system mixer, which looked like an app bug.
 - Reading a repo file in Python text mode turns CRLF into LF without warning. Open with `newline=''` (or in binary) so the file keeps its line endings.
 - The History trigger ignores an update where only `songs.change_note` changed, so a reason alone is never logged by it. Use `add_song_note` (SQL v15) for that, and never rewrite earlier History entries.
+- Two branches change the offline code in the single `index.html` (this one added the `note` queue item; Codex has offline changes with SQL v14). A merge on GitHub can silently keep one version of a changed function. Read the queue, `runOp`, `flush` and the cached reads after merging, and test offline editing again.
 - Everything in `app/` is public.
 - Testing available to the assistant: an in-memory Postgres (PGlite) with a stand-in for Supabase auth for SQL and row-level
   security, and a simulated browser (jsdom) with a stand-in database for page logic. There is no real browser, phone, tablet or
