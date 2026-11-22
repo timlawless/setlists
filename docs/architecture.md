@@ -78,7 +78,7 @@ Band ──< ChangeLog   (filled by a database trigger)
 
 | Table | Purpose and key fields |
 | --- | --- |
-| profiles | One row per user: display name. Created automatically at sign-up. |
+| profiles | One row per user: display name. Created automatically at sign-up. The person can change their own name (from the members list or the Account section of the menu); nobody else can. |
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
 | band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles (singer, guitarist, bassist, drummer, keyboards and backing, the last from SQL v13); last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
@@ -114,6 +114,7 @@ Hiding a button in the app is a convenience. The database enforces all of this.
 | Hard-delete rows | Yes | Yes | No | No |
 | Delete the band | Yes | No | No | No |
 | Transfer ownership | Yes | No | No | No |
+| Change your own name | Yes | Yes | Yes | Yes |
 
 A band has exactly one owner, who cannot be removed, demoted or leave. People can edit only their own instrument roles
 and last-used setlist. Joining, changing a level, removing and transferring go through database functions, never direct edits.
@@ -148,7 +149,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer
   server, but not while someone is typing in a song.
 - The header shows "Offline", "N waiting" or "Check sync". Signing out with unsynced changes asks first, and the queue
   stays on the device for that person's next sign-in.
-- Online only for now: creating, renaming, duplicating and deleting setlists, band settings, members and invites.
+- Online only for now: creating, renaming, duplicating and deleting setlists, band settings, members, invites and your own name.
 - Open: how long to keep history on the device.
 
 ## Lyrics and links
@@ -229,6 +230,12 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer
 - Examples: Singer: Lyrics, Structure, then Chords, Notes. Guitarist, Keyboards and Bassist: Chords, Structure, then Notes. Drummer: Structure, Notes, then Chords. Backing singer: Lyrics first. Several roles merge as in gig mode (roles-list order, each field once).
 - The usual order after the priority fields: on a phone or inside a row it is Structure, Chords, Notes, Reason, Lyrics, then the YouTube, Spotify and Moises links; on the wide right-hand panel it is Structure, Chords and Notes, with Reason, Lyrics and the three listening links under the collapsed More bar. A lyrics link that comes first by role is shown in the order, not under More.
 - On the wide panel, Chords sit beside Notes only when the two are next to each other in the order (for example with no role). Otherwise each box has its own row. Save, Look up, History and the other buttons stay below the fields. All the boxes are always present, so Save changes still saves every one.
+
+## Settings screens
+- The menu (☰) holds the personal and band-level settings. **Band settings** is its own screen (`bandDlg`), opened from a menu button that only owners and admins see: band name, band link ending, band colour, band logo and, for the owner only, Delete this band. It used to sit inside Band members and access.
+- **Band members and access** (`memDlg`) keeps the member list, access levels, Remove and Make owner, the invite code and sharing buttons, the Copy band link row and Leave this band.
+- **Your own name:** every person can change their own display name. In Band members it is Edit name on your own row (a box with Save and Cancel; Enter saves); in the Account section of the menu it is Your name with Save name. Both use one routine: the name is tidied (spaces trimmed and collapsed), must not be empty or longer than 50 characters, and is written to the person's own `profiles` row. The existing profiles rule (SQL v1: a person updates only their own row) already allows this, so there is no SQL. A saved name is kept on the device and the cached member list is updated.
+- A name is profile-wide, so it changes in every band the person belongs to. Bandmates see it in the members list and in History. Owners and admins cannot rename other people. Changing a name needs a connection.
 
 ## Layout: phones and tablets
 - Phone: one column. This is what the web app does at every width today.
@@ -414,6 +421,7 @@ SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-
 SQL v12 (the two link columns) was run on an in-memory PostgreSQL with a stand-in for Supabase's auth layer: it runs twice without error, both columns are optional text, existing rows are untouched, a band member can set both links, an outsider can neither change nor read them, and the history trigger records them (7 checks). The Spotify and Moises boxes, safe link handling (cleaning, refusing a javascript: or unusable entry, clearing a link), the Open buttons, the gig mode Listen panel and the viewer's read-only view were tested in a simulated browser (jsdom) with a stand-in database (14 checks, with the earlier checks re-run). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the new boxes, and whether real Spotify and Moises links open the right place.
 SQL v13 (the Backing singer role) was run on an in-memory PostgreSQL in five situations: a text list with a limiting check rule (backing refused before, allowed after, an unknown role still refused, the old roles still work), a text list with no rule (nothing created), a list type (the value is added), existing rows (kept), and no roles column (the script ends quietly); it runs twice without error (11 checks). Role-based gig mode was tested in a simulated browser (jsdom) with a stand-in database (28 checks): the field order for each role, merged roles, Backing singer on its own and with other roles, the More fields bar (contents, empty fields left out, unusual time signature, stays open), placeholders, the no-role case, the Guitar/Bass switch in gig mode, the roles list and the lyrics link on song rows; the earlier checks were re-run. Not tested: the real Supabase project, a real browser or any phone or tablet (including sideways on a music stand), and how the order feels to real players.
 The role-ordered Details view was tested in a simulated browser (jsdom) with a stand-in database (24 checks), on the wide panel and in the narrow inline layout: the order for no role and for each role, merged roles and Backing singer, Chords beside Notes only when adjacent, the Title to Key grid unchanged and placed before the role fields, every field still present for every role, and Find chords link, the Guitar/Bass switch and Find lyrics link still working in their new places; the earlier checks were re-run. Not tested: a real browser or any phone or tablet, and how the new order looks and feels.
+The Settings changes were tested in a simulated browser (jsdom) with a stand-in database (28 checks): Band settings button shown to an owner and an admin and hidden from an editor and a viewer, the new screen and its contents, nothing left of them in Band members, rename and delete from the new screen, Edit name only on your own row, Save sending a tidied name to your own profile, Cancel, an empty name and an over-long name refused, Enter saving, a viewer editing their own name, the Account box, and a refused save when no row changes; the earlier checks were re-run. Not tested: the real Supabase project (in particular that the profiles rule allows the update as expected), a real browser or any phone or tablet, and how the screens look.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
@@ -439,6 +447,7 @@ The role-ordered Details view was tested in a simulated browser (jsdom) with a s
 - Listen links: Moises links are manual and there is no automatic find of the most popular YouTube or Spotify link yet. The YouTube box does not yet use `cleanLink`.
 - Role-based gig mode: the order follows the table agreed with Tim and has not been tried by real players. Time shows only for drummers (or under More fields for an unusual time signature). Which fields other roles want first is an open tuning question.
 - Details view by role: the order uses the gig mode table for now and some of it is expected to change. With Chords and Notes on separate rows for most roles, the wide panel is a little taller than before; the layout tidy-up is still to do.
+- Settings: a name change depends on the profiles rule from SQL v1 and has not been tried against the real database. A name is shared by all of a person's bands. Names are not checked for being unique or appropriate.
 
 ## Open questions
 1. ~~PWA first or Expo first.~~ Answered: PWA first.

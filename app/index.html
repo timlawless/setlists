@@ -94,8 +94,8 @@ body.run main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}body.
 @media (max-width:699px){#bar .bc{flex-wrap:wrap}#bar #dots{order:-1;flex:1 0 100%;margin-bottom:4px}#bar:not(.on) #dots{display:none}}
 @media (min-width:700px){.dots{--d:56px;padding:0 12px;flex:1 1 auto}}
 @media (pointer:coarse){button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}input[type=checkbox]{width:22px;height:22px}}
-@media (max-width:520px){dialog#menu,dialog#memDlg,dialog#addDlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:0;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
-dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:first-child{position:sticky;top:0;z-index:2;background:var(--card,#fff);padding-bottom:8px}}
+@media (max-width:520px){dialog#menu,dialog#memDlg,dialog#bandDlg,dialog#addDlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:0;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
+dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#bandDlg>.row:first-child,dialog#addDlg>.row:first-child{position:sticky;top:0;z-index:2;background:var(--card,#fff);padding-bottom:8px}}
 @media (max-width:899px){#pane,#paneBtn{display:none}}
 @media (min-width:900px){body{font-size:17px}.rt{font-size:1.06em}}
 body:not(.dual) #pane{display:none}
@@ -211,6 +211,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
   <div class="row"><input id="newBand" placeholder="New band name"><button id="mkBand" class="primary">Create band</button></div>
   <div class="row"><input id="joinCode" placeholder="Invite code"><button id="joinBand" class="primary">Join band</button></div>
   <div class="row"><button id="memBtn">Band members and access</button></div>
+  <div class="row" id="bandSetRow" hidden><button id="bandSetBtn">Band settings</button></div>
   <div id="slSec"><h3>Setlists</h3>
   <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div>
   <div class="row"><input id="slRename" placeholder="Rename this setlist"><button id="slRenameBtn">Rename</button></div>
@@ -222,6 +223,8 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
   <h3>Audio check</h3>
   <div class="row"><button id="tone">Test tone</button></div><pre id="dbg"></pre>
   <h3>Account</h3>
+  <label>Your name (your bandmates see this)<input id="myName" maxlength="50" autocomplete="name"></label>
+  <div class="row"><button id="myNameGo">Save name</button></div>
   <div class="row"><input id="chPw" type="password" placeholder="New password (8+ characters)" autocomplete="new-password"><button id="chPwGo">Change password</button></div>
   <div class="row"><button id="instHelp">How to install on your phone</button></div>
   <div class="row"><button id="signOut">Sign out</button></div>
@@ -251,16 +254,18 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
       <div class="row"><button id="invCopyLink">Copy invite link</button><button id="invCopyCode">Copy code only</button></div>
     </div>
   </div>
-  <div id="bandSec" hidden>
-    <h3>Band settings</h3>
-    <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
-    <label>Band link ending<input id="slugIn" placeholder="e.g. wc" autocapitalize="none" autocomplete="off" maxlength="30"></label>
-    <div class="row"><small id="slugPrev" style="flex:3;word-break:break-all"></small><button id="slugSave">Save link</button><button id="slugCopy">Copy link</button></div>
-    <div class="row"><label style="margin:0;flex:2">Band colour<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
-    <div class="row"><img id="logoPrev" alt="Band logo" hidden style="height:56px;width:56px;object-fit:contain;flex:0 0 auto"><label style="margin:0;flex:2">Band logo (PNG, JPG or SVG)<input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label><button id="logoRemove" hidden>Remove logo</button></div>
-    <div class="row" id="delBandRow" hidden><button id="delBand">Delete this band…</button></div>
-  </div>
   <div class="row"><button id="leaveBand">Leave this band</button></div>
+</dialog>
+
+<dialog id="bandDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Band settings</b><button id="bandClose">Close</button></div>
+  <p><small>Only owners and admins can change these. Band members and invites are under Band members and access.</small></p>
+  <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
+  <label>Band link ending<input id="slugIn" placeholder="e.g. wc" autocapitalize="none" autocomplete="off" maxlength="30"></label>
+  <div class="row"><small id="slugPrev" style="flex:3;word-break:break-all"></small><button id="slugSave">Save link</button><button id="slugCopy">Copy link</button></div>
+  <div class="row"><label style="margin:0;flex:2">Band colour<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
+  <div class="row"><img id="logoPrev" alt="Band logo" hidden style="height:56px;width:56px;object-fit:contain;flex:0 0 auto"><label style="margin:0;flex:2">Band logo (PNG, JPG or SVG)<input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label><button id="logoRemove" hidden>Remove logo</button></div>
+  <div class="row" id="delBandRow" hidden><button id="delBand">Delete this band…</button></div>
 </dialog>
 
 <dialog id="addDlg">
@@ -516,34 +521,79 @@ const isAdmin = () => ['owner', 'admin'].includes(myLevel());
 async function openMembers() {
   if (!bandId) return say('Pick a band first');
   const a = isAdmin();
-  $('invSec').hidden = !a; $('bandSec').hidden = !a; $('delBandRow').hidden = myLevel() !== 'owner'; $('leaveBand').hidden = myLevel() === 'owner';
-  $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = ''; $('invCopyRow').hidden = true;
+  $('invSec').hidden = !a; $('leaveBand').hidden = myLevel() === 'owner';
+  editName = false; $('invCode').textContent = ''; $('invCopyRow').hidden = true;
   $('myLevel').textContent = `You are ${LEVELS[myLevel()]} in this band.` + (a ? '' : ' Only owners and admins can change this list.');
   $('emailChoose').hidden = true; $('memDlg').showModal(); if (a) ensureInvite(); await loadMembers();
 }
 async function loadMembers() {
   try {
     const rows = await cached(ck('members:' + bandId), () => must(sb.from('band_members').select('user_id,role,roles,profiles(display_name)').eq('band_id', bandId)));
-    const order = { owner: 0, admin: 1, editor: 2, viewer: 3 }, a = isAdmin();
-    rows.sort((x, y) => (order[x.role] ?? 2) - (order[y.role] ?? 2) || (x.profiles?.display_name || '').localeCompare(y.profiles?.display_name || ''));
-    $('memList').innerHTML = rows.map((m) => {
-      const mine = m.user_id === user.id, lv = m.role === 'member' ? 'editor' : m.role;
-      const inst = (m.roles || []).map((r) => ROLES.find((x) => x[0] === r)?.[1] || r).join(', ');
-      const ctl = a && !mine && lv !== 'owner'
-        ? `<select data-m="${m.user_id}">${['admin', 'editor', 'viewer'].map((v) => `<option value="${v}"${v === lv ? ' selected' : ''}>${LEVELS[v]}</option>`).join('')}</select> <button data-rm="${m.user_id}">Remove</button>${myLevel() === 'owner' ? ` <button data-own="${m.user_id}">Make owner</button>` : ''}`
-        : `<span class="pill">${esc(LEVELS[lv] || lv)}</span>`;
-      return `<li><span><b>${esc(m.profiles?.display_name || 'Unnamed')}</b>${mine ? ' (you)' : ''}<br><small>${esc(inst || 'No instrument chosen')}</small></span><span>${ctl}</span></li>`;
-    }).join('');
+    memRows = rows; drawMembers();
   } catch { $('memList').innerHTML = '<li><small>Could not load the member list</small></li>'; }
+}
+function drawMembers() {
+  const rows = memRows, order = { owner: 0, admin: 1, editor: 2, viewer: 3 }, a = isAdmin();
+  rows.sort((x, y) => (order[x.role] ?? 2) - (order[y.role] ?? 2) || (x.profiles?.display_name || '').localeCompare(y.profiles?.display_name || ''));
+  $('memList').innerHTML = rows.map((m) => {
+    const mine = m.user_id === user.id, lv = m.role === 'member' ? 'editor' : m.role, nm = m.profiles?.display_name || '';
+    const inst = (m.roles || []).map((r) => ROLES.find((x) => x[0] === r)?.[1] || r).join(', ');
+    const ctl = a && !mine && lv !== 'owner'
+      ? `<select data-m="${m.user_id}">${['admin', 'editor', 'viewer'].map((v) => `<option value="${v}"${v === lv ? ' selected' : ''}>${LEVELS[v]}</option>`).join('')}</select> <button data-rm="${m.user_id}">Remove</button>${myLevel() === 'owner' ? ` <button data-own="${m.user_id}">Make owner</button>` : ''}`
+      : `<span class="pill">${esc(LEVELS[lv] || lv)}</span>`;
+    const who = mine && editName
+      ? `<input data-nm value="${esc(nm)}" maxlength="50" autocomplete="name" style="width:auto;max-width:180px"> <button data-nsave>Save</button> <button data-ncancel>Cancel</button>`
+      : `<b>${esc(nm || 'Unnamed')}</b>${mine ? ' (you) <button data-nedit>Edit name</button>' : ''}`; // you can change your own name, nobody else's
+    return `<li><span>${who}<br><small>${esc(inst || 'No instrument chosen')}</small></span><span>${ctl}</span></li>`;
+  }).join('');
 }
 $('memBtn').onclick = () => { $('menu').close(); openMembers(); };
 $('memClose').onclick = () => $('memDlg').close();
+$('memList').addEventListener('keydown', async (e) => { if (e.key === 'Enter' && e.target.dataset.nm !== undefined) { e.preventDefault(); if (await saveName(e.target.value)) { editName = false; drawMembers(); } } });
+// ---- band settings: its own screen, one level up from the members list (owners and admins)
+function openBandSettings() {
+  if (!bandId) return say('Pick a band first');
+  if (!isAdmin()) return say('Only owners and admins can change the band settings');
+  $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || '';
+  $('delBandRow').hidden = myLevel() !== 'owner'; drawSlug(); drawLogo(); $('bandDlg').showModal();
+}
+$('bandSetBtn').onclick = () => { $('menu').close(); openBandSettings(); };
+$('bandClose').onclick = () => $('bandDlg').close();
+// ---- your own name: shown to bandmates in the members list and the history; only you can change it
+let myName = '', editName = false, memRows = [];
+async function loadMyName() {
+  try { myName = JSON.parse(localStorage.getItem(ck('myname')) || 'null') || ''; } catch { myName = ''; }
+  myName = myName || user?.user_metadata?.display_name || ''; $('myName').value = myName;
+  try {
+    const r = await sb.from('profiles').select('display_name').eq('id', user.id).maybeSingle();
+    if (!r.error && r.data?.display_name) { myName = r.data.display_name; $('myName').value = myName; try { localStorage.setItem(ck('myname'), JSON.stringify(myName)); } catch {} }
+  } catch {}
+}
+async function saveName(raw) { // true when the name was saved
+  const name = (raw || '').trim().replace(/\s+/g, ' ');
+  if (!name) { say('Type your name'); return false; }
+  if (name.length > 50) { say('Please keep your name to 50 characters or fewer'); return false; }
+  try {
+    const r = await sb.from('profiles').update({ display_name: name }).eq('id', user.id).select('id');
+    if (r.error) { say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message); return false; }
+    if (!r.data.length) { say('Your name could not be saved'); return false; }
+  } catch { say('You seem to be offline. Try again when you have a connection.'); return false; }
+  myName = name; $('myName').value = name; try { localStorage.setItem(ck('myname'), JSON.stringify(name)); } catch {}
+  memRows.forEach((m) => { if (m.user_id === user.id) m.profiles = { ...(m.profiles || {}), display_name: name }; });
+  if (bandId && memRows.length) { persist('members:' + bandId, memRows); drawMembers(); }
+  say('Name saved'); return true;
+}
+$('myNameGo').onclick = () => saveName($('myName').value);
 $('memList').onchange = async (e) => {
   const u = e.target.dataset.m; if (!u) return;
   try { await must(sb.rpc('set_member_role', { p_band: bandId, p_user: u, p_role: e.target.value })); say('Access level changed'); } catch {}
   loadMembers();
 };
 $('memList').onclick = async (e) => {
+  const d = e.target.dataset;
+  if (d.nedit !== undefined) { editName = true; drawMembers(); $('memList').querySelector('[data-nm]')?.focus(); return; }
+  if (d.ncancel !== undefined) { editName = false; drawMembers(); return; }
+  if (d.nsave !== undefined) { if (await saveName($('memList').querySelector('[data-nm]')?.value)) { editName = false; drawMembers(); } return; }
   const own = e.target.dataset.own;
   if (own) {
     const who = e.target.closest('li').querySelector('b').textContent;
@@ -628,7 +678,7 @@ $('delBand').onclick = async () => {
     const d = await must(sb.from('bands').delete().eq('id', gone).select());
     if (!d.length) return say('Only the owner can delete the band');
     Object.keys(localStorage).filter((k) => k.includes(gone)).forEach((k) => localStorage.removeItem(k));
-    $('memDlg').close(); localStorage.removeItem('band'); say('Band deleted'); await loadBands();
+    $('bandDlg').close(); localStorage.removeItem('band'); say('Band deleted'); await loadBands();
   } catch {}
 };
 $('leaveBand').onclick = async () => {
@@ -922,7 +972,7 @@ async function makeSetlist(inp) {
 }
 $('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
 $('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
-$('menuBtn').onclick = () => { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('menu').showModal(); }; $('menuClose').onclick = () => $('menu').close();
+$('menuBtn').onclick = () => { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('bandSetRow').hidden = !(bandId && isAdmin()); loadMyName(); $('menu').showModal(); }; $('menuClose').onclick = () => $('menu').close();
 document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
 
 $('slRenameBtn').onclick = async () => {
