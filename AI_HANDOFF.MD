@@ -1,7 +1,7 @@
 # Development handoff
 
 A status snapshot for whoever picks this work up next (a person or an AI). Last updated: November 2026, after the guitar or
-bass view, the progression link finder the Use-saves-at-once change a smaller Open button and tighter progression searches, the Spotify and Moises links (SQL v12), role-based gig mode (SQL v13), the role-ordered Details view and the Settings changes.
+bass view and progression searches, the Use-saves-at-once change, the Spotify and Moises links (SQL v12), role-based gig mode (SQL v13), the role-ordered Details view, the Settings changes, roles under Band members with Back buttons, and reason-only notes (SQL v15).
 Read `AGENTS.md` for the rules, `docs/architecture.md` for the design and `docs/roadmap.md` for the plan.
 This file is updated with every set of files, together with the roadmap, the architecture notes and the commit message.
 If it disagrees with the repository, the repository wins: correct this file.
@@ -28,8 +28,8 @@ experiments, not as the live app, and check with Tim before building on them.
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and two Edge Functions: `lookup-song` (tempo and
   key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
   `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
-- **Database files:** v1 to v13 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
-  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song), v12 `songs.spotify_url` and `songs.moises_url`, v13 allows the `backing` instrument role.
+- **Database files:** v1 to v15 plus `check_schema`, run in order in the SQL Editor (listed in `docs/architecture.md`).
+  v8 band link ending, v9 `invite_preview`, v10 `songs.song_structure`, v11 `song_views` (a person's guitar or bass view of a song), v12 `songs.spotify_url` and `songs.moises_url`, v13 allows the `backing` instrument role, v14 was added on the Codex branch (not described here yet), v15 `add_song_note` (reason-only notes).
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -63,7 +63,9 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   usual order. `detailOrder(roles)` holds the rule so it can change later. No SQL.
 - **Settings:** Band settings (name, link ending, colour, logo, delete band) has its own screen opened from the menu, for owners and
   admins; Band members and access keeps the list, invites and Leave. Every person can change their own name (Edit name on their row, or
-  Your name in the Account section); it is written to their own `profiles` row, so no SQL was needed.
+  Your name in the Account section); it is written to their own `profiles` row, so no SQL was needed. My roles in this band is now under Band members and access, and Band members and Band settings each have a Back button to the menu.
+- **Reason-only notes (SQL v15):** a reason typed with no other change is sent as a `note` item through the offline queue to
+  `add_song_note(song, note)`, which adds a new History entry ("Note added") without touching the song or rewriting history.
 - The GetSongBPM link was removed from the footer while no key is in use.
 
 ## 3. State of the work
@@ -74,7 +76,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   deployed and `GENIUS_ACCESS_TOKEN` saved), the progression link finder, and the earlier items listed in the roadmap
   (offline editing, flash limit, sign-in and invite changes, launch speed, install help).
 - **Paused by Tim:** layout tweaks to the song details and gig mode. Tim finds the views messier after the recent additions. He will return to them once all functionality is in place. The Open button was reduced slightly after a first look.
-- **Delivered, awaiting review:** the role-ordered Details view and the Settings changes (Band settings screen, editable own name). Both are one `index.html`, no SQL.
+- **Delivered, awaiting review:** the role-ordered Details view, the Settings changes (Band settings screen, editable own name), roles under Band members with Back buttons, and reason-only notes (SQL v15: run it first). The Details view and Settings changes are one `index.html`, no SQL.
 - **Not yet reported on:** the tighter progression searches (roadmap backlog 29). Whether they reach the right song is still unknown.
 - **Waiting:** the email service for reset and sign-in codes (SQL v7 needs it), the GetSongBPM API key, and a second lookup
   source for songs Song Finder cannot find.
@@ -93,6 +95,9 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 7. Decide whether a progression link needs its own field, then Google sign-in and history restore.
 8. Listen links stage 2: a function (`find-listen-link`) that finds the most popular YouTube video and Spotify track for a song, with Use saving at once and the overwrite question, always overridable by hand. It needs a YouTube Data API key and a Spotify client ID and secret as Supabase secrets.
 9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different. Do the same for the role-ordered Details view. Also check the Settings changes: that saving your own name works against the real database.
+10. Confirm that a reason typed WITH a change shows in History on the real database (the History trigger may have lost the copy in a later SQL file), and find out why one save writes two History rows for the same song a fraction of a second apart. The three read-only queries are in the roadmap, item 15.
+11. `docs/tester-guide.md` and `docs/go-live-checklist.md` still say instrument roles are chosen in the menu; update them when the current copies are available.
+12. Find out what SQL v14 (made on the Codex branch) changes and describe it in `docs/architecture.md` and here. Check it does not clash with v15 (`add_song_note`).
 
 ## 5. Things learned the hard way
 - Use `@supabase/supabase-js@2` from the CDN. An older pinned version rejected the newer `sb_publishable_` keys and
@@ -115,6 +120,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 - GitHub Pages cannot route paths such as `/band-name`. Use a `#` link, or move the hosting.
 - Chrome on a laptop had its own volume set to zero in the system mixer, which looked like an app bug.
 - Reading a repo file in Python text mode turns CRLF into LF without warning. Open with `newline=''` (or in binary) so the file keeps its line endings.
+- The History trigger ignores an update where only `songs.change_note` changed, so a reason alone is never logged by it. Use `add_song_note` (SQL v15) for that, and never rewrite earlier History entries.
 - Everything in `app/` is public.
 - Testing available to the assistant: an in-memory Postgres (PGlite) with a stand-in for Supabase auth for SQL and row-level
   security, and a simulated browser (jsdom) with a stand-in database for page logic. There is no real browser, phone, tablet or

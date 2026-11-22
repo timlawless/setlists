@@ -216,8 +216,6 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
   <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div>
   <div class="row"><input id="slRename" placeholder="Rename this setlist"><button id="slRenameBtn">Rename</button></div>
   <div class="row"><button id="slDup">Duplicate this setlist</button><button id="slDel">Delete this setlist</button></div></div>
-  <h3>My roles in this band</h3>
-  <div id="roles" class="row"></div>
   <h3>Appearance</h3>
   <div class="row"><select id="theme"><option value="auto">Light or dark: automatic</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
   <h3>Audio check</h3>
@@ -239,11 +237,13 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
 </dialog>
 
 <dialog id="memDlg">
-  <div class="row" style="margin:0"><b style="flex:3">Band members</b><button id="memClose">Close</button></div>
+  <div class="row" style="margin:0"><button id="memBack">← Settings</button><b style="flex:3">Band members</b><button id="memClose">Close</button></div>
   <p><small id="myLevel"></small></p>
   <div class="row" id="linkRow" hidden><small id="linkTxt" style="flex:3;word-break:break-all"></small><button id="linkCopy">Copy band link</button></div>
   <ul id="memList"></ul>
   <p><small>Owner and Admin: full control. Editor: edit songs and setlists. Viewer: view only, with the metronome and gig mode.</small></p>
+  <h3>My roles in this band</h3>
+  <div id="roles" class="row"></div>
   <div id="invSec" hidden>
     <h3>Invite someone</h3>
     <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake">Make a new code</button></div>
@@ -258,7 +258,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
 </dialog>
 
 <dialog id="bandDlg">
-  <div class="row" style="margin:0"><b style="flex:3">Band settings</b><button id="bandClose">Close</button></div>
+  <div class="row" style="margin:0"><button id="bandBack">← Settings</button><b style="flex:3">Band settings</b><button id="bandClose">Close</button></div>
   <p><small>Only owners and admins can change these. Band members and invites are under Band members and access.</small></p>
   <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
   <label>Band link ending<input id="slugIn" placeholder="e.g. wc" autocapitalize="none" autocomplete="off" maxlength="30"></label>
@@ -353,6 +353,7 @@ async function runOp(op) {
     case 'songDel': return upd('songs', { deleted_at: op.at }, 'id', op.sid);
     case 'linkDel': return upd('song_links', { deleted_at: op.at }, 'id', op.id);
     case 'song': return runSongEdit(op);
+    case 'note': return verdict((await sb.rpc('add_song_note', { p_song: op.sid, p_note: op.note })).error);
   }
   return { fail: 'Unknown change' };
 }
@@ -376,7 +377,7 @@ function reloadSoon() { // refresh from the server, but not while someone is typ
 }
 function describe(o) {
   const t = `“${o.label || 'song'}”`;
-  return ({ song: `Edit ${t}: ${Object.keys(o.set || {}).join(', ')}`, songNew: `New song ${t}`, songDel: `Delete ${t}`, slAdd: `Add ${t} to the setlist`, slPos: `Move ${t} in the setlist`, slRemove: `Remove ${t} from the setlist`, linkAdd: `Add a link to ${t}`, linkDel: `Remove a link from ${t}` })[o.t] || 'Change';
+  return ({ song: `Edit ${t}: ${Object.keys(o.set || {}).join(', ')}`, songNew: `New song ${t}`, songDel: `Delete ${t}`, slAdd: `Add ${t} to the setlist`, slPos: `Move ${t} in the setlist`, slRemove: `Remove ${t} from the setlist`, linkAdd: `Add a link to ${t}`, linkDel: `Remove a link from ${t}`, note: `Add a reason to ${t}` })[o.t] || 'Change';
 }
 function updateChip() {
   const c = $('syncChip'); if (!c) return;
@@ -972,7 +973,10 @@ async function makeSetlist(inp) {
 }
 $('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
 $('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
-$('menuBtn').onclick = () => { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('bandSetRow').hidden = !(bandId && isAdmin()); loadMyName(); $('menu').showModal(); }; $('menuClose').onclick = () => $('menu').close();
+function openMenu() { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('bandSetRow').hidden = !(bandId && isAdmin()); loadMyName(); $('menu').showModal(); }
+$('menuBtn').onclick = openMenu;
+$('memBack').onclick = () => { $('memDlg').close(); openMenu(); }; // one level up: the general settings
+$('bandBack').onclick = () => { $('bandDlg').close(); openMenu(); }; $('menuClose').onclick = () => $('menu').close();
 document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
 
 $('slRenameBtn').onclick = async () => {
@@ -1261,7 +1265,13 @@ $('split').onclick = async (e) => {
       const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), spotify_url: sp.v, moises_url: mo.v, ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
       const song = items[i].songs, set = {}, base = {};
       Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
-      if (!Object.keys(set).length) return say('Nothing has changed');
+      const why = art.querySelector('[data-r="reason"]')?.value.trim() || '';
+      if (!Object.keys(set).length) {
+        if (!why) return say('Nothing has changed');
+        // a reason with nothing else changed is added to History as its own entry (history is never rewritten)
+        enqueue({ t: 'note', sid, label: song.title, note: why });
+        say(navigator.onLine ? 'Reason added to History' : 'Saved on this device. It will sync when you are back online.'); render(); return;
+      }
       Object.assign(song, set); const l = libFor === bandId ? lib.find((x) => x.id === sid) : null; if (l) Object.assign(l, set);
       persistItems(); persistLib();
       enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null });
@@ -1286,7 +1296,7 @@ $('split').onclick = async (e) => {
         if (r.op === 'INSERT') return 'Song added';
         const o = r.old_data || {}, n = r.new_data || {};
         const ch = Object.keys(LABEL).filter((k) => JSON.stringify(o[k]) !== JSON.stringify(n[k]));
-        return ch.map((k) => (k === 'chords' || k === 'root_notes' || k === 'notes' || k === 'song_structure' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
+        return ch.map((k) => (k === 'chords' || k === 'root_notes' || k === 'notes' || k === 'song_structure' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || (r.reason ? 'Note added' : 'Edited');
       };
       art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><span>${esc(diff(r))}${r.reason ? `<br><small>Reason: ${esc(r.reason)}</small>` : ''}</span><small style="text-align:right">${esc(who[r.changed_by] || 'Someone')}<br>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
     }
@@ -1432,7 +1442,7 @@ function renderGig() {
   const listen = [["Band's Moises version", s.moises_url], ['YouTube', s.youtube_url], ['Spotify', s.spotify_url]].filter(([, u]) => safe(u));
   const listenHtml = listen.length ? `<section class="panel"><h3>Listen</h3>${listen.map(([n, u]) => `<a class="btnlink" style="margin:0 8px 8px 0" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join('')}</section>` : '';
   const more = rest.length ? `<details id="gigMore" class="more"${gigMoreOpen ? ' open' : ''}><summary>More fields (${rest.length})</summary>${draw(rest)}</details>` : '';
-  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) and your own fields come first here.</small></p>';
+  const hint = roles.length ? '' : '<p><small>Pick your role under Band members and access (menu ☰) and your own fields come first here.</small></p>';
   $('gig').innerHTML = `<div class="gtop"><span style="display:flex;align-items:center;gap:8px">${bandLogo() ? `<img src="${bandLogo()}" alt="" style="height:30px;width:30px;object-fit:contain">` : ''}<small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small></span><button id="gigClose">✕ Close</button></div>
   <h1>${esc(s.title)}</h1><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small>
   ${hint}${draw(order)}${listenHtml}${more}

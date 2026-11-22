@@ -108,6 +108,7 @@ Hiding a button in the app is a convenience. The database enforces all of this.
 | --- | --- | --- | --- | --- |
 | Read songs, setlists, links, history, members | Yes | Yes | Yes | Yes |
 | Add and edit songs, setlists and links (including soft delete) | Yes | Yes | Yes | No |
+| Add a reason (note) to a song's History without changing the song | Yes | Yes | Yes | No |
 | Create and list invite codes | Yes | Yes | No | No |
 | Change access levels, remove members | Yes | Yes | No | No |
 | Rename the band, set its colour and logo | Yes | Yes | No | No |
@@ -130,6 +131,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer
   not silently win. The person syncing sees both values and chooses Use mine or Keep theirs, and the history records
   which. The earlier rule was "the later one wins and both stay in history". If you prefer that, it is a small change.
 - Per-change author and time give the "last changed by" information.
+- A reason can be recorded at any time. A song edit carries its reason in `songs.change_note`, which the History trigger copies into the entry. The trigger ignores an update where only the note changed, so a reason typed with no other change cannot go through that route. Instead the page sends it as a `note` item in the same queue (so it works offline, in order), which calls `add_song_note(song, note)` (SQL v15). That function adds a new `change_log` row for the song with the reason, who wrote it and the song's current values as both old and new, so History shows it as "Note added" with the reason. It changes nothing in the song and no earlier entry is rewritten. Allowed for owner, admin and editor; the reason is trimmed, must not be empty and is at most 500 characters. A retried note could in rare cases appear twice, because a note has no idempotency key.
 
 ## Offline
 - Reading: bands, setlists, songs, links and members you have opened are saved on the device and shown without signal.
@@ -222,7 +224,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer
 - Fields that are not on the person's list but have something in them (and a time signature other than 4/4) sit under a collapsed More fields bar, so nothing is hidden for good. Empty fields are not listed there. The bar stays open or closed as the person left it while moving between songs and switching views. A priority field with nothing in it says so, except Notes, which is left out when empty.
 - Key, BPM and Time are tiles; tiles next to each other share a row and a lone tile is kept to a sensible width. Lyrics is a button that opens the lyrics link. The progression panel keeps its Guitar chords / Bass line switch, and a stored link shows as an Open button.
 - The Listen panel (Moises version, YouTube, Spotify) follows the priority fields. The song list rows give a backing singer the lyrics link, as for a singer. The Details view follows the same role order (see Details view by role).
-- The roles list in the menu has a sixth box, Backing singer. SQL v13 widens the rule on `band_members.roles` if one exists.
+- The roles list (under Band members and access) has a sixth box, Backing singer. SQL v13 widens the rule on `band_members.roles` if one exists.
 
 ## Details view by role
 - The first rows of the Details view are the same for everyone: Title, Artist, Artist version, Time signature, BPM and Key (the grid). After the grid the fields come in the person's role order from gig mode, then everything else in the usual order.
@@ -233,7 +235,8 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer
 
 ## Settings screens
 - The menu (☰) holds the personal and band-level settings. **Band settings** is its own screen (`bandDlg`), opened from a menu button that only owners and admins see: band name, band link ending, band colour, band logo and, for the owner only, Delete this band. It used to sit inside Band members and access.
-- **Band members and access** (`memDlg`) keeps the member list, access levels, Remove and Make owner, the invite code and sharing buttons, the Copy band link row and Leave this band.
+- **Band members and access** (`memDlg`) keeps the member list, access levels, Remove and Make owner, the invite code and sharing buttons, the Copy band link row and Leave this band. It also holds My roles in this band (moved here from the main menu), so everything about the people in a band is at this level.
+- **Back buttons:** Band members and access and Band settings each have a "← Settings" button beside Close. Back closes the screen and reopens the general settings menu (with the Band settings button and your name refreshed); Close closes everything.
 - **Your own name:** every person can change their own display name. In Band members it is Edit name on your own row (a box with Save and Cancel; Enter saves); in the Account section of the menu it is Your name with Save name. Both use one routine: the name is tidied (spaces trimmed and collapsed), must not be empty or longer than 50 characters, and is written to the person's own `profiles` row. The existing profiles rule (SQL v1: a person updates only their own row) already allows this, so there is no SQL. A saved name is kept on the device and the cached member list is updated.
 - A name is profile-wide, so it changes in every band the person belongs to. Bandmates see it in the members list and in History. Owners and admins cannot rename other people. Changing a name needs a connection.
 
@@ -396,6 +399,8 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
 | v12 | `songs.spotify_url` and `songs.moises_url`: optional links to a Spotify track and to the band's own Moises version |
 | v13 | Allows the `backing` instrument role: widens the rule on `band_members.roles` if there is one (check rule or list type), and changes nothing if there is none |
+| v14 | Added on the Codex branch by Tim. Not described in this document yet. |
+| v15 | `add_song_note(song, note)`: adds a reason to a song's History as its own entry, without changing the song or any earlier entry |
 | check_schema | A read-only checklist of which updates are present |
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
@@ -422,6 +427,7 @@ SQL v12 (the two link columns) was run on an in-memory PostgreSQL with a stand-i
 SQL v13 (the Backing singer role) was run on an in-memory PostgreSQL in five situations: a text list with a limiting check rule (backing refused before, allowed after, an unknown role still refused, the old roles still work), a text list with no rule (nothing created), a list type (the value is added), existing rows (kept), and no roles column (the script ends quietly); it runs twice without error (11 checks). Role-based gig mode was tested in a simulated browser (jsdom) with a stand-in database (28 checks): the field order for each role, merged roles, Backing singer on its own and with other roles, the More fields bar (contents, empty fields left out, unusual time signature, stays open), placeholders, the no-role case, the Guitar/Bass switch in gig mode, the roles list and the lyrics link on song rows; the earlier checks were re-run. Not tested: the real Supabase project, a real browser or any phone or tablet (including sideways on a music stand), and how the order feels to real players.
 The role-ordered Details view was tested in a simulated browser (jsdom) with a stand-in database (24 checks), on the wide panel and in the narrow inline layout: the order for no role and for each role, merged roles and Backing singer, Chords beside Notes only when adjacent, the Title to Key grid unchanged and placed before the role fields, every field still present for every role, and Find chords link, the Guitar/Bass switch and Find lyrics link still working in their new places; the earlier checks were re-run. Not tested: a real browser or any phone or tablet, and how the new order looks and feels.
 The Settings changes were tested in a simulated browser (jsdom) with a stand-in database (28 checks): Band settings button shown to an owner and an admin and hidden from an editor and a viewer, the new screen and its contents, nothing left of them in Band members, rename and delete from the new screen, Edit name only on your own row, Save sending a tidied name to your own profile, Cancel, an empty name and an over-long name refused, Enter saving, a viewer editing their own name, the Account box, and a refused save when no row changes; the earlier checks were re-run. Not tested: the real Supabase project (in particular that the profiles rule allows the update as expected), a real browser or any phone or tablet, and how the screens look.
+SQL v15 (`add_song_note`) was run on an in-memory PostgreSQL with a stand-in for Supabase's auth layer, once with a text role column and once with an enum role column (38 checks): it runs twice without error; an editor, an admin and an owner can add a reason; the new History row carries the reason, the song and band, identical old and new values and the author; the song is unchanged; a viewer, an outsider, a signed-out visitor and the signed-out role are refused; a blank, a missing, an over-long reason, a deleted song and an unknown song are refused; only the allowed notes were recorded. In a simulated browser (22 checks): a reason with nothing else changed is queued as a note and sent to the function, then cleared; nothing typed still says Nothing has changed; a change with a reason is still one song edit carrying the reason; a viewer has no reason box; a refused note appears under Check sync with its message; History shows Note added with the reason; roles are in Band members and not in the menu and choosing one saves; Back and Close behave as described; the earlier checks were re-run. Not tested: the real Supabase project, a real browser or any phone or tablet. Not yet explained: the History rows Tim pasted show two updates about 0.2 seconds apart for the same song, and an empty reason on each, so whether a reason typed with a change reaches History in the real database is still to be confirmed.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
@@ -448,6 +454,7 @@ The Settings changes were tested in a simulated browser (jsdom) with a stand-in 
 - Role-based gig mode: the order follows the table agreed with Tim and has not been tried by real players. Time shows only for drummers (or under More fields for an unusual time signature). Which fields other roles want first is an open tuning question.
 - Details view by role: the order uses the gig mode table for now and some of it is expected to change. With Chords and Notes on separate rows for most roles, the wide panel is a little taller than before; the layout tidy-up is still to do.
 - Settings: a name change depends on the profiles rule from SQL v1 and has not been tried against the real database. A name is shared by all of a person's bands. Names are not checked for being unique or appropriate.
+- History: a reason typed with a change was reported not to reach History, and Tim's pasted History rows show two updates a fraction of a second apart for one song. The reason-only note is fixed by SQL v15; whether a reason with a change reaches History on the real database, and what causes the paired updates, are still to be confirmed (the three read-only queries in the roadmap, item 15).
 
 ## Open questions
 1. ~~PWA first or Expo first.~~ Answered: PWA first.
