@@ -1,7 +1,7 @@
 # Development handoff
 
 A status snapshot for whoever picks this work up next (a person or an AI). Last updated: November 2026, after the guitar or
-bass view, the progression link finder the Use-saves-at-once change a smaller Open button and tighter progression searches, the Spotify and Moises links (SQL v12), role-based gig mode (SQL v13) and the role-ordered Details view.
+bass view, the progression link finder the Use-saves-at-once change a smaller Open button and tighter progression searches, the Spotify and Moises links (SQL v12), role-based gig mode (SQL v13), the role-ordered Details view and the Settings changes.
 Read `AGENTS.md` for the rules, `docs/architecture.md` for the design and `docs/roadmap.md` for the plan.
 This file is updated with every set of files, together with the roadmap, the architecture notes and the commit message.
 If it disagrees with the repository, the repository wins: correct this file.
@@ -61,6 +61,9 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 - **Role-ordered Details view:** the first rows (Title to Key) are the same for everyone. After Key the lyrics link, progression,
   structure and notes follow the role order from gig mode (without Key, BPM and Time, which are in the grid), then the rest in the
   usual order. `detailOrder(roles)` holds the rule so it can change later. No SQL.
+- **Settings:** Band settings (name, link ending, colour, logo, delete band) has its own screen opened from the menu, for owners and
+  admins; Band members and access keeps the list, invites and Leave. Every person can change their own name (Edit name on their row, or
+  Your name in the Account section); it is written to their own `profiles` row, so no SQL was needed.
 - The GetSongBPM link was removed from the footer while no key is in use.
 
 ## 3. State of the work
@@ -71,7 +74,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   deployed and `GENIUS_ACCESS_TOKEN` saved), the progression link finder, and the earlier items listed in the roadmap
   (offline editing, flash limit, sign-in and invite changes, launch speed, install help).
 - **Paused by Tim:** layout tweaks to the song details and gig mode. Tim finds the views messier after the recent additions. He will return to them once all functionality is in place. The Open button was reduced slightly after a first look.
-- **Delivered, awaiting review:** the role-ordered Details view (one `index.html`, no SQL).
+- **Delivered, awaiting review:** the role-ordered Details view and the Settings changes (Band settings screen, editable own name). Both are one `index.html`, no SQL.
 - **Not yet reported on:** the tighter progression searches (roadmap backlog 29). Whether they reach the right song is still unknown.
 - **Waiting:** the email service for reset and sign-in codes (SQL v7 needs it), the GetSongBPM API key, and a second lookup
   source for songs Song Finder cannot find.
@@ -89,7 +92,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 6. Check the tighter progression searches on real songs (roadmap backlog 29, step 1 built). If they still miss, build step 2: a function that finds specific videos.
 7. Decide whether a progression link needs its own field, then Google sign-in and history restore.
 8. Listen links stage 2: a function (`find-listen-link`) that finds the most popular YouTube video and Spotify track for a song, with Use saving at once and the overwrite question, always overridable by hand. It needs a YouTube Data API key and a Spotify client ID and secret as Supabase secrets.
-9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different. Do the same for the role-ordered Details view.
+9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different. Do the same for the role-ordered Details view. Also check the Settings changes: that saving your own name works against the real database.
 
 ## 5. Things learned the hard way
 - Use `@supabase/supabase-js@2` from the CDN. An older pinned version rejected the newer `sb_publishable_` keys and
