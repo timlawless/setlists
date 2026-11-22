@@ -399,7 +399,7 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
 | v12 | `songs.spotify_url` and `songs.moises_url`: optional links to a Spotify track and to the band's own Moises version |
 | v13 | Allows the `backing` instrument role: widens the rule on `band_members.roles` if there is one (check rule or list type), and changes nothing if there is none |
-| v14 | Added on the Codex branch by Tim. Not described in this document yet. |
+| v14 | Made on the Codex branch by Tim: changes to give a better offline experience, with cached information available when there is no internet. The exact tables and functions have not been seen, so they are not described here yet. |
 | v15 | `add_song_note(song, note)`: adds a reason to a song's History as its own entry, without changing the song or any earlier entry |
 | check_schema | A read-only checklist of which updates are present |
 
@@ -455,6 +455,7 @@ SQL v15 (`add_song_note`) was run on an in-memory PostgreSQL with a stand-in for
 - Details view by role: the order uses the gig mode table for now and some of it is expected to change. With Chords and Notes on separate rows for most roles, the wide panel is a little taller than before; the layout tidy-up is still to do.
 - Settings: a name change depends on the profiles rule from SQL v1 and has not been tried against the real database. A name is shared by all of a person's bands. Names are not checked for being unique or appropriate.
 - History: a reason typed with a change was reported not to reach History, and Tim's pasted History rows show two updates a fraction of a second apart for one song. The reason-only note is fixed by SQL v15; whether a reason with a change reaches History on the real database, and what causes the paired updates, are still to be confirmed (the three read-only queries in the roadmap, item 15).
+- Offline work on two branches: the Codex branch's SQL v14 and its `index.html` changes improve the offline experience (cached information without internet), and this branch also changes the offline queue (the `note` item for reason-only notes, SQL v15). Both edit the same large `index.html`, so merging will need care: compare the queue, `runOp`, `flush` and the cached-read code before merging, and check v14 does not clash with `add_song_note`.
 
 ## Open questions
 1. ~~PWA first or Expo first.~~ Answered: PWA first.

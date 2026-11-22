@@ -128,6 +128,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
     song, type a reason, tap Save changes, then tap History: a "Note added" entry shows the reason and your name; a change plus a reason
     still shows the reason on the change; a viewer has no reason box. If a reason typed WITH a change still does not appear in History,
     run the three read-only queries I gave (the History trigger's code, songs.change_note and change_log.reason) and paste the results.
+    Note: the Codex branch has SQL v14 and `index.html` changes for a better offline experience. Before merging, compare the offline queue code in the two `index.html` files (see the handoff, task 12).
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
