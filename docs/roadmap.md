@@ -61,6 +61,8 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Role-based gig mode, Backing singer role | In gig mode each instrument role puts its own fields first, in order: Singer: Lyrics, Key, Structure. Guitarist and Keyboards: Chords, Key, Structure, BPM. Bassist: Chords/bass line, Key, BPM. Drummer: BPM, Time, Structure, Notes. Backing singer (a new role, used with another role): adds the lyrics after the other fields. Several roles are merged (each field once, in the order of the roles list). Every other field that has something in it waits under a collapsed "More fields" bar; empty fields are not listed. The Guitar/Bass switch still works. Song rows give a backing singer the lyrics link | v13 | Tried by Tim and reported working (the views are busy and will be tidied later); the SQL was tested on in-memory Postgres in five situations and the page in a simulated browser, my own tests did not use real devices or the real database |
 | Role-based Details view | In the song Details view the first rows are the same for everyone (Title, Artist, Artist version, Time signature, BPM, Key). After Key the fields follow the person's role, in the gig mode order, without Key, BPM and Time (they are in the grid already): Singer: Lyrics link, Structure. Guitarist and Keyboards: Chords, Structure. Bassist: Chords/bass line, Structure. Drummer: Structure, Notes. Backing singer: adds Lyrics after the other fields. Several roles are merged as in gig mode. Everything else follows in the usual order. On the wide right-hand panel, a lyrics link that comes first is shown in the order instead of under More, and Chords sit beside Notes only when they are next to each other | none | Built, not yet on the site; tested in a simulated browser (wide and narrow), not on real devices |
 | Settings: Band settings one level up, editable own name | Band settings (band name, link ending, colour, logo, delete band) now has its own screen, opened from the menu (owners and admins only), instead of sitting inside Band members and access. Band members and access keeps the member list, invites, the band link copy and Leave. Everyone can change their own name, which bandmates see in the members list and in History: Edit name on your own row in Band members, or Your name in the Account section of the menu. You cannot edit anyone else's name | none | Built, not yet on the site; tested in a simulated browser, not on real devices or the real database |
+| Settings: roles under Band members, Back buttons | "My roles in this band" moved out of the main menu into Band members and access (the member-management level). Band members and access and Band settings each have a Back button ("← Settings") next to Close, which returns to the general settings menu | none | Built, not yet on the site; tested in a simulated browser, not on real devices |
+| Reason-only notes in History | A reason typed with no other change used to be dropped ("Nothing has changed"). It is now added to History as its own entry ("Note added", with the reason and who wrote it), so the reason can be recorded at any time. History is only added to, never rewritten. Owners, admins and editors can do it; it works offline and syncs later | v15 | Built, not yet on the site; the SQL was tested on in-memory Postgres (text and enum role columns) and the page in a simulated browser, not on real devices or the real database |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -108,7 +110,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
     lines in the result say which case applied), then upload `app/index.html`, leave `config.js` alone. Test on real devices, for each
     role and for two roles: the order of the fields in gig mode matches the table in this document; the Guitar/Bass switch works
     there; the More fields bar is closed at first, stays open once you open it, and lists only fields that have something in them;
-    choosing Backing singer in the menu saves; a backing singer gets the lyrics after their other fields. Try it sideways on a music stand.
+    choosing Backing singer under Band members and access saves; a backing singer gets the lyrics after their other fields. Try it sideways on a music stand.
 13. **Role-ordered Details view (awaiting review).** One new `app/index.html`, no SQL. Upload it and leave `config.js` alone. Test on real
     devices, wide panel and phone, for each role and for two roles: the first rows (Title to Key) are unchanged; after Key the fields
     follow the role order in this document; nothing is missing; Find chords link, the Guitar/Bass switch and Find lyrics link still
@@ -119,6 +121,13 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
     still has the list, invites and Leave; Edit name appears only on your own row, saves a tidied name, refuses an empty or over-long
     one, and bandmates see the new name; the Account box in the menu does the same; a viewer can change their own name. If saving
     a name shows a permissions error, tell me: it would mean the profiles rule in SQL v1 has been changed.
+15. **Roles under Band members, Back buttons and reason-only notes (awaiting review).** SQL v15 (`sql/schema_v15_song_note.sql`; v14 is the Codex branch's schema change) and the new
+    `app/index.html`. When approved: run SQL v15 in the Supabase SQL Editor first, then upload `app/index.html`, leave `config.js` alone.
+    Test on real devices: "My roles in this band" is gone from the menu and is in Band members and access, and choosing a role there
+    saves; Band members and Band settings each have ← Settings, which returns to the menu, and Close still closes; change nothing in a
+    song, type a reason, tap Save changes, then tap History: a "Note added" entry shows the reason and your name; a change plus a reason
+    still shows the reason on the change; a viewer has no reason box. If a reason typed WITH a change still does not appear in History,
+    run the three read-only queries I gave (the History trigger's code, songs.change_note and change_log.reason) and paste the results.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -200,7 +209,9 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 32 | Role-based field views in gig mode | You | Re-order the fields in gig mode by instrument role (singer: lyrics, key, structure; guitarist and keyboards: chords, key, structure, BPM; bassist: chords or bass line, key, BPM; drummer: BPM, structure, notes), with a Backing singer role that adds lyrics. Fields not on a role's list sit under a collapsed More fields bar. Drummers keep the Time tile next to BPM. SQL v13. Tried by Tim and reported working; the layout is busy and will be tidied later. | Now | Done |
 | 33 | Role-based field order in the Details view | You | First rows (Title to Key) stay the same for everyone; after Key the fields follow the role's gig mode order, then the rest in the usual order. Some of the order may change later, so it is kept as its own rule. Needs a test on real devices. | Now | Built |
 | 34 | Settings: Band settings one level up, editable own name | You | Band settings out of Band members and access into their own screen from the menu; every person can change their own name. No SQL (people can already change their own profile). Needs a test on real devices. | Now | Built |
-| 35 | (add your next change here) |  |  |  |  |
+| 35 | Settings: roles under Band members, Back buttons | You | Role selection moved down to member management (Band members and access). Member management and Band settings get a Back to settings button as well as Close. Needs a test on real devices. | Now | Built |
+| 36 | Reason can be added at any time (reason-only note) | You | The reason box dropped its text when nothing else had changed. A reason alone is now added to History as its own entry. SQL v15. Needs a test on real devices; also check that a reason with a change appears in History. | Now | Built |
+| 37 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
@@ -224,6 +235,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 - **Spotify and Moises links are two new song columns, shared by the whole band.** The YouTube box stays as it was. Moises is manual only: the app cannot look inside a band's Moises library. The automatic find of the most popular YouTube and Spotify link is the planned next step, and a manual entry always wins.
 - **Gig mode shows each role's priority fields first and keeps everything else one tap away.** Fields not on a role's list are collapsed under More fields, not hidden, so nothing is lost on stage. Backing singer is a role that is used with another role, and it adds the lyrics after the other fields. The Details view follows the same role order after the Title to Key grid, with the rest in the usual order.
 - **Band settings are separate from the members list, and you own your name.** Band settings is its own screen for owners and admins; the members list keeps people and invites. A person can change only their own name (a profile-level name shared by all their bands); owners and admins cannot rename other people.
+- **A reason can be recorded at any time, as its own History entry.** History is only added to, so a reason with no other change becomes a new "Note added" line rather than editing an old entry. Roles are chosen at member-management level, and every second-level screen has a Back button to the general settings.
 - **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
 ## Notes for whoever picks this up
