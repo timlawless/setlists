@@ -276,6 +276,7 @@ html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28p
 <script type="module">
 import { createOfflineState, reduceOfflineState } from './offline-state.mjs';
 import { openOfflineQueue, classifySyncFailure, retryDelayMs } from './offline-queue.mjs';
+import { createAuthRecovery, createSyncFollowupLatch, restoreCachedStartup } from './offline-recovery.mjs';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
@@ -311,7 +312,9 @@ let user = null, bandId = null, setlistId = null, items = [], openId = null, ban
 let matches = [], cands = [], forcePick = null;
 const ck = (k) => `c:${user.id}:${k}`;
 async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
-  if (queue.length) { const mine = localStorage.getItem(k); if (mine) { recordOfflineState({ type: 'cache-found' }); return overlayQueueCache(k, JSON.parse(mine)); } } // changes are waiting to sync: show the local copy
+  const mine = localStorage.getItem(k);
+  if (mine && (queue.length || !navigator.onLine || offlineState.supabaseReachability === 'unavailable')) { recordOfflineState({ type: 'cache-found' }); return overlayQueueCache(k, JSON.parse(mine)); }
+  if (!navigator.onLine || offlineState.supabaseReachability === 'unavailable') throw new Error('No saved copy is available while Supabase is unavailable.');
   try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); return queue.length ? overlayQueueCache(k, v) : v; }
   catch (e) { const c = localStorage.getItem(k); if (c) { recordOfflineState({ type: 'cache-found' }); say('Offline: showing the saved copy'); return overlayQueueCache(k, JSON.parse(c)); } throw e; }
 }
@@ -322,6 +325,8 @@ const qk = () => `q:${user.id}`, ik = () => `qi:${user.id}`;
 const uuid = () => crypto.randomUUID();
 const syncOwnerId = uuid(), retryAtById = new Map(), sequenceById = new Map();
 let blockedBarrierSequence = Infinity;
+const syncFollowup = createSyncFollowupLatch();
+let syncRequestedAfterOther = false, syncAfterOtherTimer = null;
 const syncChannel = (() => { try { return typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('setlists-queue-sync'); } catch { return null; } })();
 syncChannel?.addEventListener('message', (event) => {
   const message = event.data;
@@ -334,7 +339,12 @@ syncChannel?.addEventListener('message', (event) => {
   if (message.type === 'stop') {
     syncingElsewhere = false;
     queueLoadUser = null; queueLoadPromise = null;
-    void loadQ().then(() => { updateChip(); if ($('syncDlg').open) drawSync(); });
+    void loadQ().then(() => {
+      updateChip(); if ($('syncDlg').open) drawSync();
+      if (syncRequestedAfterOther && user?.id === message.userId && offlineState.authenticatedAccess === 'authenticated' && queue.length) {
+        syncRequestedAfterOther = false; clearTimeout(syncAfterOtherTimer); syncAfterOtherTimer = null; void flush(false, true);
+      }
+    });
   }
   updateChip(); if ($('syncDlg').open) drawSync();
 });
@@ -582,25 +592,26 @@ async function withSyncOwnership(uid, work) {
     let acquired = false, lockApiWorked = false;
     try {
       await navigator.locks.request(`setlists-sync:${uid}`, { mode: 'exclusive', ifAvailable: true }, async (lock) => {
-        if (!lock) { syncingElsewhere = true; updateChip(); return; }
-        acquired = true; return runOwned();
+        if (!lock) { syncingElsewhere = true; updateChip(); return false; }
+        acquired = true; await runOwned(); return true;
       });
       lockApiWorked = true;
     } catch { /* Use the expiring IndexedDB lease if Web Locks are unavailable or fail. */ }
-    if (acquired || lockApiWorked) return;
+    if (acquired || lockApiWorked) return acquired;
   }
   const store = await queueStore(), now = Date.now(), ttl = 90000;
-  if (!await store.acquireLease(uid, syncOwnerId, now, ttl)) { syncingElsewhere = true; updateChip(); return; }
+  if (!await store.acquireLease(uid, syncOwnerId, now, ttl)) { syncingElsewhere = true; updateChip(); return false; }
   let leaseHealthy = true;
   const renew = setInterval(() => { void store.renewLease(uid, syncOwnerId, Date.now(), ttl).then((ok) => { leaseHealthy = ok; if (!ok) updateChip(); }).catch(() => { leaseHealthy = false; }); }, 20000);
-  try { await runOwned(async () => leaseHealthy && await store.renewLease(uid, syncOwnerId, Date.now(), ttl)); }
+  try { await runOwned(async () => leaseHealthy && await store.renewLease(uid, syncOwnerId, Date.now(), ttl)); return true; }
   finally { clearInterval(renew); await store.releaseLease(uid, syncOwnerId).catch(() => {}); }
 }
-async function flush(reload = true, manual = false) {
-  if (flushing || authPaused || !user || !queueReady || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
+async function flush(reload = true, manual = false, reconnect = false) {
+  if (flushing) { if (reconnect) syncFollowup.request(); return; }
+  if (authPaused || !user || !queueReady || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
   flushing = true; let did = false; const uid = user.id;
   try {
-    await withSyncOwnership(uid, async (stillOwned) => {
+    const owned = await withSyncOwnership(uid, async (stillOwned) => {
       if (user?.id !== uid) return;
       try { await refreshQueueFromStore(uid); }
       catch (error) { queueReady = false; queueLoadError = error?.message || 'Saved changes could not be read.'; queueWarning = `Saved changes could not be read safely. Synchronisation is paused. ${queueLoadError}`; return; }
@@ -641,6 +652,16 @@ async function flush(reload = true, manual = false) {
         if (result !== 'done') break;
       }
     });
+    if (owned) { syncRequestedAfterOther = false; clearTimeout(syncAfterOtherTimer); syncAfterOtherTimer = null; }
+    else if (!owned && reconnect) {
+      syncRequestedAfterOther = true;
+      if (!syncChannel) syncAfterOtherTimer = setTimeout(() => {
+        syncAfterOtherTimer = null;
+        if (syncRequestedAfterOther && user?.id === uid && offlineState.authenticatedAccess === 'authenticated' && queue.length) {
+          syncRequestedAfterOther = false; void flush(false, true);
+        }
+      }, 1000);
+    }
   } catch (error) {
     queueReady = false; queueLoadError = error?.message || 'Saved changes could not be synchronized safely.';
     queueWarning = `Saved changes remain on this device. Synchronisation is paused until queue access is restored. ${queueLoadError}`;
@@ -651,6 +672,10 @@ async function flush(reload = true, manual = false) {
   if (!queue.length && !unsavedForUser().length && !localSaveCount) showLocalSave('');
   updateChip(); if ($('syncDlg').open) drawSync();
   if (did && !queue.length && reload) reloadSoon();
+  if (syncFollowup.take()) {
+    if (!user || user.id !== uid || !queue.length) return;
+    if (offlineState.authenticatedAccess === 'authenticated') void flush(false, true);
+  }
 }
 function reloadSoon() { // refresh from the server, but not while someone is typing in a song
   if ($('split').contains(document.activeElement)) { pendingReload = true; return; }
@@ -694,10 +719,11 @@ $('syncIssues').onclick = async (e) => {
 };
 window.addEventListener('online', () => {
   recordOfflineState({ type: 'browser-online' });
-  if (user) confirmAuthenticatedAccess(user.id);
-  flush();
+  if (user) void authRecovery.online(user.id);
 });
-window.addEventListener('offline', () => recordOfflineState({ type: 'browser-offline' }));
+window.addEventListener('offline', () => {
+  recordOfflineState({ type: 'browser-offline' }); refreshAfterReconnect = true; authRecovery.offline();
+});
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flush(); });
 setInterval(() => { updateChip(); if (queue.length) flush(); }, 20000);
 $('split').addEventListener('focusout', () => setTimeout(() => { if (pendingReload && !$('split').contains(document.activeElement)) reloadSoon(); }, 300));
@@ -1141,7 +1167,7 @@ $('signOut').onclick = async () => {
   if ((queue.length || issues.length || unsaved.length || queueLoadError) && !confirm(`Some changes have not synced yet. Persisted changes stay on this device for your next sign-in. ${queueLoadError ? 'The saved queue could not be read, so there may be changes that are not currently visible.' : ''} ${unsaved.length ? 'The change marked “Couldn’t save on this device” is not safely stored and will be lost if you sign out.' : ''} Sign out anyway?`)) return;
   if (user?.id) unsavedByUser.delete(user.id); showLocalSave(''); Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); recordOfflineState({ type: 'cache-scan', available: false }); $('menu').close(); await sb.auth.signOut(); };
 // ---- fast start: a sign-in saved on this device shows the saved copy at once; the server is checked afterwards
-let provisional = false, quietRefresh = false;
+let provisional = false, quietRefresh = false, startupRefreshPending = false, refreshAfterReconnect = false;
 function savedUser() { try { for (const k of Object.keys(localStorage)) { if (/^sb-.*-auth-token$/.test(k)) { const u = JSON.parse(localStorage.getItem(k))?.user; if (u?.id) return u; } } } catch {} return null; }
 function scanCachedAccess(uid) {
   let available = false;
@@ -1153,22 +1179,50 @@ function scanCachedAccess(uid) {
   } catch {}
   recordOfflineState({ type: 'cache-scan', available });
 }
-let authCheckFor = null;
-async function confirmAuthenticatedAccess(uid, startSync = true) {
-  if (!uid || !navigator.onLine || authCheckFor === uid) return;
-  authCheckFor = uid;
+async function checkAuthWithSupabase(uid) {
   try {
     const { data, error } = await sb.auth.getUser();
-    if (user?.id !== uid) return;
-    if (!error && data?.user?.id === uid) {
-      authPaused = false;
-      recordOfflineState({ type: 'auth-confirmed' });
-      if (startSync) flush(); flushViews(); syncViews();
+
+    if (user?.id !== uid) return { status: 'rejected' };
+    if (!error && data?.user?.id === uid) return { status: 'authenticated' };
+
+    const status = Number(error?.status || 0);
+    if (status === 408 || status === 429 || status >= 500 || !status) {
+      return { status: 'unavailable', error };
     }
-    else if ((error?.status >= 400 && error?.status < 500) || (!error && data?.user?.id !== uid)) recordOfflineState({ type: 'auth-rejected' });
-  } catch { /* Transport failure leaves authentication unknown; cached access stays separate. */ }
-  finally { if (authCheckFor === uid) authCheckFor = null; }
+
+    return { status: 'rejected', error };
+  } catch (error) {
+    return { status: 'unavailable', error };
+  }
 }
+const authRecovery = createAuthRecovery({
+  check: checkAuthWithSupabase,
+  isOnline: () => navigator.onLine,
+  delayForAttempt: (attempt) => retryDelayMs(attempt),
+  timeoutMs: 1500,
+  onConfirmed(uid) {
+    if (user?.id !== uid) return;
+    provisional = false; authPaused = false;
+    recordOfflineState({ type: 'auth-confirmed' });
+    const refresh = startupRefreshPending || refreshAfterReconnect;
+    startupRefreshPending = false; refreshAfterReconnect = false;
+    if (refresh) void loadBands(true);
+    else void loadQ().then(() => flush(false, true, true));
+    flushViews(); syncViews();
+  },
+  onRejected(uid) {
+    if (user?.id !== uid) return;
+    recordOfflineState({ type: 'auth-rejected' }); authPaused = true;
+    if (provisional) {
+      provisional = false; user = null; authRecovery.setUser(null);
+      bandRows = []; bandId = setlistId = null; items = [];
+      say('Your saved sign-in has expired. Please sign in again.'); render();
+    }
+  },
+  onUnavailable() { recordOfflineState({ type: 'auth-unknown' }); }
+});
+async function confirmAuthenticatedAccess(uid) { return authRecovery.request(uid, { force: true }); }
 function instantFromCache() {
   try {
     const get = (k) => { const v = localStorage.getItem(ck(k)); return v ? overlayQueueCache(ck(k), JSON.parse(v)) : null; };
@@ -1186,39 +1240,49 @@ function instantFromCache() {
     readViewsLocal(); render(); return true;
   } catch { return false; }
 }
-setTimeout(() => { // after the page has finished loading its own code
-  if (user || offlineState.authenticatedAccess === 'unauthenticated') return; const u = savedUser(); if (!u) return;
-  user = u; provisional = true; recordOfflineState({ type: 'auth-unknown' }); scanCachedAccess(u.id); $('who').textContent = u.email || 'Menu'; void loadQ().then(() => { if (provisional) instantFromCache(); }); instantFromCache();
-}, 0);
+// Restore the local identity and cache synchronously before INITIAL_SESSION can race ahead of it.
+restoreCachedStartup(savedUser(), user, {
+  setIdentity(identity, isProvisional) {
+    user = identity; provisional = isProvisional; startupRefreshPending = true;
+    authRecovery.setUser(identity.id); recordOfflineState({ type: 'auth-unknown' });
+    scanCachedAccess(identity.id); $('who').textContent = identity.email || 'Menu';
+  },
+  restoreCache: instantFromCache,
+  loadQueue: loadQ,
+  isCurrent: (uid, isProvisional) => user?.id === uid && provisional === isProvisional
+});
 
 sb.auth.onAuthStateChange((e, s) => {
   const wasProvisional = provisional, incomingUser = s?.user || null;
-  if (wasProvisional && !incomingUser && e === 'INITIAL_SESSION' && !navigator.onLine) {
+  if (wasProvisional && !incomingUser && e === 'INITIAL_SESSION') {
     recordOfflineState({ type: 'auth-unknown' });
-    return; // retain only the provisional cache view while offline; this does not establish authentication
+    startupRefreshPending = true;
+    if (navigator.onLine) void authRecovery.request(user.id);
+    return; // keep the provisional cache view until Supabase can confirm or reject it
   }
-  provisional = false;
   const before = user?.id || null; user = incomingUser;
+  if (!user || user.id !== before) provisional = false;
   if (user?.id && unsavedForUser().length) showLocalSave('failed', `Couldn't save on this device. An earlier change for this account is still only in this page. Retry before closing or refreshing.`);
   else if (before !== (user?.id || null)) showLocalSave('');
   if (!user) recordOfflineState({ type: navigator.onLine ? 'auth-rejected' : 'auth-unknown' });
   else if (user.id !== before || wasProvisional || offlineState.authenticatedAccess !== 'authenticated') recordOfflineState({ type: 'auth-unknown' });
+  authRecovery.setUser(user?.id || null);
   $('who').textContent = user ? user.email : 'Menu';
   if (user) scanCachedAccess(user.id);
   if (user) { try { localStorage.setItem('hadAccount', '1'); } catch {} }
   if (e === 'SIGNED_OUT') setAuthMode('old');
   if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
-  if (wasProvisional && !user) say('Your saved sign-in has expired. Please sign in again.');
   if (wasProvisional && user && user.id === before) quietRefresh = true; // the saved copy is already on screen: only redraw if something changed
-  if ((user?.id || null) !== before || (e === 'INITIAL_SESSION' && user)) setTimeout(loadBands, 0); // when someone signs in or out, or the saved sign-in is confirmed, not when the same person returns to the tab
-  if (user && navigator.onLine && offlineState.authenticatedAccess !== 'authenticated') confirmAuthenticatedAccess(user.id);
+  if ((user?.id || null) !== before || (e === 'INITIAL_SESSION' && user)) startupRefreshPending = Boolean(user);
+  if (!user && (user?.id || null) !== before) setTimeout(loadBands, 0);
+  if (user && navigator.onLine && offlineState.authenticatedAccess !== 'authenticated') void authRecovery.request(user.id);
   else if (e === 'PASSWORD_RECOVERY') setTimeout(render, 0);
 });
 
 // ---- bands and setlists
-async function loadBands() {
+async function loadBands(immediateSync = false) {
   if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
-  await redeemPending(); await loadQ(); await flush(false);
+  await redeemPending(); await loadQ(); await flush(false, immediateSync, immediateSync);
   try {
     bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme,logo,slug)').eq('user_id', user.id)));
     $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));

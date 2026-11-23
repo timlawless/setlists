@@ -1,0 +1,1866 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Setlist</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#16191f">
+<script>try{if(Object.keys(localStorage).some(function(k){return /^sb-.*-auth-token$/.test(k)}))document.documentElement.classList.add('booting')}catch(e){}</script>
+<style>
+:root{--bg:#f6f5f2;--card:#fff;--ink:#17191d;--mute:#667080;--line:#dcdfe4;--accent:#0f766e;--on:#fff;--flash:#f59e0b;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#14171c;--card:#1e232b;--ink:#eef0f3;--mute:#9aa3b0;--line:#323946;--accent:#2dd4bf;--on:#06201d;color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px)}
+body.out header,body.out #bar{display:none}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;gap:8px;padding:10px 12px;background:var(--bg);border-bottom:1px solid var(--line)}
+header select{flex:1;min-width:0}
+main{max-width:820px;margin:0 auto;padding:12px 12px calc(120px + env(safe-area-inset-bottom,0px))}
+.card,article{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+input,select,textarea,button{font:inherit;color:var(--ink)}
+input,select,textarea{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+button{padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
+button.primary{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
+button:disabled{opacity:.35}
+label{display:block;color:var(--mute);font-size:13px;margin-top:8px}
+label a{margin-left:8px}
+.chk{display:flex;gap:6px;align-items:center}.chk input{width:auto}
+#install ol{margin:6px 0 8px;padding-left:20px}#install li{display:list-item;border-top:0;padding:0;margin:4px 0}
+button.big{display:block;width:100%;padding:16px 12px;font-size:16px;margin:10px 0}button.linkbtn{background:none;border:0;text-decoration:underline;padding:8px 0}
+#authForm label small{font-weight:normal;opacity:.75}#trouble{margin-top:10px}#trouble summary{cursor:pointer;padding:6px 0}
+a{color:var(--accent)}
+.top{display:flex;align-items:center;gap:10px}
+.n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);font-weight:700;font-size:13px;flex:none}
+.t{flex:1;min-width:0}.t b{display:block}.t small{color:var(--mute)}
+.pill{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
+.btns,.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.btns>*{flex:1 1 70px}.row>*{flex:1 1 120px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 10px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+h2,h3{margin:14px 0 6px;font-size:15px}
+ul{list-style:none;margin:6px 0;padding:0}
+li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line)}li button{flex:none}
+small{color:var(--mute)}
+pre{margin:6px 0;white-space:pre-wrap;font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--mute)}
+#bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--card);border-top:1px solid var(--line);padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px))}
+.bt{display:flex;align-items:center;gap:8px;margin-bottom:6px}.bt b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bc{display:flex;gap:6px;align-items:center}.bc input[type=number]{width:72px;text-align:center}.bc .fl{margin:0 0 0 auto;display:flex;gap:4px;align-items:center;color:var(--ink)}.fl input{width:auto}
+#fx{position:fixed;inset:0;z-index:40;background:var(--flash);opacity:0;pointer-events:none}#fx.on{opacity:.6}
+#toast{position:fixed;left:12px;right:12px;bottom:calc(120px + env(safe-area-inset-bottom,0px));z-index:50;background:var(--ink);color:var(--bg);padding:10px 12px;border-radius:10px;opacity:0;pointer-events:none;transition:opacity .2s}#toast.on{opacity:1}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);max-width:560px;width:calc(100% - 24px);padding:14px}
+dialog::backdrop{background:#0008}
+#syncChip{flex:none;padding:6px 10px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);font-size:13px;white-space:nowrap}
+input:disabled,textarea:disabled,select:disabled{opacity:1;color:var(--ink)}
+li select{width:auto}
+.rl{margin-top:6px;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#gig{position:fixed;inset:0;z-index:15;background:var(--bg);overflow:auto;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 150px}
+#gig h1{font-size:clamp(28px,7vw,52px);line-height:1.1;margin:10px 0 2px}
+.gtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tiles{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
+.tile{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;text-align:center}
+.tile b{display:block;font-size:clamp(44px,14vw,96px);line-height:1.05;color:var(--accent)}
+.tile.xl{flex-basis:100%}.tile.xl b{font-size:clamp(80px,30vw,200px)}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.panel h3{margin:0 0 6px;color:var(--mute)}
+.pbody{white-space:pre-wrap;font-size:clamp(18px,4.5vw,28px);line-height:1.5}
+.btnlink{display:inline-block;padding:14px 22px;border-radius:10px;background:var(--accent);color:var(--on);font-weight:700;text-decoration:none;font-size:20px}
+.next{margin:12px 0;font-size:18px;color:var(--mute)}.next b{color:var(--ink)}
+.gnav{display:flex;gap:8px;margin-top:12px}.gnav button{flex:1;padding:16px;font-size:18px}
+#bandTitle{flex:0 1 auto;max-width:40%;min-width:0;align-self:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#list article{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:0 10px;align-items:center;padding:6px 10px;margin-bottom:8px}
+button.rowmain{display:block;width:100%;min-width:0;text-align:left;background:none;border:0;padding:6px 0;border-radius:6px}
+.rt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:700;line-height:1.25}
+.rs{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:13px;color:var(--mute)}
+.ra{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs .pill{flex:none;padding:1px 8px;font-size:12px;color:var(--ink)}.chev{flex:none;padding-left:2px}
+button.playbtn{min-width:74px;min-height:44px}
+#list article>.rl{grid-column:2/-1;margin:0 0 2px}
+#list article>div:not(.rl){grid-column:1/-1}
+#bar:not(.on) .bt{display:none}
+.dots{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0;--d:44px}
+.dots i{flex:0 1 var(--d);aspect-ratio:1/1;border-radius:50%;background:var(--line);transition:background .05s,transform .05s}
+.dots i.on{background:var(--flash);transform:scale(1.08)}.dots i.on.one{background:var(--accent)}
+#aMsg{margin:0 0 6px;padding:6px 8px;font-size:13px;border:1px solid var(--flash);border-radius:8px}
+body.run main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}body.run #gig{padding-bottom:210px}
+@media (max-width:699px){#bar .bc{flex-wrap:wrap}#bar #dots{order:-1;flex:1 0 100%;margin-bottom:4px}#bar:not(.on) #dots{display:none}}
+@media (min-width:700px){.dots{--d:56px;padding:0 12px;flex:1 1 auto}}
+@media (pointer:coarse){button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}input[type=checkbox]{width:22px;height:22px}}
+@media (max-width:520px){dialog#menu,dialog#memDlg,dialog#addDlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:0;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
+dialog#menu>.row:first-child,dialog#memDlg>.row:first-child,dialog#addDlg>.row:first-child{position:sticky;top:0;z-index:2;background:var(--card,#fff);padding-bottom:8px}}
+@media (max-width:899px){#pane,#paneBtn{display:none}}
+@media (min-width:900px){body{font-size:17px}.rt{font-size:1.06em}}
+body:not(.dual) #pane{display:none}
+body.dual main{max-width:1280px}
+body.dual #split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+body.dual #pane{position:sticky;top:76px;height:calc(100vh - 76px - var(--barH,96px) - 12px);overflow:auto}
+body.dual #pane article.pane{margin:0;min-height:100%}
+body.dual #list article.open{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+body.dual .chev{display:none}
+body.dual .two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}
+textarea.grow{resize:none;overflow:hidden}
+.progbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.seg{display:flex;flex:1 1 220px}.seg button{flex:1;border-radius:0}
+.seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
+#gig>.seg{margin-bottom:8px}
+a.openbtn{display:inline-block;margin-left:8px;padding:5px 14px;border:1.5px solid var(--accent);border-radius:8px;background:var(--bg);color:var(--accent);font-size:14px;font-weight:600;text-decoration:none;vertical-align:middle}
+@media (pointer:coarse){a.openbtn{display:inline-flex;align-items:center;min-height:40px;padding:6px 18px}}
+@media (min-width:900px) and (pointer:fine){
+body.dual #pane article.pane{padding:10px}
+body.dual #pane label{margin-top:5px;font-size:12px}
+body.dual #pane input,body.dual #pane select,body.dual #pane textarea{padding:5px 8px}
+body.dual #pane button{padding:4px 10px;font-size:14px;border-radius:6px}
+body.dual #pane .btns{gap:6px;margin-top:6px}
+body.dual #pane .btns>*{flex:0 1 auto}
+body.dual #pane .grid{gap:0 8px}
+body.dual #pane .seg button:first-child{border-radius:6px 0 0 6px}
+body.dual #pane .seg button:last-child{border-radius:0 6px 6px 0}
+}
+details[data-more]{margin-top:10px;border-top:1px solid var(--line)}
+details[data-more]>summary{cursor:pointer;padding:10px 0;color:var(--mute);font-size:14px}
+#auth.new{border-top:6px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--card))}
+#auth.new #authTitle{color:var(--accent)}#authIntro{margin:2px 0 10px;color:var(--mute);font-size:14px}
+html.booting #auth{display:none}#boot{display:none;text-align:center;padding:28px 12px}html.booting #boot{display:block}
+.save-notice{display:flex;align-items:center;justify-content:center;gap:10px;margin:6px 10px;padding:6px 10px;border-radius:8px;background:var(--card);color:var(--text);text-align:center}
+.save-notice[hidden]{display:none}.save-notice.failed{border:1px solid #b42318;color:#b42318}
+</style>
+</head>
+<body class="out">
+<header>
+  <img id="logoImg" alt="" hidden style="height:34px;width:34px;object-fit:contain;border-radius:6px;flex:none">
+  <select id="band" aria-label="Band"></select><b id="bandTitle" hidden></b>
+  <select id="setlist" aria-label="Setlist"></select>
+  <button id="syncChip" hidden>Offline</button>
+  <button id="paneBtn" hidden></button>
+  <button id="menuBtn" aria-label="Menu">☰</button>
+</header>
+<p id="localSaveNotice" class="save-notice" role="status" aria-live="polite" hidden><span id="localSaveText"></span><button id="retryLocalSave" type="button" hidden>Retry save</button></p>
+<main>
+  <section id="install" class="card" hidden>
+    <b id="instTitle">Install this app</b>
+    <ol id="instSteps"></ol>
+    <p id="instHint" hidden><small>Cannot see Add to Home Screen? You may be inside WhatsApp or another app's browser. Tap Copy link, then paste it into Safari.</small></p>
+    <div class="row"><button id="instBtn" class="primary" hidden>Install app</button><button id="instCopy" hidden>Copy link</button><button id="instHide">Not now</button></div>
+  </section>
+  <section id="boot" class="card"><b>Loading your setlists…</b><p>Signing you in.</p></section>
+  <section id="auth" class="card">
+    <div id="pSign">
+      <p id="invNote" class="card" hidden><b>You have been invited to join a band.</b> Create your account (or sign in if you already have one) and you will be added to the band automatically.</p>
+      <div id="authChoose">
+        <h2>Welcome to Setlist</h2>
+        <p>Setlists with BPM, key and chords for your band.</p>
+        <button id="chooseNew" class="primary big">I am new: create my account</button>
+        <button id="chooseOld" class="big">I already have an account: sign in</button>
+      </div>
+      <form id="authForm" hidden novalidate>
+        <h2 id="authTitle">Create your account</h2>
+        <p id="authIntro"></p>
+        <label id="nameLbl">Your name <small id="nameHelp">(your bandmates will see this)</small><input id="name" autocomplete="name" autocapitalize="words"></label>
+        <label>Email <small id="emailHelp"></small><input id="email" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></label>
+        <label>Password <small id="pwHelp"></small><input id="pw" type="password" autocomplete="current-password"></label>
+        <label id="pw2Lbl">Confirm password <small>(type it again)</small><input id="pw2" type="password" autocomplete="new-password"></label>
+        <label class="chk"><input type="checkbox" id="showPw"> Show password</label>
+        <label id="codeLbl">Invite code <small>(from your band leader, you can add it later)</small><input id="inviteIn" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"></label>
+        <button id="authGo" type="submit" class="primary big">Create my account</button>
+        <p id="authMsg" class="card" hidden></p>
+        <p><button id="authSwitch" type="button" class="linkbtn"></button></p>
+        <details id="trouble"><summary>Trouble signing in?</summary>
+          <p><small>These two buttons are still in development. If they do not work, ask the person who invited you.</small></p>
+          <div class="row"><button id="forgot" type="button">Forgot password?</button><button id="codeLogin" type="button">Email me a sign-in code</button></div>
+        </details>
+      </form>
+    </div>
+    <div id="pCode" hidden>
+      <h2 id="codeTitle">Enter the code</h2>
+      <p><small id="codeHelp"></small></p>
+      <label>Code from the email<input id="codeIn" inputmode="numeric" autocomplete="one-time-code"></label>
+      <div id="codePw" hidden><label>New password (at least 8 characters)<input id="codePw1" type="password" autocomplete="new-password"></label></div>
+      <div class="row"><button id="codeGo" class="primary">Continue</button><button id="codeCancel">Back</button></div>
+    </div>
+    <div id="pNew" hidden>
+      <h2>Choose a new password</h2>
+      <label>New password (at least 8 characters)<input id="newPw" type="password" autocomplete="new-password"></label>
+      <div class="row"><button id="newPwGo" class="primary">Save password</button></div>
+    </div>
+  </section>
+  <div id="app" hidden>
+    <div id="nobands" class="card" hidden><b>Welcome! You are not in a band yet.</b><p>Got an invite code from your band? Type it here.</p><div class="row"><input id="joinCode2" placeholder="Invite code" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false"><button id="joinBand2" class="primary">Join band</button></div><p><small>Starting a band yourself?</small></p><button data-open="menu">Create a new band</button></div>
+    <div id="nosl" class="card" hidden><b>No setlists yet.</b><div class="row"><input id="slNew2" placeholder="Setlist name"><button id="slMake2" class="primary">Create setlist</button></div></div>
+    <div id="sl" hidden><div id="split"><div id="left"><div class="row" style="margin:0 0 10px"><button id="addBtn" class="primary">+ Add song</button><button id="gigBtn">Gig mode</button></div><div id="list"></div></div><aside id="pane"></aside></div><p id="emptySl" hidden><small>This setlist is empty. Add a song to start.</small></p></div>
+  </div>
+<p style="text-align:center"><small>BPM and key data from <a href="https://songfinder.dev" target="_blank" rel="noopener">Song Finder</a></small></p>
+</main>
+
+<div id="bar">
+  <div class="bt"><b id="now">Metronome</b></div>
+  <p id="aMsg" hidden></p>
+  <div class="bc"><button id="bpmDn">−</button><input id="bpm" type="number" value="120" min="20" max="300" inputmode="numeric" aria-label="BPM"><button id="bpmUp">+</button><button id="go" class="primary">Start</button><div id="dots" class="dots" aria-hidden="true"></div><label class="fl"><input type="checkbox" id="fl"> Flash</label></div>
+</div>
+<div id="gig" hidden></div>
+<div id="fx"></div><div id="toast"></div>
+
+<dialog id="menu">
+  <div class="row" style="margin:0"><b id="who" style="flex:3">Menu</b><button id="menuClose">Close</button></div>
+  <h3>Bands</h3>
+  <div class="row"><input id="newBand" placeholder="New band name"><button id="mkBand" class="primary">Create band</button></div>
+  <div class="row"><input id="joinCode" placeholder="Invite code"><button id="joinBand" class="primary">Join band</button></div>
+  <div class="row"><button id="memBtn">Band members and access</button></div>
+  <div id="slSec"><h3>Setlists</h3>
+  <div class="row"><input id="slNew" placeholder="New setlist name"><button id="slMake" class="primary">Create setlist</button></div>
+  <div class="row"><input id="slRename" placeholder="Rename this setlist"><button id="slRenameBtn">Rename</button></div>
+  <div class="row"><button id="slDup">Duplicate this setlist</button><button id="slDel">Delete this setlist</button></div></div>
+  <h3>My roles in this band</h3>
+  <div id="roles" class="row"></div>
+  <h3>Appearance</h3>
+  <div class="row"><select id="theme"><option value="auto">Light or dark: automatic</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+  <h3>Audio check</h3>
+  <div class="row"><button id="tone">Test tone</button></div><pre id="dbg"></pre>
+  <h3>Account</h3>
+  <div class="row"><input id="chPw" type="password" placeholder="New password (8+ characters)" autocomplete="new-password"><button id="chPwGo">Change password</button></div>
+  <div class="row"><button id="instHelp">How to install on your phone</button></div>
+  <div class="row"><button id="signOut">Sign out</button></div>
+</dialog>
+
+<dialog id="syncDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Sync</b><button id="syncClose">Close</button></div>
+  <p id="queueWarning" class="warning" role="status" hidden></p>
+  <p><small id="syncState"></small></p>
+  <div class="row"><button id="retryQueueLoad" type="button" hidden>Retry reading saved changes</button></div>
+  <h3>Waiting to sync</h3><ul id="syncPending"></ul>
+  <h3>Needs your attention</h3><ul id="syncIssues"></ul>
+  <div class="row"><button id="syncNow" class="primary">Sync now</button></div>
+</dialog>
+
+<dialog id="memDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Band members</b><button id="memClose">Close</button></div>
+  <p><small id="myLevel"></small></p>
+  <div class="row" id="linkRow" hidden><small id="linkTxt" style="flex:3;word-break:break-all"></small><button id="linkCopy">Copy band link</button></div>
+  <ul id="memList"></ul>
+  <p><small>Owner and Admin: full control. Editor: edit songs and setlists. Viewer: view only, with the metronome and gig mode.</small></p>
+  <div id="invSec" hidden>
+    <h3>Invite someone</h3>
+    <div class="row"><select id="invRole"><option value="editor">Editor: can edit</option><option value="viewer">Viewer: view only</option></select><button id="invMake">Make a new code</button></div>
+    <p id="invCode"></p>
+    <div id="invCopyRow" hidden>
+      <div class="row"><button id="invShare" class="primary">Share invite</button><button id="invEmail">Email invite</button></div>
+      <div id="emailChoose" class="card" hidden><b>Send the invite with</b><div class="row"><button id="mailApp">My email app</button><button id="mailGmail">Gmail</button><button id="mailOutlook">Outlook</button><button id="mailCopy">Copy message</button></div><p><small>On a computer, "My email app" only works if one is set up. Gmail and Outlook open a new message in your browser.</small></p></div>
+      <div class="row"><button id="invCopyLink">Copy invite link</button><button id="invCopyCode">Copy code only</button></div>
+    </div>
+  </div>
+  <div id="bandSec" hidden>
+    <h3>Band settings</h3>
+    <div class="row"><input id="bandName" placeholder="Band name"><button id="bandRename">Rename band</button></div>
+    <label>Band link ending<input id="slugIn" placeholder="e.g. wc" autocapitalize="none" autocomplete="off" maxlength="30"></label>
+    <div class="row"><small id="slugPrev" style="flex:3;word-break:break-all"></small><button id="slugSave">Save link</button><button id="slugCopy">Copy link</button></div>
+    <div class="row"><label style="margin:0;flex:2">Band colour<input id="accent" type="color" value="#0f766e"></label><button id="accentSave">Save colour</button><button id="accentReset">Reset</button></div>
+    <div class="row"><img id="logoPrev" alt="Band logo" hidden style="height:56px;width:56px;object-fit:contain;flex:0 0 auto"><label style="margin:0;flex:2">Band logo (PNG, JPG or SVG)<input id="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"></label><button id="logoRemove" hidden>Remove logo</button></div>
+    <div class="row" id="delBandRow" hidden><button id="delBand">Delete this band…</button></div>
+  </div>
+  <div class="row"><button id="leaveBand">Leave this band</button></div>
+</dialog>
+
+<dialog id="addDlg">
+  <div class="row" style="margin:0"><b style="flex:3">Songs in this band</b><button id="addClose">Close</button></div>
+  <input id="songSearch" placeholder="Search songs" style="margin-top:10px">
+  <ul id="libList"></ul>
+  <h3>Create a new song</h3>
+  <div class="grid"><label>Title<input id="nTitle"></label><label>Artist<input id="nArtist"></label><label>BPM<input id="nBpm" type="number" inputmode="numeric"></label><label>Key<input id="nKey"></label></div>
+  <div class="row"><button id="addNew" class="primary">Create and add</button></div>
+</dialog>
+
+<script type="module">
+import { createOfflineState, reduceOfflineState } from './offline-state.mjs';
+import { openOfflineQueue, classifySyncFailure, retryDelayMs } from './offline-queue.mjs';
+import { createAuthRecovery, createSyncFollowupLatch, restoreCachedStartup } from './offline-recovery.mjs';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+let offlineState = createOfflineState(navigator.onLine);
+let authProbeSignal = null;
+function requestWithSignal(args, signal) {
+  const [input, init = {}] = args;
+  const existing = init.signal || (typeof Request !== 'undefined' && input instanceof Request ? input.signal : null);
+  let combined = signal;
+  if (existing && existing !== signal) {
+    if (typeof AbortSignal.any === 'function') combined = AbortSignal.any([existing, signal]);
+    else {
+      const controller = new AbortController();
+      for (const item of [existing, signal]) {
+        if (item.aborted) controller.abort(item.reason);
+        else item.addEventListener('abort', () => controller.abort(item.reason), { once: true });
+      }
+      combined = controller.signal;
+    }
+  }
+  return [input, { ...init, signal: combined }];
+}
+function recordOfflineState(event) {
+  offlineState = reduceOfflineState(offlineState, event);
+  updateChip();
+}
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: { fetch: async (...args) => {
+    try {
+      const response = await globalThis.fetch(...(authProbeSignal ? requestWithSignal(args, authProbeSignal) : args));
+      recordOfflineState({ type: 'supabase-response', status: response.status });
+      return response;
+    } catch (error) {
+      recordOfflineState({ type: 'supabase-failure' });
+      throw error;
+    }
+  } }
+});
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const safe = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
+const norm = (u) => { u = (u || '').trim(); return !u ? null : /^https?:\/\//i.test(u) ? u : 'https://' + u; };
+const say = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(say.t); say.t = setTimeout(() => t.classList.remove('on'), 3500); };
+const must = async (p) => {
+  const r = await p;
+  if (r.error) { say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message); throw r.error; }
+  return r.data;
+};
+
+let user = null, bandId = null, setlistId = null, items = [], openId = null, bandRows = [];
+let matches = [], cands = [], forcePick = null;
+const ck = (k) => `c:${user.id}:${k}`;
+async function cached(k, fn) { // read from Supabase, keep a copy for offline viewing
+  const mine = localStorage.getItem(k);
+  if (mine && (queue.length || !navigator.onLine || offlineState.supabaseReachability === 'unavailable')) { recordOfflineState({ type: 'cache-found' }); return overlayQueueCache(k, JSON.parse(mine)); }
+  if (!navigator.onLine || offlineState.supabaseReachability === 'unavailable') throw new Error('No saved copy is available while Supabase is unavailable.');
+  try { const v = await fn(); localStorage.setItem(k, JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); return queue.length ? overlayQueueCache(k, v) : v; }
+  catch (e) { const c = localStorage.getItem(k); if (c) { recordOfflineState({ type: 'cache-found' }); say('Offline: showing the saved copy'); return overlayQueueCache(k, JSON.parse(c)); } throw e; }
+}
+
+// ---- offline editing: changes are saved on the device first and sent when there is a connection
+let queue = [], issues = [], flushing = false, syncingElsewhere = false, authPaused = false, pendingReload = false, queueReady = false, queueLoadError = '', queueWarning = '';
+const qk = () => `q:${user.id}`, ik = () => `qi:${user.id}`;
+const uuid = () => crypto.randomUUID();
+const syncOwnerId = uuid(), retryAtById = new Map(), sequenceById = new Map();
+let blockedBarrierSequence = Infinity;
+const syncFollowup = createSyncFollowupLatch();
+let syncRequestedAfterOther = false, syncAfterOtherTimer = null;
+const syncChannel = (() => { try { return typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('setlists-queue-sync'); } catch { return null; } })();
+syncChannel?.addEventListener('message', (event) => {
+  const message = event.data;
+  if (!user || message?.userId !== user.id || message.ownerId === syncOwnerId) return;
+  if (message.type === 'start') syncingElsewhere = true;
+  if (message.type === 'queue-change') {
+    if (flushing) queueRefreshPending = true;
+    else { queueLoadUser = null; queueLoadPromise = null; void loadQ().then(() => { updateChip(); if ($('syncDlg').open) drawSync(); }); }
+  }
+  if (message.type === 'stop') {
+    syncingElsewhere = false;
+    queueLoadUser = null; queueLoadPromise = null;
+    void loadQ().then(() => {
+      updateChip(); if ($('syncDlg').open) drawSync();
+      if (syncRequestedAfterOther && user?.id === message.userId && offlineState.authenticatedAccess === 'authenticated' && queue.length) {
+        syncRequestedAfterOther = false; clearTimeout(syncAfterOtherTimer); syncAfterOtherTimer = null; void flush(false, true);
+      }
+    });
+  }
+  updateChip(); if ($('syncDlg').open) drawSync();
+});
+const same = (a, b) => String(a ?? '') === String(b ?? '');
+let queueLoadUser = null, queueLoadPromise = null, offlineQueuePromise = null, enqueueChain = Promise.resolve(), queueRefreshPending = false;
+let durableIds = new Set(), storedOperationIds = new Set(), storedIssueIds = new Set(), unsavedByUser = new Map(), localSaveCount = 0, savedNoticeUntil = 0, savedNoticeTimer = null;
+const unsavedForUser = (uid = user?.id) => uid ? (unsavedByUser.get(uid) || []) : [];
+const queueStore = () => (offlineQueuePromise ||= openOfflineQueue().catch((error) => { offlineQueuePromise = null; throw error; }));
+function showLocalSave(state, message = '') {
+  const notice = $('localSaveNotice'); if (!notice) return;
+  clearTimeout(savedNoticeTimer);
+  if (state === 'saved') savedNoticeUntil = Date.now() + 1600;
+  if (!state && Date.now() < savedNoticeUntil) {
+    savedNoticeTimer = setTimeout(() => showLocalSave(''), savedNoticeUntil - Date.now());
+    return;
+  }
+  if (state === 'failed' || state === 'saving') savedNoticeUntil = 0;
+  const text = $('localSaveText'), retry = $('retryLocalSave');
+  notice.hidden = !state; notice.classList.toggle('failed', state === 'failed');
+  text.textContent = state === 'saving' ? 'Saving on this device…' : state === 'saved' ? 'Saved on this device · waiting to sync' : message;
+  retry.hidden = state !== 'failed';
+}
+async function loadQ() {
+  if (!user) return;
+  const uid = user.id;
+  if (queueLoadUser === uid && queueLoadPromise) return queueLoadPromise;
+  queueLoadUser = uid; queue = []; issues = []; queueReady = false; queueLoadError = ''; queueWarning = 'Checking and recovering saved changes…'; durableIds = new Set(); storedOperationIds = new Set(); storedIssueIds = new Set(); updateChip();
+  queueLoadPromise = (async () => {
+    try {
+      const parseLegacy = (key, source) => {
+        const raw = localStorage.getItem(key);
+        if (raw === null) return { rows: [], malformed: [] };
+        try {
+          const value = JSON.parse(raw);
+          return Array.isArray(value) ? { rows: value, malformed: [] } : { rows: [], malformed: [{ source, index: 0, raw, reason: 'Expected an array in legacy storage' }] };
+        } catch (error) { return { rows: [], malformed: [{ source, index: 0, raw, reason: `Malformed JSON: ${error.message}` }] }; }
+      };
+      const legacyQueue = parseLegacy(qk(), 'queue'), legacyIssues = parseLegacy(ik(), 'issues');
+      const store = await queueStore();
+      const migration = await store.migrateLegacy(uid, {
+        operations: legacyQueue.rows,
+        issues: legacyIssues.rows,
+        malformed: [...legacyQueue.malformed, ...legacyIssues.malformed]
+      });
+      const stored = await store.list(uid);
+      const storedIssues = await store.listIssues(uid);
+      const quarantined = await store.listQuarantine(uid);
+      for (const row of stored) {
+        storedOperationIds.add(row.operationId);
+        const op = row.operation;
+        if (row.status === 'blocked') {
+          queue = queue.filter((queued) => queued.qid !== row.operationId);
+          if (!issues.some((issue) => issue.qid === row.operationId)) issues.push({ ...op, ...(row.error || { fail: 'Needs attention' }) });
+          continue;
+        }
+        if (row.status === 'inFlight') {
+          await store.setStatus(uid, row.operationId, 'pending');
+        }
+        if (row.nextAttemptAt) retryAtById.set(row.operationId, row.nextAttemptAt); else retryAtById.delete(row.operationId);
+        durableIds.add(row.operationId);
+        if (!queue.some((queued) => queued.qid === row.operationId)) queue.push(op);
+      }
+      for (const row of storedIssues) {
+        storedIssueIds.add(row.issueId);
+        if (!issues.some((issue) => issue.qid === row.issueId)) issues.push(row.issue);
+      }
+      if (storedIssues.length) {
+        const issueIds = new Set(storedIssues.map((row) => row.issueId));
+        queue = queue.filter((op) => !issueIds.has(op.qid));
+      }
+      queueReady = true; queueLoadError = '';
+      const warnings = [];
+      if (migration.mismatches.length) warnings.push(`${migration.mismatches.length} localStorage record(s) differed from IndexedDB; the IndexedDB versions are being used and the other copies were quarantined.`);
+      if (migration.fallbackOrder) warnings.push(`${migration.fallbackOrder} cross-source ordering decision(s) used a deterministic fallback because timestamps were missing, invalid, or equal. Each source's original order and recognized dependencies were preserved; all queued changes remain available to sync.`);
+      if (quarantined.length) warnings.push(`${quarantined.length} malformed or conflicting saved record(s) were quarantined. The original localStorage data is still retained.`);
+      const recovered = migration.imported.length + migration.importedIssues.length;
+      if (!warnings.length && recovered) warnings.push(`Recovered and verified ${recovered} earlier saved change(s) from this device.`);
+      queueWarning = warnings.join(' ');
+      if (queue.length) showLocalSave('saved');
+    } catch (error) {
+      queue = []; issues = []; durableIds.clear(); storedOperationIds.clear(); storedIssueIds.clear();
+      queueReady = false; queueLoadError = error?.message || 'Saved changes could not be read.';
+      queueWarning = `Locally saved changes cannot currently be accessed. Synchronisation is paused so an incomplete queue is not sent. ${queueLoadError}`;
+      showLocalSave('');
+    } finally { updateChip(); }
+  })();
+  return queueLoadPromise;
+}
+function saveQ() {
+  const retainLegacy = (key, current) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw === null) { localStorage.setItem(key, JSON.stringify(current)); return; }
+      const prior = JSON.parse(raw);
+      if (!Array.isArray(prior)) return; // retain malformed source bytes for recovery
+      const known = new Set(prior.filter((row) => row?.qid).map((row) => row.qid));
+      const additions = current.filter((row) => row?.qid && !known.has(row.qid));
+      localStorage.setItem(key, JSON.stringify([...prior, ...additions]));
+    } catch {} // IndexedDB is authoritative after verification; never clear legacy-only records here
+  };
+  retainLegacy(qk(), queue); retainLegacy(ik(), issues); updateChip();
+}
+function enqueue(...ops) {
+  const now = new Date().toISOString();
+  const ownerId = user?.id;
+  const prepared = ops.map((o) => ({ ...o, qid: o.qid || uuid(), at: now, offline: !offlineState.browserOnline }));
+  if (!prepared.length) return Promise.resolve(true);
+  const save = async () => {
+    const uid = ownerId;
+    if (!uid) return false;
+    const pending = [...unsavedForUser(uid).flat(), ...prepared]; unsavedByUser.delete(uid);
+    localSaveCount++; showLocalSave('saving');
+    try {
+      await (await queueStore()).enqueueMany(pending, uid);
+      if (user?.id !== uid) { localSaveCount--; return true; } // leave the durable records for that account's next load
+      pending.forEach((op) => { if (!durableIds.has(op.qid) && !queue.some((queued) => queued.qid === op.qid)) queue.push(op); durableIds.add(op.qid); });
+      persistQueuedViews(pending);
+      saveQ();
+      syncChannel?.postMessage({ type: 'queue-change', userId: uid, ownerId: syncOwnerId });
+      localSaveCount--;
+      if (!localSaveCount && !unsavedForUser(uid).length) showLocalSave('saved');
+      void flush();
+      return true;
+    } catch (error) {
+      localSaveCount--;
+      unsavedByUser.set(uid, [pending]);
+      if (user?.id === uid) showLocalSave('failed', `Couldn't save on this device. This change is visible only while this page stays open. Retry before closing or refreshing. ${error?.message || ''}`);
+      return false;
+    }
+  };
+  const result = enqueueChain.then(save, save);
+  enqueueChain = result.catch(() => false);
+  return result;
+}
+function retryLocalSaves() {
+  const ownerId = user?.id;
+  const retry = async () => {
+    const uid = ownerId, batches = unsavedForUser(uid);
+    if (!uid || !batches.length) return;
+    const pending = batches.flat(); unsavedByUser.delete(uid); localSaveCount++; showLocalSave('saving');
+    try {
+      await (await queueStore()).enqueueMany(pending, uid);
+      if (user?.id !== uid) { localSaveCount--; return; }
+      pending.forEach((op) => { if (!durableIds.has(op.qid) && !queue.some((queued) => queued.qid === op.qid)) queue.push(op); durableIds.add(op.qid); });
+      persistQueuedViews(pending);
+      syncChannel?.postMessage({ type: 'queue-change', userId: uid, ownerId: syncOwnerId });
+    } catch { unsavedByUser.set(uid, [pending]); }
+    localSaveCount--;
+    if (unsavedForUser(uid).length) showLocalSave('failed', `Couldn't save on this device. This change is visible only while this page stays open. Retry before closing or refreshing.`);
+    else { saveQ(); showLocalSave('saved'); void flush(); }
+  };
+  const result = enqueueChain.then(retry, retry);
+  enqueueChain = result.catch(() => false);
+  return result;
+}
+$('retryLocalSave').onclick = retryLocalSaves;
+const persist = (key, v) => { try { localStorage.setItem(ck(key), JSON.stringify(v)); recordOfflineState({ type: 'cache-found' }); } catch {} };
+function overlayQueueCache(key, value) {
+  if (!user || !Array.isArray(value)) return value;
+  const prefix = `c:${user.id}:`, name = key.startsWith(prefix) ? key.slice(prefix.length) : key;
+  const rows = value.map((row) => ({ ...row }));
+  if (name.startsWith('items:')) {
+    const songs = new Map();
+    try { (JSON.parse(localStorage.getItem(ck('lib:' + bandId)) || '[]')).forEach((song) => songs.set(song.id, song)); } catch {}
+    rows.forEach((entry) => { if (entry.songs) songs.set(entry.songs.id, entry.songs); });
+    for (const op of queue) {
+      if (op.t === 'songNew') songs.set(op.row.id, { version_label: '', time_signature: '4/4', chords: '', root_notes: '', notes: '', lyrics_url: null, youtube_url: null, ...op.row });
+      if (op.t === 'song') {
+        const song = songs.get(op.sid); if (song) Object.assign(song, op.set);
+        rows.forEach((entry) => { if (entry.songs?.id === op.sid) Object.assign(entry.songs, op.set); });
+      }
+      if (op.t === 'songDel') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].songs?.id === op.sid) rows.splice(i, 1);
+      if (op.t === 'slRemove') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].id === op.id) rows.splice(i, 1);
+      if (op.t === 'slPos') { const entry = rows.find((row) => row.id === op.id); if (entry) entry.position = op.position; }
+      if (op.t === 'slAdd' && op.row.setlist_id === name.slice('items:'.length) && !rows.some((row) => row.id === op.row.id)) {
+        const song = songs.get(op.row.song_id); if (song) rows.push({ id: op.row.id, position: op.row.position, songs: song });
+      }
+    }
+    return rows.sort((a, b) => a.position - b.position);
+  }
+  if (name.startsWith('lib:')) {
+    for (const op of queue) {
+      if (op.t === 'songNew' && op.row.band_id === name.slice('lib:'.length) && !rows.some((song) => song.id === op.row.id)) rows.push({ ...op.row });
+      if (op.t === 'song') { const song = rows.find((row) => row.id === op.sid); if (song) Object.assign(song, op.set); }
+      if (op.t === 'songDel') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].id === op.sid) rows.splice(i, 1);
+    }
+    return rows.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+  }
+  if (name.startsWith('links:')) {
+    const sid = name.slice('links:'.length);
+    for (const op of queue) {
+      if (op.t === 'linkAdd' && op.row.song_id === sid && !rows.some((link) => link.id === op.row.id)) rows.push({ id: op.row.id, kind: op.row.kind, label: op.row.label, url: op.row.url });
+      if (op.t === 'linkDel') for (let i = rows.length - 1; i >= 0; i--) if (rows[i].id === op.id) rows.splice(i, 1);
+    }
+  }
+  return rows;
+}
+function persistQueuedViews(operations) {
+  let keys = [];
+  try { keys = Object.keys(localStorage).filter((key) => key.startsWith(`c:${user.id}:`)); } catch { return; }
+  for (const key of keys) {
+    if (!/:(items:|lib:|links:)/.test(key)) continue;
+    try { const value = JSON.parse(localStorage.getItem(key)); persist(key.slice(`c:${user.id}:`.length), overlayQueueCache(key, value)); } catch {}
+  }
+  for (const op of operations) if (op.t === 'linkAdd') {
+    try { if (!localStorage.getItem(ck('links:' + op.row.song_id))) persist('links:' + op.row.song_id, overlayQueueCache(ck('links:' + op.row.song_id), [])); } catch {}
+  }
+}
+async function runOp(op) {
+  let response;
+  try { response = await sb.rpc('apply_offline_operation', { p_operation_id: op.qid, p_operation: op }); }
+  catch (error) { return classifySyncFailure(error); }
+  if (response.error) return classifySyncFailure(response.error);
+  const result = response.data;
+  if (result?.status === 'applied' || result?.status === 'duplicate') return 'done';
+  if (result?.status === 'conflict') return { conflicts: Array.isArray(result.conflicts) ? result.conflicts : [], fail: result.message || undefined };
+  if (result?.status === 'auth') return { auth: true, fail: result.message || 'Your sign-in needs to be confirmed before saved changes can sync.' };
+  if (result?.status === 'retry') return 'retry';
+  return { fail: result?.message || 'The server rejected this saved change.' };
+}
+async function refreshQueueFromStore(uid) {
+  const store = await queueStore();
+  const [rows, savedIssues] = await Promise.all([store.list(uid), store.listIssues(uid)]);
+  queue = []; issues = savedIssues.map((row) => row.issue); durableIds = new Set();
+  storedOperationIds = new Set(rows.map((row) => row.operationId)); storedIssueIds = new Set(savedIssues.map((row) => row.issueId));
+  retryAtById.clear(); sequenceById.clear(); blockedBarrierSequence = Infinity;
+  for (const row of rows) {
+    sequenceById.set(row.operationId, row.sequence);
+    if (row.status === 'blocked') { blockedBarrierSequence = Math.min(blockedBarrierSequence, row.sequence); if (!issues.some((issue) => issue.qid === row.operationId)) issues.push({ ...row.operation, ...(row.error || { fail: 'Needs attention' }) }); continue; }
+    if (row.status === 'inFlight') await store.setStatus(uid, row.operationId, 'pending');
+    if (row.nextAttemptAt) retryAtById.set(row.operationId, row.nextAttemptAt);
+    durableIds.add(row.operationId); queue.push(row.operation);
+  }
+  queueReady = true; queueLoadError = '';
+  updateChip();
+}
+async function withSyncOwnership(uid, work) {
+  const report = (type) => syncChannel?.postMessage({ type, userId: uid, ownerId: syncOwnerId });
+  const runOwned = async (stillOwned = async () => true) => {
+    syncingElsewhere = false; report('start'); updateChip();
+    try { return await work(stillOwned); }
+    finally { report('stop'); }
+  };
+  if (navigator.locks?.request) {
+    let acquired = false, lockApiWorked = false;
+    try {
+      await navigator.locks.request(`setlists-sync:${uid}`, { mode: 'exclusive', ifAvailable: true }, async (lock) => {
+        if (!lock) { syncingElsewhere = true; updateChip(); return false; }
+        acquired = true; await runOwned(); return true;
+      });
+      lockApiWorked = true;
+    } catch { /* Use the expiring IndexedDB lease if Web Locks are unavailable or fail. */ }
+    if (acquired || lockApiWorked) return acquired;
+  }
+  const store = await queueStore(), now = Date.now(), ttl = 90000;
+  if (!await store.acquireLease(uid, syncOwnerId, now, ttl)) { syncingElsewhere = true; updateChip(); return false; }
+  let leaseHealthy = true;
+  const renew = setInterval(() => { void store.renewLease(uid, syncOwnerId, Date.now(), ttl).then((ok) => { leaseHealthy = ok; if (!ok) updateChip(); }).catch(() => { leaseHealthy = false; }); }, 20000);
+  try { await runOwned(async () => leaseHealthy && await store.renewLease(uid, syncOwnerId, Date.now(), ttl)); return true; }
+  finally { clearInterval(renew); await store.releaseLease(uid, syncOwnerId).catch(() => {}); }
+}
+async function flush(reload = true, manual = false, reconnect = false) {
+  if (flushing) { if (reconnect) syncFollowup.request(); return; }
+  if (authPaused || !user || !queueReady || offlineState.authenticatedAccess !== 'authenticated' || !queue.length) return;
+  flushing = true; let did = false; const uid = user.id;
+  try {
+    const owned = await withSyncOwnership(uid, async (stillOwned) => {
+      if (user?.id !== uid) return;
+      try { await refreshQueueFromStore(uid); }
+      catch (error) { queueReady = false; queueLoadError = error?.message || 'Saved changes could not be read.'; queueWarning = `Saved changes could not be read safely. Synchronisation is paused. ${queueLoadError}`; return; }
+      while (queue.length && user?.id === uid && offlineState.authenticatedAccess === 'authenticated') {
+        if (!await stillOwned()) break;
+        const op = queue[0], durable = durableIds.has(op.qid), scheduled = retryAtById.get(op.qid);
+        if ((sequenceById.get(op.qid) || 0) > blockedBarrierSequence) break;
+        if (!manual && scheduled && Date.parse(scheduled) > Date.now()) break;
+        if (durable) {
+          try { await (await queueStore()).setStatus(uid, op.qid, 'inFlight'); }
+          catch { break; } // never send a durable item if its in-flight state could not be recorded
+        }
+        let result = await runOp(op);
+        if (result === 'retry') {
+          if (durable) {
+            try { const store = await queueStore(), saved = (await store.list(uid)).find((item) => item.operationId === op.qid), delay = retryDelayMs(saved?.attempts || 1), next = new Date(Date.now() + delay).toISOString(); await store.scheduleRetry(uid, op.qid, { fail: 'Temporary service or network problem; retry scheduled.' }, next); retryAtById.set(op.qid, next); }
+            catch { break; }
+          }
+          break;
+        }
+        if (result?.auth) {
+          authPaused = true;
+          if (durable) { try { await (await queueStore()).setStatus(uid, op.qid, 'pending', result); } catch {} }
+          break;
+        }
+        if (durable) {
+          try {
+            if (result === 'done') await (await queueStore()).acknowledge(uid, op.qid);
+            else await (await queueStore()).setStatus(uid, op.qid, 'blocked', result);
+          } catch { break; } // keep the operation visible until its local acknowledgement state is committed
+        }
+        queue.shift(); did = true; retryAtById.delete(op.qid);
+        if (result !== 'done') issues.push({ ...op, ...result });
+        if (result !== 'done' && durable) blockedBarrierSequence = Math.min(blockedBarrierSequence, sequenceById.get(op.qid) || Infinity);
+        durableIds.delete(op.qid);
+        if (result === 'done') { storedOperationIds.delete(op.qid); sequenceById.delete(op.qid); }
+        saveQ();
+        if (result !== 'done') break;
+      }
+    });
+    if (owned) { syncRequestedAfterOther = false; clearTimeout(syncAfterOtherTimer); syncAfterOtherTimer = null; }
+    else if (!owned && reconnect) {
+      syncRequestedAfterOther = true;
+      if (!syncChannel) syncAfterOtherTimer = setTimeout(() => {
+        syncAfterOtherTimer = null;
+        if (syncRequestedAfterOther && user?.id === uid && offlineState.authenticatedAccess === 'authenticated' && queue.length) {
+          syncRequestedAfterOther = false; void flush(false, true);
+        }
+      }, 1000);
+    }
+  } catch (error) {
+    queueReady = false; queueLoadError = error?.message || 'Saved changes could not be synchronized safely.';
+    queueWarning = `Saved changes remain on this device. Synchronisation is paused until queue access is restored. ${queueLoadError}`;
+  } finally { flushing = false; saveQ(); }
+  if (queueRefreshPending && user?.id === uid) {
+    queueRefreshPending = false; queueLoadUser = null; queueLoadPromise = null; await loadQ();
+  }
+  if (!queue.length && !unsavedForUser().length && !localSaveCount) showLocalSave('');
+  updateChip(); if ($('syncDlg').open) drawSync();
+  if (did && !queue.length && reload) reloadSoon();
+  if (syncFollowup.take()) {
+    if (!user || user.id !== uid || !queue.length) return;
+    if (offlineState.authenticatedAccess === 'authenticated') void flush(false, true);
+  }
+}
+function reloadSoon() { // refresh from the server, but not while someone is typing in a song
+  if ($('split').contains(document.activeElement)) { pendingReload = true; return; }
+  pendingReload = false; if (user && setlistId) loadSetlist();
+}
+function describe(o) {
+  const t = `“${o.label || 'song'}”`;
+  return ({ song: `Edit ${t}: ${Object.keys(o.set || {}).join(', ')}`, songNew: `New song ${t}`, songDel: `Delete ${t}`, slAdd: `Add ${t} to the setlist`, slPos: `Move ${t} in the setlist`, slRemove: `Remove ${t} from the setlist`, linkAdd: `Add a link to ${t}`, linkDel: `Remove a link from ${t}` })[o.t] || 'Change';
+}
+function updateChip() {
+  const c = $('syncChip'); if (!c) return;
+  c.hidden = !user || !(queueLoadError || queueWarning || queue.length || issues.length || syncingElsewhere || authPaused || !offlineState.browserOnline);
+  c.textContent = queueLoadError ? 'Saved changes unavailable' : authPaused ? 'Sign-in needed to sync' : syncingElsewhere ? 'Syncing in another tab' : flushing ? 'Syncing…' : issues.length ? `Check sync (${issues.length})` : queue.length ? `${queue.length} waiting` : 'Offline';
+}
+function drawSync() {
+  $('queueWarning').hidden = !queueWarning; $('queueWarning').textContent = queueWarning;
+  $('retryQueueLoad').hidden = !queueLoadError;
+  $('syncNow').disabled = !queueReady;
+  $('syncState').textContent = queueLoadError ? 'Saved changes could not be read; sync is paused.' : authPaused ? 'Your sign-in could not be confirmed. Sign in again, then choose Sync now.' : syncingElsewhere ? 'Another open tab currently owns queue synchronization.' : flushing ? 'Sending saved changes to Supabase…' : !queueReady ? 'Checking saved changes…' : !offlineState.browserOnline ? 'You are offline. Changes saved on this device will sync when you are back online.' : queue.length && retryAtById.has(queue[0]?.qid) && Date.parse(retryAtById.get(queue[0].qid)) > Date.now() ? `A temporary service or network problem delayed the next retry until ${new Date(retryAtById.get(queue[0].qid)).toLocaleTimeString()}.` : queue.length ? 'Changes are waiting to sync.' : issues.length ? 'Some saved changes need your attention.' : 'Everything is synced.';
+  $('syncPending').innerHTML = queue.map((o) => { const next = retryAtById.get(o.qid); return `<li><small>${esc(describe(o))}${next ? ` · retry after ${esc(new Date(next).toLocaleTimeString())}` : ''}</small></li>`; }).join('') || '<li><small>Nothing waiting</small></li>';
+  $('syncIssues').innerHTML = issues.map((o) => (o.conflicts
+    ? `<li><span>${esc(describe(o))}<br>${o.conflicts.map((c) => `<small>${esc(c.field)}: yours “${esc(String(c.mine ?? ''))}”, theirs “${esc(String(c.theirs ?? ''))}”</small>`).join('<br>')}</span><span><button data-mine="${o.qid}">Use mine</button> <button data-theirs="${o.qid}">Keep theirs</button></span></li>`
+    : `<li><span>${esc(describe(o))}<br><small>Not saved: ${esc(o.fail || 'unknown problem')}</small></span><button data-dis="${o.qid}">Dismiss</button></li>`)).join('') || '<li><small>No problems</small></li>';
+}
+$('syncChip').onclick = () => { drawSync(); $('syncDlg').showModal(); };
+$('syncClose').onclick = () => $('syncDlg').close();
+$('retryQueueLoad').onclick = async () => { queueLoadUser = null; queueLoadPromise = null; await loadQ(); if (queueReady) await flush(false); drawSync(); };
+$('syncNow').onclick = async () => { if (authPaused && user) await confirmAuthenticatedAccess(user.id, false); await flush(true, true); drawSync(); };
+$('syncIssues').onclick = async (e) => {
+  const d = e.target.dataset, o = issues.find((x) => x.qid === (d.mine || d.theirs || d.dis)); if (!o) return;
+  if (d.mine) {
+    const saved = await enqueue({ t: 'song', sid: o.sid, label: o.label, qid: uuid(), at: new Date().toISOString(), offline: false, note: 'Offline edit kept over a conflicting change', base: Object.fromEntries(o.conflicts.map((c) => [c.field, c.theirs])), set: Object.fromEntries(o.conflicts.map((c) => [c.field, c.mine])) });
+    if (!saved) return;
+  }
+  if (storedOperationIds.has(o.qid) || storedIssueIds.has(o.qid)) {
+    try { await (await queueStore()).remove(user.id, o.qid); storedOperationIds.delete(o.qid); storedIssueIds.delete(o.qid); }
+    catch (error) { showLocalSave('failed', `Couldn't update this sync issue safely. ${error?.message || ''}`); return; }
+  }
+  issues = issues.filter((x) => x !== o); saveQ(); drawSync();
+  if (d.mine) void flush(); else { reloadSoon(); void flush(); }
+};
+window.addEventListener('online', () => {
+  recordOfflineState({ type: 'browser-online' });
+  if (user) void authRecovery.online(user.id);
+});
+window.addEventListener('offline', () => {
+  recordOfflineState({ type: 'browser-offline' }); refreshAfterReconnect = true; authRecovery.offline();
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flush(); });
+setInterval(() => { updateChip(); if (queue.length) flush(); }, 20000);
+$('split').addEventListener('focusout', () => setTimeout(() => { if (pendingReload && !$('split').contains(document.activeElement)) reloadSoon(); }, 300));
+
+// ---- appearance
+const root = document.documentElement;
+root.dataset.theme = localStorage.getItem('theme') || 'auto'; $('theme').value = root.dataset.theme;
+$('theme').onchange = () => { localStorage.setItem('theme', $('theme').value); root.dataset.theme = $('theme').value; };
+function setAccent(hex) {
+  if (!hex) { root.style.removeProperty('--accent'); root.style.removeProperty('--on'); return; }
+  const n = parseInt(hex.slice(1), 16), L = ((n >> 16) * 299 + ((n >> 8) & 255) * 587 + (n & 255) * 114) / 1000;
+  root.style.setProperty('--accent', hex); root.style.setProperty('--on', L > 150 ? '#111' : '#fff');
+}
+async function saveAccent(hex) {
+  try {
+    await must(sb.from('bands').update({ theme: hex ? { accent: hex } : {} }).eq('id', bandId));
+    const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.bands.theme = hex ? { accent: hex } : {};
+    setAccent(hex); say(hex ? 'Band colour saved' : 'Band colour reset');
+  } catch {}
+}
+$('accentSave').onclick = () => bandId && saveAccent($('accent').value);
+$('accentReset').onclick = () => bandId && saveAccent('');
+
+// ---- roles
+const ROLES = [['singer', 'Singer'], ['guitarist', 'Guitarist'], ['bassist', 'Bassist'], ['drummer', 'Drummer'], ['keyboards', 'Keyboards']];
+const myRoles = () => bandRows.find((x) => x.bands.id === bandId)?.roles || [];
+function drawRoles() {
+  const mine = myRoles();
+  $('roles').innerHTML = ROLES.map(([v, l]) => `<label style="display:flex;gap:6px;align-items:center;color:var(--ink);margin:0;flex:0 0 auto"><input type="checkbox" value="${v}" style="width:auto" ${mine.includes(v) ? 'checked' : ''}> ${l}</label>`).join('');
+}
+$('roles').onchange = async () => {
+  if (!bandId) return;
+  const roles = [...$('roles').querySelectorAll('input:checked')].map((i) => i.value);
+  try {
+    await must(sb.from('band_members').update({ roles }).eq('band_id', bandId).eq('user_id', user.id));
+    const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.roles = roles;
+    say('Roles saved'); render();
+  } catch { drawRoles(); }
+};
+
+// ---- band logo (stored on the band as a small image)
+const okLogo = (u) => /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(u || '');
+const fitSize = (w, h, max) => { const k = Math.min(1, max / Math.max(w, h)); return [Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))]; };
+const bandLogo = () => { const u = bandRows.find((x) => x.bands.id === bandId)?.bands?.logo; return okLogo(u) ? u : ''; };
+function drawLogo() {
+  const u = bandLogo();
+  [$('logoImg'), $('logoPrev')].forEach((i) => { i.hidden = !u; if (u) i.src = u; }); $('logoRemove').hidden = !u;
+}
+async function readLogo(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('That file could not be read as an image')); i.src = url; });
+    const iw = img.naturalWidth || img.width || 256, ih = img.naturalHeight || img.height || 256;
+    for (const max of [256, 160, 96]) {
+      const [w, h] = fitSize(iw, ih, max), c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const out = c.toDataURL('image/png'); if (out.length <= 200000) return out;
+    }
+    throw new Error('That image is too detailed. Try a simpler logo.');
+  } finally { URL.revokeObjectURL(url); }
+}
+async function saveLogo(dataUrl) {
+  await must(sb.from('bands').update({ logo: dataUrl }).eq('id', bandId));
+  const r = bandRows.find((x) => x.bands.id === bandId); if (r) r.bands.logo = dataUrl;
+  drawLogo(); say(dataUrl ? 'Logo saved' : 'Logo removed');
+}
+$('logoFile').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try { await saveLogo(await readLogo(f)); } catch (err) { if (!err?.code) say(err.message); }
+};
+$('logoRemove').onclick = () => saveLogo(null).catch(() => {});
+
+// ---- band link: the address ending (for example #wc) is chosen by the owner or an admin
+const SLUG_OK = /^[a-z0-9][a-z0-9-]{1,29}$/;
+const SLUG_RESERVED = ['join', 'invite', 'admin', 'login', 'signin', 'signup', 'new', 'api', 'app', 'settings', 'help', 'null'];
+const hashSlug = () => { if (inviteFromHash(location.hash)) return ''; try { return decodeURIComponent((location.hash || '').replace(/^#/, '')).trim().toLowerCase(); } catch { return ''; } };
+const bandSlug = () => bandRows.find((x) => x.bands.id === bandId)?.bands?.slug || '';
+const bandUrl = (slug) => `${location.origin}${location.pathname}#${slug}`;
+function syncHash() { // keep the address bar showing the open band's link
+  try { const sl = bandSlug(); history.replaceState(null, '', sl ? '#' + sl : location.pathname + location.search); } catch {}
+}
+function pickBandFromHash() { // a link such as /#wc opens that band if you are a member of it
+  const want = hashSlug(); if (!want) return false;
+  const hit = bandRows.find((x) => x.bands.slug === want);
+  if (hit) { $('band').value = hit.bands.id; localStorage.setItem('band', hit.bands.id); return true; }
+  say(bandRows.length ? `You are not a member of a band with the link “#${want}”. Ask the band owner for an invite code.` : `You are not in the band “#${want}” yet. Type your invite code below to join it.`);
+  try { history.replaceState(null, '', location.pathname + location.search); } catch {}
+  return false;
+}
+function drawSlug() {
+  const sl = bandSlug();
+  $('slugIn').value = sl; $('slugPrev').textContent = sl ? bandUrl(sl) : 'No link yet. Choose an ending, for example the band’s initials.';
+  $('linkRow').hidden = !sl; $('linkTxt').textContent = sl ? bandUrl(sl) : '';
+}
+async function copyText(t, done = 'Link copied') { try { await navigator.clipboard.writeText(t); say(done); } catch { prompt('Copy this', t); } }
+$('slugCopy').onclick = () => bandSlug() && copyText(bandUrl(bandSlug()));
+$('linkCopy').onclick = () => bandSlug() && copyText(bandUrl(bandSlug()));
+$('slugSave').onclick = async () => {
+  const v = $('slugIn').value.trim().toLowerCase().replace(/^#/, '');
+  if (v && !SLUG_OK.test(v)) return say('Use 2 to 30 lower-case letters, numbers or hyphens, starting with a letter or number.');
+  if (SLUG_RESERVED.includes(v) || v.startsWith('join-')) return say('That ending is kept for the app. Please choose another.');
+  const r = await sb.from('bands').update({ slug: v || null }).eq('id', bandId).select('id');
+  if (r.error) return say(r.error.code === '23505' ? 'That link ending is already taken. Please choose another.' : !r.error.code ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
+  if (!r.data.length) return say('Only owners and admins can change the band link.');
+  const row = bandRows.find((x) => x.bands.id === bandId); if (row) row.bands.slug = v || null;
+  syncHash(); drawSlug(); say(v ? 'Band link saved' : 'Band link removed');
+};
+window.addEventListener('hashchange', () => { // someone edited the address by hand
+  const want = hashSlug(); if (!user || !want || want === bandSlug()) return;
+  if (pickBandFromHash()) { closeGig(); loadBand(); }
+});
+
+// ---- access levels and band members
+const LEVELS = { owner: 'Owner', admin: 'Admin', editor: 'Editor', viewer: 'Viewer' };
+const myLevel = () => { const l = bandRows.find((x) => x.bands.id === bandId)?.role; return l === 'member' ? 'editor' : l || 'viewer'; };
+const canEdit = () => ['owner', 'admin', 'editor'].includes(myLevel());
+const isAdmin = () => ['owner', 'admin'].includes(myLevel());
+async function openMembers() {
+  if (!bandId) return say('Pick a band first');
+  const a = isAdmin();
+  $('invSec').hidden = !a; $('bandSec').hidden = !a; $('delBandRow').hidden = myLevel() !== 'owner'; $('leaveBand').hidden = myLevel() === 'owner';
+  $('bandName').value = bandRows.find((x) => x.bands.id === bandId)?.bands.name || ''; $('invCode').textContent = ''; $('invCopyRow').hidden = true;
+  $('myLevel').textContent = `You are ${LEVELS[myLevel()]} in this band.` + (a ? '' : ' Only owners and admins can change this list.');
+  $('emailChoose').hidden = true; $('memDlg').showModal(); if (a) ensureInvite(); await loadMembers();
+}
+async function loadMembers() {
+  try {
+    const rows = await cached(ck('members:' + bandId), () => must(sb.from('band_members').select('user_id,role,roles,profiles(display_name)').eq('band_id', bandId)));
+    const order = { owner: 0, admin: 1, editor: 2, viewer: 3 }, a = isAdmin();
+    rows.sort((x, y) => (order[x.role] ?? 2) - (order[y.role] ?? 2) || (x.profiles?.display_name || '').localeCompare(y.profiles?.display_name || ''));
+    $('memList').innerHTML = rows.map((m) => {
+      const mine = m.user_id === user.id, lv = m.role === 'member' ? 'editor' : m.role;
+      const inst = (m.roles || []).map((r) => ROLES.find((x) => x[0] === r)?.[1] || r).join(', ');
+      const ctl = a && !mine && lv !== 'owner'
+        ? `<select data-m="${m.user_id}">${['admin', 'editor', 'viewer'].map((v) => `<option value="${v}"${v === lv ? ' selected' : ''}>${LEVELS[v]}</option>`).join('')}</select> <button data-rm="${m.user_id}">Remove</button>${myLevel() === 'owner' ? ` <button data-own="${m.user_id}">Make owner</button>` : ''}`
+        : `<span class="pill">${esc(LEVELS[lv] || lv)}</span>`;
+      return `<li><span><b>${esc(m.profiles?.display_name || 'Unnamed')}</b>${mine ? ' (you)' : ''}<br><small>${esc(inst || 'No instrument chosen')}</small></span><span>${ctl}</span></li>`;
+    }).join('');
+  } catch { $('memList').innerHTML = '<li><small>Could not load the member list</small></li>'; }
+}
+$('memBtn').onclick = () => { $('menu').close(); openMembers(); };
+$('memClose').onclick = () => $('memDlg').close();
+$('memList').onchange = async (e) => {
+  const u = e.target.dataset.m; if (!u) return;
+  try { await must(sb.rpc('set_member_role', { p_band: bandId, p_user: u, p_role: e.target.value })); say('Access level changed'); } catch {}
+  loadMembers();
+};
+$('memList').onclick = async (e) => {
+  const own = e.target.dataset.own;
+  if (own) {
+    const who = e.target.closest('li').querySelector('b').textContent;
+    if (!confirm(`Make ${who} the owner of this band? You will become an admin, and only the new owner will be able to delete the band.`)) return;
+    try { await must(sb.rpc('transfer_ownership', { p_band: bandId, p_user: own })); say('Ownership transferred'); $('memDlg').close(); await loadBands(); openMembers(); } catch {}
+    return;
+  }
+  const u = e.target.dataset.rm; if (!u || !confirm('Remove this person from the band?')) return;
+  try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: u })); say('Removed from the band'); } catch {}
+  loadMembers();
+};
+let lastInvite = '';
+$('invCopyLink').onclick = () => lastInvite && copyText(`${location.origin}${location.pathname}#join-${lastInvite}`);
+$('invCopyCode').onclick = () => lastInvite && copyText(lastInvite, 'Code copied');
+const bandNameNow = () => bandRows.find((x) => x.bands.id === bandId)?.bands.name || 'our band';
+const appUrl = () => location.origin + location.pathname;
+function inviteText() {
+  return `You are invited to join ${bandNameNow()} on Setlist.\n\n1. Tap this link: ${appUrl()}#join-${lastInvite}\n2. Enter your email and choose a password. That is all: you will be in the band.\n   iPhone: to install the app, open the link in Safari, tap Share, then Add to Home Screen, then open it from your home screen and sign in.\n\nLink not working? Open ${appUrl()}, tap “I am new: create my account” and type this invite code: ${lastInvite}\n\nThis invitation stays valid until the band leader makes a new code.`;
+}
+$('invShare').onclick = async () => {
+  if (!lastInvite) return;
+  if (navigator.share) { try { await navigator.share({ title: `Join ${bandNameNow()} on Setlist`, text: inviteText() }); } catch {} } // closing the share sheet is not an error
+  else copyText(inviteText(), 'Invite message copied');
+};
+const mailBits = () => ({ subject: `Join ${bandNameNow()} on Setlist`, body: inviteText() });
+const enc = encodeURIComponent;
+function openMailApp() {
+  const { subject, body } = mailBits(), a = document.createElement('a');
+  a.href = 'mailto:?subject=' + enc(subject) + '&body=' + enc(body.replace(/\n/g, '\r\n'));
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$('invEmail').onclick = () => { // a phone goes straight to its mail app; a computer asks which mail to use, because a mail app may not be set up
+  if (!lastInvite) return;
+  if (matchMedia('(pointer: coarse)').matches) return openMailApp();
+  $('emailChoose').hidden = !$('emailChoose').hidden;
+};
+$('mailApp').onclick = () => { openMailApp(); $('emailChoose').hidden = true; };
+$('mailGmail').onclick = () => { const m = mailBits(); window.open('https://mail.google.com/mail/?view=cm&fs=1&su=' + enc(m.subject) + '&body=' + enc(m.body), '_blank', 'noopener'); $('emailChoose').hidden = true; };
+$('mailOutlook').onclick = () => { const m = mailBits(); window.open('https://outlook.live.com/mail/0/deeplink/compose?subject=' + enc(m.subject) + '&body=' + enc(m.body), '_blank', 'noopener'); $('emailChoose').hidden = true; };
+$('mailCopy').onclick = () => { copyText(mailBits().body, 'Invite message copied'); $('emailChoose').hidden = true; };
+
+// The invite code for each access level stays the same until someone makes a new one (it is stored with an expiry 100 years away).
+const farFuture = () => new Date(Date.now() + 100 * 365 * 864e5).toISOString();
+const isStanding = (r) => { const t = Date.parse(r.expires_at); return !Number.isFinite(t) || t - Date.now() > 50 * 365 * 864e5; };
+function showInvite(inv) {
+  if (!inv) { lastInvite = ''; $('invCode').textContent = ''; $('invCopyRow').hidden = true; $('emailChoose').hidden = true; return; }
+  lastInvite = inv.code; $('invCopyRow').hidden = false;
+  $('invCode').textContent = `Invite code: ${inv.code} (${LEVELS[inv.role] || inv.role} access). ` + (isStanding(inv) ? 'It stays the same until you make a new one.' : 'Valid for 7 days.');
+}
+async function newInvite(role) {
+  const base = { band_id: bandId, created_by: user.id, role };
+  let r = await sb.from('band_invites').insert({ ...base, expires_at: farFuture() }).select().single();
+  if (r.error) r = await sb.from('band_invites').insert(base).select().single(); // the database refused a long expiry: fall back to the usual 7 days
+  if (r.error) { say('Error: ' + r.error.message); throw r.error; }
+  return r.data;
+}
+let inviteFor = '';
+async function ensureInvite() { // shows the standing code for the chosen level, and makes it the first time
+  if (!bandId || !isAdmin()) return;
+  const role = $('invRole').value, mine = bandId + role; inviteFor = mine;
+  try {
+    const rows = await must(sb.from('band_invites').select('code,role,expires_at').eq('band_id', bandId).eq('role', role).order('created_at', { ascending: false }));
+    const inv = (rows || []).find(isStanding) || await newInvite(role);
+    if (inviteFor === mine) showInvite(inv);
+  } catch {}
+}
+$('invRole').onchange = () => ensureInvite();
+$('invMake').onclick = async () => {
+  const role = $('invRole').value;
+  if (!confirm(`Make a new ${LEVELS[role]} code? The current one stops working straight away, so anyone you have not sent it to yet will need the new one.`)) return;
+  try { await must(sb.from('band_invites').delete().eq('band_id', bandId).eq('role', role)); showInvite(await newInvite(role)); say('New code made. The old one no longer works.'); } catch {}
+};
+$('bandRename').onclick = async () => {
+  const name = $('bandName').value.trim(); if (!name) return say('Type a band name');
+  try { await must(sb.from('bands').update({ name }).eq('id', bandId)); say('Band renamed'); await loadBands(); } catch {}
+};
+$('delBand').onclick = async () => {
+  const name = bandRows.find((x) => x.bands.id === bandId)?.bands.name || '', gone = bandId;
+  const typed = prompt(`This permanently deletes “${name}” with all its songs, setlists and history, and cannot be undone.\n\nType the band name to confirm:`);
+  if (typed === null) return; if (typed.trim() !== name) return say('The name did not match, so nothing was deleted');
+  try {
+    const d = await must(sb.from('bands').delete().eq('id', gone).select());
+    if (!d.length) return say('Only the owner can delete the band');
+    Object.keys(localStorage).filter((k) => k.includes(gone)).forEach((k) => localStorage.removeItem(k));
+    $('memDlg').close(); localStorage.removeItem('band'); say('Band deleted'); await loadBands();
+  } catch {}
+};
+$('leaveBand').onclick = async () => {
+  if (!confirm('Leave this band? You will lose access to its songs and setlists.')) return;
+  try { await must(sb.rpc('remove_member', { p_band: bandId, p_user: user.id })); $('memDlg').close(); localStorage.removeItem('band'); await loadBands(); } catch {}
+};
+
+// ---- account
+// ---- sign-up codes, sign-in codes and password reset
+let codeMode = null, recovering = false, codeEmail = '';
+const showPanel = (p) => ['pSign', 'pCode', 'pNew'].forEach((id) => ($(id).hidden = id !== p));
+const emailVal = () => $('email').value.trim().toLowerCase();
+const pwOk = (p) => (p || '').length >= 8 || (say('Use at least 8 characters for the password'), false);
+function askCode(mode, email) {
+  codeMode = mode; codeEmail = email; $('codeIn').value = ''; $('codePw1').value = ''; $('codePw').hidden = mode !== 'recovery';
+  $('codeTitle').textContent = mode === 'recovery' ? 'Reset your password' : mode === 'signup' ? 'Confirm your email' : 'Enter your sign-in code';
+  $('codeHelp').textContent = `We emailed a code to ${email}. It can take a minute to arrive, so check your spam folder too.`;
+  showPanel('pCode');
+}
+let authMode = 'choose', inviteInfo = null; // inviteInfo: { band, role } once the invitation has been looked up
+// ---- invite links: https://.../#join-CODE
+const INVITE_HASH = /^#join-([A-Za-z0-9]{4,16})$/;
+function inviteFromHash(h) { const m = INVITE_HASH.exec(h || ''); return m ? m[1].toUpperCase() : ''; }
+const pendingInvite = () => { try { return localStorage.getItem('pendingInvite') || ''; } catch { return ''; } };
+function drawInviteNote() { $('invNote').hidden = !pendingInvite() || !!user || authMode === 'invite'; }
+function captureInvite() { // remember a code from the address bar, then take it out of the address
+  const c = inviteFromHash(location.hash); if (!c) return;
+  try { localStorage.setItem('pendingInvite', c); } catch {}
+  try { history.replaceState(null, '', location.pathname + location.search); } catch {}
+}
+let justJoined = null, joinOffline = false;
+async function joinWith(code) { // returns the band id, or null when it did not work
+  code = (code || '').replace(/\s/g, '').toUpperCase(); joinOffline = false;
+  if (!code) { say('Type the invite code first'); return null; }
+  const r = await sb.rpc('join_band', { p_code: code });
+  if (r.error) {
+    joinOffline = !r.error.code && /fetch|network/i.test(r.error.message || '');
+    say(joinOffline ? 'You seem to be offline. Try again when you have a connection.'
+      : /invalid or expired/i.test(r.error.message || '') ? 'That code did not work. Check it with the person who sent it, or ask them for a new one.' : 'Error: ' + r.error.message);
+    return null;
+  }
+  return r.data;
+}
+async function redeemPending() { // after sign-in, a code from an invite link joins the band by itself
+  const code = pendingInvite(); if (!code || !user) return;
+  const id = await joinWith(code);
+  if (id || !joinOffline) { try { localStorage.removeItem('pendingInvite'); } catch {} }
+  if (id) { localStorage.setItem('band', id); justJoined = id; }
+}
+async function joinFromInput(inp) {
+  const id = await joinWith(inp.value); if (!id) return;
+  inp.value = ''; localStorage.setItem('band', id); justJoined = id; $('menu').close(); await loadBands();
+}
+$('joinBand').onclick = () => joinFromInput($('joinCode'));
+$('joinBand2').onclick = () => joinFromInput($('joinCode2'));
+$('joinCode2').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBand2').click(); });
+window.addEventListener('hashchange', () => { captureInvite(); drawInviteNote(); if (!user && pendingInvite()) { if (authMode === 'new') $('inviteIn').value = pendingInvite(); else { setAuthMode('invite'); loadInvitePreview(); } } if (user && pendingInvite()) loadBands(); });
+captureInvite(); drawInviteNote();
+
+// ---- sign-up helpers: a mistyped email cannot be recovered while email is off, so check it
+const TYPO_DOMAINS = { 'gmial.com': 'gmail.com', 'gmai.com': 'gmail.com', 'gamil.com': 'gmail.com', 'gnail.com': 'gmail.com', 'gmail.con': 'gmail.com', 'gmail.co': 'gmail.com', 'hotmial.com': 'hotmail.com', 'hotmai.com': 'hotmail.com', 'hotmail.con': 'hotmail.com', 'yaho.com': 'yahoo.com', 'yahooo.com': 'yahoo.com', 'yahoo.con': 'yahoo.com', 'outlok.com': 'outlook.com', 'outlook.con': 'outlook.com', 'iclod.com': 'icloud.com', 'icloud.con': 'icloud.com' };
+const emailLooksOk = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+function emailFix(e) { const [u, d] = e.split('@'); const f = TYPO_DOMAINS[d]; return f ? u + '@' + f : ''; }
+$('showPw').onchange = () => { $('pw').type = $('pw2').type = $('showPw').checked ? 'text' : 'password'; };
+
+// ---- install help: iPhone has no install button, so the app explains the steps
+const UA = navigator.userAgent || '';
+const isIOS = /iPad|iPhone|iPod/.test(UA) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isInstalled = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+const inAppBrowser = /FBAN|FBAV|Instagram|Line\/|MicroMessenger|Snapchat|TikTok|GSA\//.test(UA);
+let installEvt = null;
+const installHidden = () => { try { return localStorage.getItem('installHidden') === '1'; } catch { return false; } };
+function drawInstall() {
+  const steps = [];
+  if (!isInstalled() && !installHidden()) {
+    if (isIOS) {
+      $('instTitle').textContent = inAppBrowser ? 'Open this page in Safari first' : 'Install this app on your iPhone';
+      steps.push('Tap the Share button (a square with an arrow pointing up) at the bottom of Safari.',
+        'Scroll down, tap Add to Home Screen, then tap Add.',
+        'Open Setlist from the new icon on your home screen and sign up or sign in there. The installed app asks you to sign in once.');
+      const code = pendingInvite(); if (code) steps.push(`Your invite code is ${code}. Type it in the Invite code box when you create your account in the installed app.`);
+    } else if (installEvt) {
+      $('instTitle').textContent = 'Install this app';
+      steps.push('Tap Install app below.', 'Open Setlist from your home screen and sign in there.');
+    }
+  }
+  $('instSteps').replaceChildren(...steps.map((s) => Object.assign(document.createElement('li'), { textContent: s })));
+  $('install').hidden = !steps.length;
+  $('instHint').hidden = !(steps.length && isIOS); $('instCopy').hidden = !(steps.length && isIOS); $('instBtn').hidden = !(steps.length && !isIOS && installEvt);
+}
+$('instCopy').onclick = () => copyText(location.origin + location.pathname);
+$('instHide').onclick = () => { try { localStorage.setItem('installHidden', '1'); } catch {} drawInstall(); };
+$('instBtn').onclick = async () => { if (!installEvt) return; const e = installEvt; installEvt = null; try { e.prompt(); await e.userChoice; } catch {} drawInstall(); };
+$('instHelp').onclick = () => {
+  $('menu').close(); try { localStorage.removeItem('installHidden'); } catch {}
+  if (isInstalled()) return say('The app is already installed on this device.');
+  if (!isIOS && !installEvt) say('To install: open your browser menu (the three dots) and choose Install app or Add to Home screen.');
+  drawInstall(); window.scrollTo(0, 0);
+};
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installEvt = e; drawInstall(); });
+window.addEventListener('appinstalled', () => { installEvt = null; drawInstall(); });
+drawInstall();
+
+// ---- welcome screen: choose, then one short form for the choice
+function setAuthMode(m) {
+  authMode = m; const isInvite = m === 'invite', isNew = m === 'new' || isInvite;
+  $('authChoose').hidden = m !== 'choose'; $('authForm').hidden = m === 'choose';
+  $('authTitle').textContent = isInvite ? (inviteInfo ? 'Join ' + inviteInfo.band : 'You are invited') : isNew ? 'Create your account' : 'Sign in';
+  $('authIntro').textContent = isInvite ? (inviteInfo ? 'You are invited as ' + (LEVELS[inviteInfo.role] || inviteInfo.role) + '. Choose a password and you are in.' : 'You are invited to join a band. Choose a password and you are in.') : isNew ? 'Welcome! Set up your account. It takes about a minute.' : 'Welcome back.';
+  $('auth').classList.toggle('new', isNew); $('authGo').textContent = isInvite ? 'Accept invitation and join' : isNew ? 'Create my account' : 'Sign in';
+  $('nameLbl').hidden = !isNew; $('pw2Lbl').hidden = !isNew; $('codeLbl').hidden = !isNew || isInvite; $('trouble').hidden = isNew;
+  $('nameHelp').textContent = isInvite ? '(optional)' : '(your bandmates will see this)';
+  if (isInvite) $('showPw').parentNode.after($('nameLbl')); else $('authIntro').after($('nameLbl')); // an invitation asks for email and password first
+  const hint = (id, h) => $(id).setAttribute('enterkeyhint', h);
+  hint('name', isInvite ? 'go' : 'next'); hint('email', 'next'); hint('pw', isNew ? 'next' : 'go'); hint('pw2', isInvite ? 'next' : 'next'); hint('inviteIn', 'go');
+  $('pw').setAttribute('autocomplete', isNew ? 'new-password' : 'current-password');
+  $('pwHelp').textContent = isNew ? '(at least 8 characters)' : '';
+  $('emailHelp').textContent = isNew ? '(use one you can check: the app cannot email you yet)' : '';
+  $('authSwitch').textContent = isNew ? 'I already have an account' : 'I am new: create my account';
+  $('authMsg').hidden = true; drawInviteNote();
+  if (m === 'new' && !$('inviteIn').value) $('inviteIn').value = pendingInvite();
+}
+async function loadInvitePreview() { // asks the database which band this invitation is for, so the page can say so
+  const code = pendingInvite(); if (!code) return;
+  try {
+    const r = await sb.rpc('invite_preview', { p_code: code }); if (r.error) throw r.error;
+    const row = r.data?.[0];
+    if (!row) { // expired, mistyped or already removed
+      try { localStorage.removeItem('pendingInvite'); } catch {}
+      inviteInfo = null; setAuthMode('choose'); say('That invitation is no longer valid. Ask your band leader for a new one.'); return;
+    }
+    inviteInfo = { band: row.band_name, role: row.role }; if (authMode === 'invite') setAuthMode('invite');
+  } catch { inviteInfo = null; if (authMode === 'invite') setAuthMode('new'); } // offline, or the database step has not been run yet: the normal create form with the code filled in
+}
+$('chooseNew').onclick = () => { setAuthMode('new'); $('name').focus(); };
+$('chooseOld').onclick = () => { setAuthMode('old'); $('email').focus(); };
+$('authSwitch').onclick = () => setAuthMode(authMode === 'old' ? 'new' : 'old');
+const hadAccount = () => { try { return localStorage.getItem('hadAccount') === '1'; } catch { return false; } };
+setAuthMode(pendingInvite() ? 'invite' : hadAccount() ? 'old' : 'choose');
+if (pendingInvite()) loadInvitePreview();
+
+const doSignUp = async () => {
+  let email = emailVal(); if (!email) return say('Type your email address first');
+  if (!emailLooksOk(email)) return say('That email address does not look right. Please check it.');
+  const fix = emailFix(email);
+  if (fix && confirm(`Did you mean ${fix}?\n\nOK uses ${fix}. Cancel keeps ${email}.`)) { email = fix; $('email').value = fix; }
+  if (!pwOk($('pw').value)) return;
+  if ($('pw').value !== $('pw2').value) { say('The two passwords do not match'); $('pw2').focus(); return; }
+  const invited = authMode === 'invite';
+  const nm = $('name').value.trim() || (invited ? email.split('@')[0] : ''); if (!nm) return say('Type your name so your bandmates know who you are');
+  if (!invited) { const code = $('inviteIn').value.replace(/\s/g, '').toUpperCase(); if (code) { try { localStorage.setItem('pendingInvite', code); } catch {} } }
+  const exists = () => { setAuthMode('old'); $('authMsg').textContent = 'That email already has an account. Sign in below' + (pendingInvite() ? ' and you will be added to the band.' : '.') + ' Forgot your password? Open “Trouble signing in?”.'; $('authMsg').hidden = false; $('trouble').open = true; $('pw').focus(); };
+  try {
+    const r = await sb.auth.signUp({ email, password: $('pw').value, options: { data: { display_name: nm } } });
+    if (r.error) { if (/already (registered|exists)/i.test(r.error.message || '')) exists(); else say('Error: ' + r.error.message); return; }
+    const d = r.data;
+    if (d.session) { if (!pendingInvite()) say('Account created. Now type your invite code to join your band.'); }
+    else if (d.user && Array.isArray(d.user.identities) && d.user.identities.length === 0) exists();
+    else askCode('signup', email);
+  } catch {}
+};
+$('forgot').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first');
+  try { await must(sb.auth.resetPasswordForEmail(email)); askCode('recovery', email); } catch {}
+};
+$('codeLogin').onclick = async () => {
+  const email = emailVal(); if (!email) return say('Type your email address first');
+  try { await must(sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } })); askCode('email', email); } catch {}
+};
+$('codeGo').onclick = async () => {
+  const token = $('codeIn').value.replace(/\s/g, ''); if (!token) return say('Type the code from the email');
+  const pw = $('codePw1').value; if (codeMode === 'recovery' && !pwOk(pw)) return;
+  try {
+    await must(sb.auth.verifyOtp({ email: codeEmail, token, type: codeMode }));
+    if (codeMode === 'recovery') { await must(sb.auth.updateUser({ password: pw })); say('Password changed'); }
+    showPanel('pSign');
+  } catch {}
+};
+$('codeCancel').onclick = () => showPanel('pSign');
+$('newPwGo').onclick = async () => { // reached from a reset link opened in the browser
+  const pw = $('newPw').value; if (!pwOk(pw)) return;
+  try { await must(sb.auth.updateUser({ password: pw })); say('Password changed'); recovering = false; $('newPw').value = ''; showPanel('pSign'); render(); } catch {}
+};
+$('chPwGo').onclick = async () => {
+  const pw = $('chPw').value; if (!pwOk(pw)) return;
+  try { await must(sb.auth.updateUser({ password: pw })); $('chPw').value = ''; say('Password changed'); } catch {}
+};
+const doSignIn = async () => {
+  const email = emailVal(), pw = $('pw').value; if (!email || !pw) return say('Type your email and password');
+  const r = await sb.auth.signInWithPassword({ email, password: pw });
+  if (r.error) {
+    if (/invalid login/i.test(r.error.message || '')) {
+      say('Email or password not recognised.');
+      $('authMsg').textContent = 'Email or password not recognised. If you are new, tap “I am new: create my account” below. If you forgot your password, open “Trouble signing in?” or ask the person who invited you.';
+      $('authMsg').hidden = false; $('trouble').open = true;
+    }
+    else say(!r.error.code && /fetch|network/i.test(r.error.message || '') ? 'You seem to be offline. Try again when you have a connection.' : 'Error: ' + r.error.message);
+  }
+};
+// Enter and the phone keyboard's Go key: the boxes are a real form, so every keyboard submits it. On a computer, Enter in an early box moves on instead.
+$('authForm').addEventListener('submit', (e) => { e.preventDefault(); if (authMode === 'new' || authMode === 'invite') doSignUp(); else doSignIn(); });
+$('name').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode !== 'invite') { e.preventDefault(); $('email').focus(); } });
+$('email').addEventListener('keydown', (e) => { if (e.key === 'Enter' && (authMode !== 'old' || !$('pw').value)) { e.preventDefault(); $('pw').focus(); } });
+$('pw').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode !== 'old') { e.preventDefault(); $('pw2').focus(); } });
+$('pw2').addEventListener('keydown', (e) => { if (e.key === 'Enter' && authMode === 'new') { e.preventDefault(); $('inviteIn').focus(); } }); // in an invitation the name is optional, so Enter here sends the form
+$('signOut').onclick = async () => {
+  const unsaved = unsavedForUser();
+  if ((queue.length || issues.length || unsaved.length || queueLoadError) && !confirm(`Some changes have not synced yet. Persisted changes stay on this device for your next sign-in. ${queueLoadError ? 'The saved queue could not be read, so there may be changes that are not currently visible.' : ''} ${unsaved.length ? 'The change marked “Couldn’t save on this device” is not safely stored and will be lost if you sign out.' : ''} Sign out anyway?`)) return;
+  if (user?.id) unsavedByUser.delete(user.id); showLocalSave(''); Object.keys(localStorage).filter((k) => k.startsWith('c:')).forEach((k) => localStorage.removeItem(k)); recordOfflineState({ type: 'cache-scan', available: false }); $('menu').close(); await sb.auth.signOut(); };
+// ---- fast start: a sign-in saved on this device shows the saved copy at once; the server is checked afterwards
+let provisional = false, quietRefresh = false, startupRefreshPending = false, refreshAfterReconnect = false;
+function savedUser() { try { for (const k of Object.keys(localStorage)) { if (/^sb-.*-auth-token$/.test(k)) { const u = JSON.parse(localStorage.getItem(k))?.user; if (u?.id) return u; } } } catch {} return null; }
+function scanCachedAccess(uid) {
+  let available = false;
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith(`c:${uid}:`)) continue;
+      try { if (JSON.parse(localStorage.getItem(key)) !== null) { available = true; break; } } catch {}
+    }
+  } catch {}
+  recordOfflineState({ type: 'cache-scan', available });
+}
+async function checkAuthWithSupabase(uid, signal) {
+  authProbeSignal = signal;
+  try {
+    const { data, error } = await sb.auth.getUser();
+    if (user?.id !== uid) return { status: 'rejected' };
+    if (!error && data?.user?.id === uid) return { status: 'authenticated' };
+    const status = Number(error?.status || 0);
+    if (status === 408 || status === 429 || status >= 500 || !status) return { status: 'unavailable', error };
+    return { status: 'rejected', error };
+  } catch (error) { return { status: 'unavailable', error }; }
+  finally { if (authProbeSignal === signal) authProbeSignal = null; }
+}
+const authRecovery = createAuthRecovery({
+  check: checkAuthWithSupabase,
+  isOnline: () => navigator.onLine,
+  delayForAttempt: (attempt) => retryDelayMs(attempt),
+  timeoutMs: 1500,
+  onConfirmed(uid) {
+    if (user?.id !== uid) return;
+    provisional = false; authPaused = false;
+    recordOfflineState({ type: 'auth-confirmed' });
+    const refresh = startupRefreshPending || refreshAfterReconnect;
+    startupRefreshPending = false; refreshAfterReconnect = false;
+    if (refresh) void loadBands(true);
+    else void loadQ().then(() => flush(false, true, true));
+    flushViews(); syncViews();
+  },
+  onRejected(uid) {
+    if (user?.id !== uid) return;
+    recordOfflineState({ type: 'auth-rejected' }); authPaused = true;
+    if (provisional) {
+      provisional = false; user = null; authRecovery.setUser(null);
+      bandRows = []; bandId = setlistId = null; items = [];
+      say('Your saved sign-in has expired. Please sign in again.'); render();
+    }
+  },
+  onUnavailable() { recordOfflineState({ type: 'auth-unknown' }); }
+});
+async function confirmAuthenticatedAccess(uid) { return authRecovery.request(uid, { force: true }); }
+function instantFromCache() {
+  try {
+    const get = (k) => { const v = localStorage.getItem(ck(k)); return v ? overlayQueueCache(ck(k), JSON.parse(v)) : null; };
+    const rows = get('bands'); if (!rows?.length) return false;
+    bandRows = rows; $('band').replaceChildren(...rows.map((r) => new Option(r.bands.name, r.bands.id)));
+    const last = localStorage.getItem('band'); if (last && rows.some((r) => r.bands.id === last)) $('band').value = last;
+    bandId = $('band').value || null; const r0 = rows.find((x) => x.bands.id === bandId);
+    const lists = bandId ? get('sl:' + bandId) : []; if (!lists) return false;
+    $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
+    const pick = [r0?.last_setlist_id, localStorage.getItem('sl' + bandId)].find((id) => id && lists.some((l) => l.id === id)); if (pick) $('setlist').value = pick;
+    setlistId = $('setlist').value || null;
+    const raw = setlistId ? get('items:' + setlistId) : []; if (!raw) return false;
+    items = raw.filter((x) => x.songs && !x.songs.deleted_at);
+    setAccent(r0?.bands?.theme?.accent || ''); drawRoles(); drawLogo(); drawSlug();
+    readViewsLocal(); render(); return true;
+  } catch { return false; }
+}
+// Restore the local identity and cache synchronously before INITIAL_SESSION can race ahead of it.
+restoreCachedStartup(savedUser(), user, {
+  setIdentity(identity, isProvisional) {
+    user = identity; provisional = isProvisional; startupRefreshPending = true;
+    authRecovery.setUser(identity.id); recordOfflineState({ type: 'auth-unknown' });
+    scanCachedAccess(identity.id); $('who').textContent = identity.email || 'Menu';
+  },
+  restoreCache: instantFromCache,
+  loadQueue: loadQ,
+  isCurrent: (uid, isProvisional) => user?.id === uid && provisional === isProvisional
+});
+
+sb.auth.onAuthStateChange((e, s) => {
+  const wasProvisional = provisional, incomingUser = s?.user || null;
+  if (wasProvisional && !incomingUser && e === 'INITIAL_SESSION') {
+    recordOfflineState({ type: 'auth-unknown' });
+    startupRefreshPending = true;
+    if (navigator.onLine) void authRecovery.request(user.id);
+    return; // keep the provisional cache view until Supabase can confirm or reject it
+  }
+  const before = user?.id || null; user = incomingUser;
+  if (!user || user.id !== before) provisional = false;
+  if (user?.id && unsavedForUser().length) showLocalSave('failed', `Couldn't save on this device. An earlier change for this account is still only in this page. Retry before closing or refreshing.`);
+  else if (before !== (user?.id || null)) showLocalSave('');
+  if (!user) recordOfflineState({ type: navigator.onLine ? 'auth-rejected' : 'auth-unknown' });
+  else if (user.id !== before || wasProvisional || offlineState.authenticatedAccess !== 'authenticated') recordOfflineState({ type: 'auth-unknown' });
+  authRecovery.setUser(user?.id || null);
+  $('who').textContent = user ? user.email : 'Menu';
+  if (user) scanCachedAccess(user.id);
+  if (user) { try { localStorage.setItem('hadAccount', '1'); } catch {} }
+  if (e === 'SIGNED_OUT') setAuthMode('old');
+  if (e === 'PASSWORD_RECOVERY') { recovering = true; showPanel('pNew'); }
+  if (wasProvisional && user && user.id === before) quietRefresh = true; // the saved copy is already on screen: only redraw if something changed
+  if ((user?.id || null) !== before || (e === 'INITIAL_SESSION' && user)) startupRefreshPending = Boolean(user);
+  if (!user && (user?.id || null) !== before) setTimeout(loadBands, 0);
+  if (user && navigator.onLine && offlineState.authenticatedAccess !== 'authenticated') void authRecovery.request(user.id);
+  else if (e === 'PASSWORD_RECOVERY') setTimeout(render, 0);
+});
+
+// ---- bands and setlists
+async function loadBands(immediateSync = false) {
+  if (!user) { bandRows = []; bandId = setlistId = null; items = []; $('band').replaceChildren(); $('setlist').replaceChildren(); return render(); }
+  await redeemPending(); await loadQ(); await flush(false, immediateSync, immediateSync);
+  try {
+    bandRows = await cached(ck('bands'), () => must(sb.from('band_members').select('role,roles,last_setlist_id,bands(id,name,theme,logo,slug)').eq('user_id', user.id)));
+    $('band').replaceChildren(...bandRows.map((r) => new Option(r.bands.name, r.bands.id)));
+    const last = localStorage.getItem('band'); if (last && bandRows.some((r) => r.bands.id === last)) $('band').value = last;
+    pickBandFromHash();
+    await loadBand();
+    if (justJoined) { const nm = bandRows.find((x) => x.bands.id === justJoined)?.bands?.name; justJoined = null; if (nm) say(`You have joined “${nm}”`); }
+  } catch { render(); }
+}
+async function loadBand() {
+  bandId = $('band').value || null; localStorage.setItem('band', bandId || '');
+  const r = bandRows.find((x) => x.bands.id === bandId); setAccent(r?.bands?.theme?.accent || ''); $('accent').value = r?.bands?.theme?.accent || '#0f766e'; drawRoles(); drawLogo(); drawSlug(); syncHash(); readViewsLocal(); syncViews();
+  try {
+    const lists = bandId ? await cached(ck('sl:' + bandId), () => must(sb.from('setlists').select('id,name').eq('band_id', bandId).is('deleted_at', null).order('created_at'))) : [];
+    $('setlist').replaceChildren(...lists.map((l) => new Option(l.name, l.id)));
+    const pick = [forcePick, r?.last_setlist_id, localStorage.getItem('sl' + bandId)].find((id) => id && lists.some((l) => l.id === id)); forcePick = null; if (pick) $('setlist').value = pick;
+    await loadSetlist();
+  } catch { render(); }
+}
+function rememberSetlist() { // save the last-used setlist for this band on your account
+  const r = bandRows.find((x) => x.bands.id === bandId); if (!r || !setlistId || r.last_setlist_id === setlistId) return;
+  r.last_setlist_id = setlistId;
+  sb.from('band_members').update({ last_setlist_id: setlistId }).eq('band_id', bandId).eq('user_id', user.id).then(() => {}, () => {});
+}
+async function loadSetlist() {
+  setlistId = $('setlist').value || null; if (bandId) localStorage.setItem('sl' + bandId, setlistId || ''); rememberSetlist();
+  try {
+    const rows = setlistId ? await cached(ck('items:' + setlistId), () => must(sb.from('setlist_songs').select('id,position,songs(*)').eq('setlist_id', setlistId).is('deleted_at', null).order('position'))) : [];
+    const fresh = rows.filter((r) => r.songs && !r.songs.deleted_at);
+    const same = quietRefresh && JSON.stringify(fresh) === JSON.stringify(items); quietRefresh = false;
+    items = fresh; if (same && $('split').contains(document.activeElement)) return; // nothing changed and you are typing: leave the screen alone
+  } catch { items = []; quietRefresh = false; }
+  render();
+}
+$('band').onchange = () => { closeGig(); loadBand(); }; $('setlist').onchange = () => { closeGig(); openId = null; loadSetlist(); };
+
+async function showSetlist(id) { forcePick = id; await loadBand(); }
+async function makeSetlist(inp) {
+  if (!canEdit()) return say('You have view-only access in this band');
+  const name = inp.value.trim(); if (!name || !bandId) return say('Pick a band and type a name');
+  const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
+  inp.value = ''; $('menu').close(); await showSetlist(d.id);
+}
+$('slMake').onclick = () => makeSetlist($('slNew')); $('slMake2').onclick = () => makeSetlist($('slNew2'));
+$('mkBand').onclick = async () => { const b = await must(sb.rpc('create_band', { p_name: $('newBand').value })); $('newBand').value = ''; localStorage.setItem('band', b.id); $('menu').close(); await loadBands(); };
+$('menuBtn').onclick = () => { $('slRename').value = $('setlist').selectedOptions[0]?.text || ''; $('menu').showModal(); }; $('menuClose').onclick = () => $('menu').close();
+document.addEventListener('click', (e) => { if (e.target.dataset.open) $('menu').showModal(); });
+
+$('slRenameBtn').onclick = async () => {
+  const name = $('slRename').value.trim(); if (!setlistId || !name) return say('Pick a setlist and type a new name');
+  try { await must(sb.from('setlists').update({ name }).eq('id', setlistId)); say('Setlist renamed'); $('menu').close(); await showSetlist(setlistId); } catch {}
+};
+$('slDup').onclick = async () => {
+  if (!setlistId) return say('Pick a setlist first');
+  if (queue.length) return say('Wait for your changes to finish syncing first.');
+  const name = ($('setlist').selectedOptions[0]?.text || 'Setlist') + ' (copy)';
+  try {
+    const d = await must(sb.from('setlists').insert({ band_id: bandId, name, created_by: user.id }).select().single());
+    if (items.length) await must(sb.from('setlist_songs').insert(items.map((it) => ({ band_id: bandId, setlist_id: d.id, song_id: it.songs.id, position: it.position }))));
+    say('Setlist duplicated'); $('menu').close(); await showSetlist(d.id);
+  } catch {}
+};
+$('slDel').onclick = async () => {
+  const name = $('setlist').selectedOptions[0]?.text;
+  if (!setlistId || !confirm(`Delete the setlist “${name}”? The songs stay in the band’s song list.`)) return;
+  try { await must(sb.from('setlists').update({ deleted_at: new Date().toISOString() }).eq('id', setlistId)); say('Setlist deleted'); $('menu').close(); closeGig(); openId = null; await loadBand(); } catch {}
+};
+
+// ---- the setlist screen
+function render() {
+  document.documentElement.classList.remove('booting');
+  drawInviteNote(); drawInstall(); document.body.classList.toggle('out', !user);
+  $('auth').hidden = !!user && !recovering; $('app').hidden = !user || recovering; if (!user) return;
+  $('nobands').hidden = !!bandId; $('nosl').hidden = !bandId || !!setlistId; $('sl').hidden = !setlistId;
+  $('band').hidden = bandRows.length < 2; $('bandTitle').hidden = bandRows.length !== 1; if (bandRows.length === 1) $('bandTitle').textContent = bandRows[0].bands.name;
+  $('setlist').hidden = !$('setlist').options.length;
+  $('emptySl').hidden = items.length > 0;
+  const ce = canEdit(); $('addBtn').hidden = !ce; $('slNew2').parentElement.hidden = !ce; $('slSec').hidden = !ce;
+  drawPaneBtn();
+  if (dual() && !items.some((x) => x.songs.id === openId)) openId = items[0]?.songs.id ?? null; // two panes always show one song
+  $('list').innerHTML = items.map(card).join('');
+  drawPane();
+  if (openId) loadLinks(openId);
+  if (!$('gig').hidden) renderGig();
+}
+const wideQ = matchMedia('(min-width: 900px)'), wide = () => wideQ.matches;
+const paneMode = () => { try { return localStorage.getItem('paneMode') === 'single' ? 'single' : 'dual'; } catch { return 'dual'; } };
+const dual = () => wide() && paneMode() === 'dual'; // two panes: only on a wide screen, and only if the person has not chosen one pane
+function drawPaneBtn() {
+  const b = $('paneBtn'); b.hidden = !wide(); b.textContent = paneMode() === 'dual' ? '▢ One pane' : '▥ Two panes';
+  b.title = paneMode() === 'dual' ? 'Show one list at a time, like on a phone' : 'Show the setlist and the song details side by side';
+  document.body.classList.toggle('dual', dual());
+}
+if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--barH', $('bar').offsetHeight + 'px')).observe($('bar')); // the details panel fills the window down to the metronome bar, however tall the bar is
+$('paneBtn').onclick = () => { const toSingle = paneMode() === 'dual'; try { localStorage.setItem('paneMode', toSingle ? 'single' : 'dual'); } catch {} if (toSingle) openId = null; render(); };
+let moreOpen = false; // whether the More section of the right-hand panel is open; kept when the panel is redrawn
+const grow = (t) => { if (!t.offsetParent) return; t.style.height = 'auto'; t.style.height = (t.scrollHeight + t.offsetHeight - t.clientHeight) + 'px'; }; // boxes in the panel grow with their text
+const growAll = () => $('pane').querySelectorAll('textarea.grow').forEach(grow);
+$('pane').addEventListener('input', (e) => { if (e.target.matches('textarea.grow')) grow(e.target); });
+$('pane').addEventListener('toggle', (e) => { if (e.target.matches('details[data-more]')) moreOpen = e.target.open; }, true);
+window.addEventListener('resize', growAll);
+function drawPane() {
+  const it = items.find((x) => x.songs.id === openId);
+  $('pane').innerHTML = dual() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs, true)}</article>` : '';
+  growAll();
+}
+wideQ.addEventListener?.('change', () => render());
+function roleLine(s) {
+  const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
+  if (r.includes('singer') && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
+  if (r.includes('bassist') && viewOf(s.id) === 'bass' && s.root_notes) out.push('Bass: ' + (asUrl(s.root_notes) ? 'link' : first(s.root_notes)));
+  else if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + (asUrl(s.chords) ? 'link' : first(s.chords)));
+  if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
+  return out.length ? `<div class="rl">${out.join(' · ')}</div>` : '';
+}
+function card(it, i) {
+  const s = it.songs, o = openId === s.id, sub = [s.artist, s.version_label].filter(Boolean).join(' · ');
+  return `<article data-id="${it.id}" data-sid="${s.id}"${o ? ' class="open"' : ''}>
+  <span class="n">${i + 1}</span>
+  <button data-a="toggle" class="rowmain" aria-expanded="${o}"><span class="rt">${esc(s.title)}</span><span class="rs"><span class="pill">${s.bpm || '–'} bpm</span><span class="pill">${esc(s.musical_key || '–')}</span><span class="ra">${esc(sub)}</span><span class="chev">${o ? '▴' : '▾'}</span></span></button>
+  <button data-a="play" class="primary playbtn">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button>
+  ${roleLine(s)}${o && !dual() ? detail(s) : ''}</article>`;
+}
+function detail(s, compact) { // compact is the wide-screen right-hand panel: shorter boxes, Chords beside Notes, rarely used parts under More
+  const ro = !canEdit(), dis = ro ? ' disabled' : '', i = items.findIndex((x) => x.songs.id === s.id);
+  const f = (k, l, t = 'text') => `<label>${l}<input data-f="${k}" type="${t}" value="${esc(s[k] ?? '')}"${dis}></label>`;
+  const lk = (k, l, big) => `<label>${l}${safe(s[k]) ? `<a ${big ? 'class="openbtn" ' : ''}href="${esc(s[k])}" target="_blank" rel="noopener">${big ? 'Open' : 'open'}</a>` : ''}<input data-f="${k}" value="${esc(s[k] ?? '')}" placeholder="https://"${dis}></label>`;
+  const top = ro ? '' : `<div class="btns"><button data-a="up" ${i > 0 ? '' : 'disabled'}>▲ Move up</button><button data-a="down" ${i >= 0 && i < items.length - 1 ? '' : 'disabled'}>▼ Move down</button></div>`;
+  const grid = `<div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>`;
+  const struct = ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="${compact ? 1 : 2}"${compact ? ' class="grow"' : ''} placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`;
+  const bassNow = viewOf(s.id) === 'bass'; // which progression box shows: remembered per person and song
+  const ta = (k, rows, ph) => `<textarea data-f="${k}" rows="${rows}" class="mono${compact ? ' grow' : ''}"${ph ? ` placeholder="${ph}"` : ''}${dis}>${esc(s[k])}</textarea>`;
+  const chords = `<label data-pl="guitar"${bassNow ? ' hidden' : ''}>Chords${opn(s.chords)}${ta('chords', compact ? 1 : 4, '')}</label><label data-pl="bass"${bassNow ? '' : ' hidden'}>Bass line (root notes)${opn(s.root_notes)}${ta('root_notes', compact ? 1 : 4, 'e.g. E  A  B  E')}</label>`;
+  const bar = `<div class="progbar"><div class="seg" role="group" aria-label="Guitar or bass"><button type="button" data-a="pv" data-view="guitar" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" data-a="pv" data-view="bass" aria-pressed="${bassNow}">Bass line</button></div><button type="button" data-a="progfind">${bassNow ? 'Find bass tab link' : 'Find chords link'}</button></div>`;
+  const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 1 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
+  const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
+  const links = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)', true)}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}${lk('youtube_url', 'YouTube link')}`;
+  const buttons = `<div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
+  const note = ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>';
+  const sheet = `<h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
+  <div class="btns"><button data-a="addlink">Add link</button></div>`}`;
+  if (compact) return `<div>${top}${grid}${struct}${bar}<div class="two">${chords}${notes}</div><ul data-prog-links></ul>${buttons}<ul data-lookup></ul>${note}<ul data-hist></ul><details data-more${moreOpen ? ' open' : ''}><summary>More: links, sheet music${ro ? '' : ', reason for change'}</summary>${reason}${links}${sheet}</details></div>`;
+  return `<div>${top}${grid}${struct}${bar}${chords}<ul data-prog-links></ul>${notes}${reason}${links}${buttons}<ul data-lookup></ul>${note}${sheet}<ul data-hist></ul></div>`;
+}
+const CONF = { high: 'confidence: high', medium: 'confidence: medium', check: 'check this tempo' };
+function drawLookup(ul) { // matches already have tempo and key; candidates are recordings to pick from
+  const found = matches.map((m, k) => `<li><span>${esc(m.artist)} – ${esc(m.title)}<br><small>${m.tempo || '?'} bpm · ${esc(m.key_of || '?')}${m.time_sig ? ' · ' + esc(m.time_sig) : ''} · ${esc(m.source || '')} · ${esc(CONF[m.confidence] || '')}</small>${m.note ? `<br><small>${esc(m.note)}</small>` : ''}</span><button data-a="usematch" data-k="${k}">Use</button></li>`);
+  const more = cands.map((c, k) => `<li><span>${esc(c.artist)} – ${esc(c.title)}<br><small>${esc([c.album, c.year].filter(Boolean).join(' · ') || 'Song Finder')}</small></span><button data-a="sfget" data-k="${k}">Get tempo and key</button></li>`);
+  ul.innerHTML = found.length || more.length
+    ? found.join('') + (more.length ? '<li><small>Pick the recording that matches your song. Adding the artist above narrows the list.</small></li>' + more.join('') : '') + '<li><small>These values come from recordings. Check them against how your band plays the song; your own values always win.</small></li>'
+    : '<li><small>No matches. Try fewer words, or fill in the artist.</small></li>';
+}
+// ---- lyrics link suggestions: LINKS only, never lyrics text, and the app never opens a lyrics page itself. Nothing is saved until the person taps Save changes.
+let lyr = { cands: [], searches: [], note: '' };
+const MATCH = { exact: 'matches title and artist', close: 'close match', possible: 'possible match' };
+const hostOf = (u) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+const TRACKING = /^(utm_|fbclid$|gclid$|ved$|usg$|opi$|sa$|rct$|esrc$|cad$|uact$)/i;
+function cleanLink(input) { // the cleanLink rule from core/src/links.ts: http and https only, Google redirect links unwrapped, tracking removed
+  const raw = String(input ?? '').trim(); if (!raw) return '';
+  let u; try { u = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : 'https://' + raw); } catch { return ''; }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+  if (/^google\.[a-z.]+$/.test(u.hostname.replace(/^www\./, '')) && u.pathname === '/url') { const t = u.searchParams.get('url') ?? u.searchParams.get('q'); if (t) return cleanLink(t); }
+  for (const k of [...u.searchParams.keys()]) if (TRACKING.test(k)) u.searchParams.delete(k);
+  return u.toString();
+}
+const searchLinks = (title, artist) => { // always available, even offline or before the lookup function is set up
+  const q = enc(`${artist} ${title}`.trim());
+  return [
+    { label: 'Search Genius', url: `https://genius.com/search?q=${q}` },
+    { label: 'Search Ultimate Guitar', url: `https://www.ultimate-guitar.com/search.php?search_type=title&value=${q}` },
+    { label: 'Search Google', url: `https://www.google.com/search?q=${enc(`${artist} ${title} lyrics`.trim())}` },
+  ];
+};
+function drawLyr(art) {
+  const ul = art.querySelector('[data-lyr]'); if (!ul) return;
+  const cur = (art.querySelector('[data-f="lyrics_url"]')?.value || '').trim();
+  const row = (label, sub, url, attrs) => `<li><span>${label}<br><small>${sub}</small></span><span><a href="${esc(url)}" target="_blank" rel="noopener">Open</a> <button ${attrs}>Use</button></span></li>`;
+  const found = lyr.cands.map((c, k) => row(`${esc(c.artist)} – ${esc(c.title)}`, `${esc(c.source)} · ${esc(MATCH[c.match] || 'match')} · ${esc(hostOf(c.url))}`, c.url, `data-a="lyruse" data-k="${k}"`));
+  const search = lyr.searches.map((c, k) => row(esc(c.label), 'Search page, not a specific song', c.url, `data-a="lyruse" data-s="${k}"`));
+  const have = cur ? `<li><span>Your current link<br><small>${esc(hostOf(cur) || cur)}</small></span><span>${safe(cur) ? `<a href="${esc(cur)}" target="_blank" rel="noopener">Open</a> ` : ''}<button data-a="lyrclear">Remove</button></span></li>` : '';
+  ul.innerHTML = (lyr.note ? `<li><small>${esc(lyr.note)}</small></li>` : '') + found.join('') + search.join('') + have
+    + '<li><small>Use saves the link straight away. Open a link to check it is the right song. The app only suggests links and never copies lyrics.</small></li>';
+}
+async function findLyrics(art) {
+  const ul = art.querySelector('[data-lyr]'); if (!ul) return;
+  const val = (k) => art.querySelector(`[data-f="${k}"]`).value.trim(), title = val('title'), artist = val('artist');
+  if (!title) return say('Type a title first');
+  const more = art.querySelector('details[data-more]'); if (more && !more.open) more.open = true; // the box lives under More in the wide panel
+  lyr = { cands: [], searches: searchLinks(title, artist), note: '' };
+  ul.innerHTML = '<li><small>Looking for a lyrics link…</small></li>'; ul.scrollIntoView?.({ block: 'nearest' });
+  try {
+    const { data, error } = await sb.functions.invoke('find-lyrics-link', { body: { title, artist } });
+    if (error) throw error;
+    lyr.cands = (data?.candidates || []).map((c) => ({ ...c, url: cleanLink(c.url) })).filter((c) => c.url);
+    lyr.note = data?.note || '';
+  } catch { lyr.note = 'Could not look up a specific page just now (you may be offline, or the lookup is not set up). The search links below still work.'; }
+  drawLyr(art);
+}
+// ---- guitar or bass view of the progression box. Remembered per person and song in song_views (SQL v11); a copy is kept on this device,
+// so it works offline and also before v11 has been run (changes wait on the device and are sent once the table exists).
+let views = {}, viewsPending = {}, viewsFlushing = false, viewsAgain = false;
+const vk = () => ck('views:' + bandId), vqk = () => `vq:${user.id}`;
+const asUrl = (t) => { const x = (t || '').trim(); return /^https?:\/\/\S+$/i.test(x) ? x : ''; }; // a progression box that holds just one link
+const opn = (t) => (asUrl(t) ? ` <a class="openbtn" href="${esc(asUrl(t))}" target="_blank" rel="noopener">Open</a>` : '');
+const defaultView = () => (myRoles().includes('bassist') ? 'bass' : 'guitar'); // bass for bassists, guitar for everyone else
+const viewOf = (sid) => (views[sid] === 'bass' || views[sid] === 'guitar' ? views[sid] : defaultView());
+const savePending = () => { try { localStorage.setItem(vqk(), JSON.stringify(viewsPending)); } catch {} };
+function readViewsLocal() {
+  if (!user || !bandId) { views = {}; return; }
+  try { views = JSON.parse(localStorage.getItem(vk()) || '{}') || {}; } catch { views = {}; }
+  try { viewsPending = JSON.parse(localStorage.getItem(vqk()) || '{}') || {}; } catch { viewsPending = {}; }
+  Object.entries(viewsPending).forEach(([id, p]) => { if (p.band === bandId) views[id] = p.view; });
+}
+function setView(sid, v) {
+  views[sid] = v; viewsPending[sid] = { view: v, band: bandId };
+  try { localStorage.setItem(vk(), JSON.stringify(views)); } catch {}
+  savePending(); if (viewsFlushing) viewsAgain = true; else flushViews();
+}
+async function flushViews() {
+  if (viewsFlushing || !user || !offlineState.browserOnline || offlineState.authenticatedAccess !== 'authenticated' || !Object.keys(viewsPending).length) return;
+  viewsFlushing = true;
+  try {
+    for (const [sid, p] of Object.entries(viewsPending)) {
+      let r; try { r = await sb.from('song_views').upsert({ user_id: user.id, song_id: sid, band_id: p.band, view: p.view, updated_at: new Date().toISOString() }, { onConflict: 'user_id,song_id' }); } catch { break; }
+      if (!r.error || ['23503', '23514', '42501'].includes(r.error.code)) { if (viewsPending[sid] === p) delete viewsPending[sid]; } // saved, or the song or band no longer exists
+      else break; // no connection, or SQL v11 has not been run yet: keep it on this device and try again later
+    }
+  } finally { viewsFlushing = false; savePending(); }
+  if (viewsAgain) { viewsAgain = false; flushViews(); }
+}
+async function syncViews() { // after opening a band: send waiting choices, then pick up choices made on your other devices
+  const mine = bandId; if (!user || !mine) return;
+  if (offlineState.authenticatedAccess !== 'authenticated') return;
+  await flushViews();
+  try {
+    const r = await sb.from('song_views').select('song_id,view').eq('band_id', mine).eq('user_id', user.id);
+    if (r.error || bandId !== mine) return; // offline, or SQL v11 not run yet: keep the copy on this device
+    const m = {}; (r.data || []).forEach((x) => { m[x.song_id] = x.view; });
+    Object.entries(viewsPending).forEach(([id, p]) => { if (p.band === mine) m[id] = p.view; });
+    if (JSON.stringify(m) === JSON.stringify(views)) return;
+    views = m; try { localStorage.setItem(vk(), JSON.stringify(m)); } catch {}
+    if (!$('split').contains(document.activeElement)) render();
+  } catch {}
+}
+window.addEventListener('online', () => flushViews());
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushViews(); });
+// ---- find a chords or bass tab link: search pages only, opened in a new page. The app fetches and saves nothing.
+const progLinks = (v, title, artist) => {
+  const base = `${artist} ${title}`.trim(), q = enc(base);
+  const raw = v === 'bass'
+    ? [{ label: 'Ultimate Guitar: bass tabs', url: `https://www.ultimate-guitar.com/search.php?search_type=title&value=${enc(base + ' bass')}` }, { label: 'Songsterr', url: `https://www.songsterr.com/?pattern=${q}` }, { label: 'Google: bass tab', url: `https://www.google.com/search?q=${enc(base + ' bass tab')}` }]
+    : [{ label: 'Ultimate Guitar: chords', url: `https://www.ultimate-guitar.com/search.php?search_type=title&value=${enc(base + ' chords')}` }, { label: 'Songsterr', url: `https://www.songsterr.com/?pattern=${q}` }, { label: 'Google: chords', url: `https://www.google.com/search?q=${enc(base + ' chords')}` }];
+  return raw.map((l) => ({ ...l, url: cleanLink(l.url) })).filter((l) => l.url);
+};
+function drawProg(art) {
+  const ul = art.querySelector('[data-prog-links]'); if (!ul) return;
+  const val = (k) => (art.querySelector(`[data-f="${k}"]`)?.value || '').trim(), title = val('title'), artist = val('artist');
+  if (!title) return say('Type a title first');
+  const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar';
+  ul.innerHTML = progLinks(v, title, artist).map((l) => `<li><span>${esc(l.label)}<br><small>Search page, not a specific song · ${esc(hostOf(l.url))}</small></span><span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open</a>${canEdit() ? ` <button type="button" data-a="proguse" data-url="${esc(l.url)}">Use</button>` : ''}</span></li>`).join('')
+    + `<li><small>Open a link to check it. Use puts the link in the ${v === 'bass' ? 'bass line' : 'chords'} box and saves it straight away. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
+}
+async function loadLinks(sid) {
+  const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
+  try {
+    const rows = await cached(ck('links:' + sid), () => must(sb.from('song_links').select('id,kind,label,url').eq('song_id', sid).is('deleted_at', null).order('created_at')));
+    ul.innerHTML = rows.length ? rows.map((l) => `<li><a href="${esc(safe(l.url) || '#')}" target="_blank" rel="noopener">${esc(l.label || l.kind.replace('_', ' '))}</a>${canEdit() ? `<button data-a="dellink" data-lid="${l.id}">×</button>` : ''}</li>`).join('') : '<li><small>No links yet</small></li>';
+  } catch { ul.innerHTML = '<li><small>Could not load links</small></li>'; }
+}
+$('split').onclick = async (e) => {
+  const b = e.target.closest('button[data-a]'); if (!b) return;
+  const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
+  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear', 'proguse'].includes(a) && !canEdit()) return say('You have view-only access in this band');
+  try {
+    if (a === 'toggle') { openId = dual() ? sid : openId === sid ? null : sid; render(); }
+    else if (a === 'pv') { // switch between guitar chords and bass line; nobody is blocked, any role can use either
+      const v = b.dataset.view === 'bass' ? 'bass' : 'guitar';
+      art.querySelectorAll('[data-pl]').forEach((l) => { l.hidden = l.dataset.pl !== v; });
+      art.querySelectorAll('button[data-a="pv"]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.view === v)));
+      const fb = art.querySelector('[data-a="progfind"]'); if (fb) fb.textContent = v === 'bass' ? 'Find bass tab link' : 'Find chords link';
+      const pl = art.querySelector('[data-prog-links]'); if (pl) pl.innerHTML = '';
+      art.querySelectorAll('textarea.grow').forEach(grow); setView(sid, v);
+    }
+    else if (a === 'progfind') { drawProg(art); }
+    else if (a === 'proguse') {
+      const url = cleanLink(b.dataset.url || ''); if (!url) return;
+      const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar', what = v === 'bass' ? 'bass line' : 'chords';
+      const box = art.querySelector(`[data-f="${v === 'bass' ? 'root_notes' : 'chords'}"]`), cur = box.value.trim();
+      if (cur && cur !== url && !confirm(`Replace what is in the ${what} box with this link?\n\nCurrent: ${cur.length > 120 ? cur.slice(0, 120) + '…' : cur}\nNew: ${url}`)) return; // never overwrite notes without permission
+      box.value = url; grow(box); art.querySelector('[data-a="save"]')?.click(); // Use saves straight away, the same as Save changes
+    }
+    else if (a === 'up' || a === 'down') {
+      const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
+      x.position = py; y.position = px; items.sort((m, n) => m.position - n.position);
+      enqueue({ t: 'slPos', id: x.id, position: py, label: x.songs.title }, { t: 'slPos', id: y.id, position: px, label: y.songs.title }); render();
+    }
+    else if (a === 'play') { await toggleClick(items[i].songs); }
+    else if (a === 'save') {
+      const p = {}; art.querySelectorAll('[data-f]').forEach((el) => (p[el.dataset.f] = el.value.trim()));
+      if (!p.title) return say('A title is needed');
+      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
+      const song = items[i].songs, set = {}, base = {};
+      Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
+      if (!Object.keys(set).length) return say('Nothing has changed');
+      Object.assign(song, set); const l = libFor === bandId ? lib.find((x) => x.id === sid) : null; if (l) Object.assign(l, set);
+      enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null }); render();
+    }
+    else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { const x = items[i]; items.splice(i, 1); openId = null; enqueue({ t: 'slRemove', id: x.id, label: x.songs.title }); render(); } }
+    else if (a === 'delsong') {
+      const t = items[i].songs.title;
+      if (!confirm(`Delete “${t}” from this band? It will disappear from every setlist.`)) return;
+      items = items.filter((x) => x.songs.id !== sid); if (libFor === bandId) lib = lib.filter((x) => x.id !== sid);
+      enqueue({ t: 'songDel', sid, label: t }); openId = null; render();
+    }
+    else if (a === 'hist') {
+      const [rows, mem] = await Promise.all([
+        must(sb.from('change_log').select('changed_at,changed_by,op,old_data,new_data,reason').eq('table_name', 'songs').eq('row_id', sid).order('changed_at', { ascending: false }).limit(20)),
+        must(sb.from('band_members').select('user_id,profiles(display_name)').eq('band_id', bandId)),
+      ]);
+      const who = Object.fromEntries(mem.map((m) => [m.user_id, m.profiles?.display_name || 'Someone']));
+      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', notes: 'notes', song_structure: 'structure', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', deleted_at: 'deleted' };
+      const short = (v) => { const t = v == null || v === '' ? 'empty' : String(v); return t.length > 30 ? t.slice(0, 30) + '…' : t; };
+      const diff = (r) => {
+        if (r.op === 'INSERT') return 'Song added';
+        const o = r.old_data || {}, n = r.new_data || {};
+        const ch = Object.keys(LABEL).filter((k) => JSON.stringify(o[k]) !== JSON.stringify(n[k]));
+        return ch.map((k) => (k === 'chords' || k === 'root_notes' || k === 'notes' || k === 'song_structure' || k.endsWith('_url') ? LABEL[k] + ' edited' : `${LABEL[k]}: ${short(o[k])} → ${short(n[k])}`)).join('; ') || 'Edited';
+      };
+      art.querySelector('[data-hist]').innerHTML = rows.map((r) => `<li><span>${esc(diff(r))}${r.reason ? `<br><small>Reason: ${esc(r.reason)}</small>` : ''}</span><small style="text-align:right">${esc(who[r.changed_by] || 'Someone')}<br>${esc(new Date(r.changed_at).toLocaleString())}</small></li>`).join('') || '<li><small>No history yet</small></li>';
+    }
+    else if (a === 'lookup') {
+      const val = (k) => art.querySelector(`[data-f="${k}"]`).value.trim(), title = val('title'), artist = val('artist');
+      if (!title) return say('Type a title first');
+      const ul = art.querySelector('[data-lookup]'); ul.innerHTML = '<li><small>Searching…</small></li>';
+      const { data, error } = await sb.functions.invoke('lookup-song', { body: { title, artist } });
+      if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch {} ul.innerHTML = ''; return say('Lookup failed: ' + m); }
+      matches = data?.results || []; cands = data?.candidates || []; drawLookup(ul);
+    }
+    else if (a === 'sfget') {
+      const c = cands[+b.dataset.k]; if (!c) return;
+      b.disabled = true; b.textContent = 'Getting…';
+      const { data, error } = await sb.functions.invoke('lookup-song', { body: { isrc: c.id } });
+      if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch {} b.disabled = false; b.textContent = 'Get tempo and key'; return say('Lookup failed: ' + m); }
+      const m = data?.results?.[0];
+      if (!m) { b.disabled = false; b.textContent = 'Not available'; return say(data?.note || 'No tempo and key found for that recording.'); }
+      matches.push({ ...m, title: m.title || c.title, artist: m.artist || c.artist }); cands.splice(+b.dataset.k, 1);
+      drawLookup(art.querySelector('[data-lookup]'));
+    }
+    else if (a === 'usematch') {
+      const m = matches[+b.dataset.k]; if (!m) return;
+      const set = (k, v) => { if (v) art.querySelector(`[data-f="${k}"]`).value = v; };
+      set('bpm', m.tempo); set('musical_key', m.key_of); set('time_signature', m.time_sig); set('version_label', m.artist);
+      if (!art.querySelector('[data-f="artist"]').value.trim()) set('artist', m.artist);
+      art.dataset.ref = m.id || ''; say('Filled in. Tap Save changes to keep it.');
+      if (!art.querySelector('[data-f="lyrics_url"]').value.trim()) findLyrics(art); // the song is identified: offer a lyrics link, unless one is already there
+    }
+    else if (a === 'lyrfind') { await findLyrics(art); }
+    else if (a === 'lyruse') {
+      const pick = b.dataset.s !== undefined ? lyr.searches[+b.dataset.s] : lyr.cands[+b.dataset.k]; if (!pick) return;
+      const box = art.querySelector('[data-f="lyrics_url"]'), cur = box.value.trim();
+      if (cur && cur !== pick.url && !confirm(`Replace your current lyrics link?\n\nCurrent: ${cur}\nNew: ${pick.url}`)) return; // never overwrite without permission
+      box.value = pick.url; art.querySelector('[data-a="save"]')?.click(); // Use saves straight away, the same as Save changes
+    }
+    else if (a === 'lyrclear') { art.querySelector('[data-f="lyrics_url"]').value = ''; drawLyr(art); say('Cleared. Tap Save changes to remove the link.'); }
+    else if (a === 'addlink') {
+      const g = (k) => art.querySelector(`[data-l="${k}"]`).value.trim(), url = norm(g('url')); if (!url) return say('Add a link first');
+      const row = { id: uuid(), band_id: bandId, song_id: sid, kind: g('kind'), label: g('label'), url, added_by: user.id };
+      const saved = await enqueue({ t: 'linkAdd', row, label: items[i].songs.title });
+      if (saved) { art.querySelector('[data-l="url"]').value = ''; art.querySelector('[data-l="label"]').value = ''; }
+      loadLinks(sid);
+    }
+    else if (a === 'dellink') {
+      await enqueue({ t: 'linkDel', id: b.dataset.lid, label: items[i].songs.title }); loadLinks(sid);
+    }
+  } catch { /* the error toast has already been shown */ }
+};
+
+// ---- song library: search, add to the setlist, delete
+let lib = [], libFor = null;
+function addToSetlist(song, keepOpen, queueOperation = true) {
+  const position = (items.length ? Math.max(...items.map((x) => x.position)) : 0) + 1;
+  const row = { id: uuid(), band_id: bandId, setlist_id: setlistId, song_id: song.id, position };
+  items.push({ id: row.id, position, songs: song }); items.sort((m, n) => m.position - n.position);
+  if (queueOperation) enqueue({ t: 'slAdd', row, label: song.title });
+  if (!keepOpen) $('addDlg').close();
+  render(); if (keepOpen) drawLib();
+  return row;
+}
+function drawLib() {
+  const q = $('songSearch').value.trim().toLowerCase(), used = new Set(items.map((x) => x.songs.id));
+  const rows = lib.filter((x) => !q || `${x.title} ${x.artist}`.toLowerCase().includes(q));
+  $('libList').innerHTML = rows.map((x) => `<li><span><b>${esc(x.title)}</b><br><small>${esc([x.artist, x.bpm && x.bpm + ' bpm', x.musical_key].filter(Boolean).join(' · '))}</small></span><span>${used.has(x.id) ? '<span class="pill">In setlist</span>' : `<button data-add="${x.id}" class="primary">Add</button>`} <button data-del="${x.id}">Delete</button></span></li>`).join('') || '<li><small>No songs found</small></li>';
+}
+async function openLibrary() {
+  if (!setlistId) return say('Create or pick a setlist first');
+  try {
+    lib = await cached(ck('lib:' + bandId), () => must(sb.from('songs').select('*').eq('band_id', bandId).is('deleted_at', null).order('title')));
+    libFor = bandId; $('songSearch').value = ''; drawLib(); $('addDlg').showModal();
+  } catch {}
+}
+$('addBtn').onclick = openLibrary;
+$('songSearch').oninput = drawLib;
+$('addClose').onclick = () => $('addDlg').close();
+$('libList').onclick = (e) => {
+  const add = e.target.dataset.add, del = e.target.dataset.del;
+  if (add) { const song = lib.find((y) => y.id === add); if (song) addToSetlist(song, true); }
+  else if (del) {
+    const x = lib.find((y) => y.id === del);
+    if (!x || !confirm(`Delete “${x.title}” from this band? It will disappear from every setlist.`)) return;
+    lib = lib.filter((y) => y.id !== del); items = items.filter((y) => y.songs.id !== del); if (openId === del) openId = null;
+    enqueue({ t: 'songDel', sid: del, label: x.title }); drawLib(); render();
+  }
+};
+$('addNew').onclick = () => {
+  const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
+  if (!setlistId) return say('Create or pick a setlist first');
+  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
+  if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); }
+  const entry = addToSetlist(song, false, false);
+  enqueue(
+    { t: 'songNew', label: title, row: { id: song.id, band_id: bandId, title, artist: song.artist, bpm: song.bpm, musical_key: song.musical_key, created_by: user.id } },
+    { t: 'slAdd', row: entry, label: title }
+  );
+  ['nTitle', 'nArtist', 'nBpm', 'nKey'].forEach((k) => ($(k).value = ''));
+};
+
+// ---- gig mode
+let gigIdx = 0, gigLock = null;
+async function gigWake() { try { if ('wakeLock' in navigator && !$('gig').hidden) gigLock = await navigator.wakeLock.request('screen'); } catch {} }
+function openGig() {
+  if (!items.length) return say('Add a song to this setlist first');
+  const k = items.findIndex((x) => x.songs.id === openId); gigIdx = k >= 0 ? k : 0;
+  $('gig').hidden = false; gigWake(); renderGig(); loadSong(items[gigIdx].songs);
+}
+function closeGig() { $('gig').hidden = true; gigLock?.release?.(); gigLock = null; }
+function gigGo(d) { const n = gigIdx + d; if (n < 0 || n >= items.length) return; gigIdx = n; loadSong(items[n].songs); renderGig(); $('gig').scrollTop = 0; }
+function renderGig() {
+  if (!items.length) { closeGig(); return; }
+  gigIdx = Math.max(0, Math.min(items.length - 1, gigIdx));
+  const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), has = (r) => roles.includes(r), drummer = has('drummer');
+  const tile = (l, v, c = '') => `<div class="tile ${c}"><small>${l}</small><b>${esc(v || '–')}</b></div>`;
+  const panel = (t, body, mono) => `<section class="panel"><h3>${t}</h3>${body ? `<div class="pbody${mono ? ' mono' : ''}">${esc(body)}</div>` : '<small>Nothing entered yet. Add it under Details.</small>'}</section>`;
+  const parts = [];
+  if (has('singer')) parts.push(safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', ''));
+  if (has('guitarist') || has('keyboards') || has('bassist')) {
+    const bassNow = viewOf(s.id) === 'bass';
+    parts.push(`<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>` + (asUrl(bassNow ? s.root_notes : s.chords) ? `<section class="panel"><h3>${bassNow ? 'Bass line' : 'Chords'}</h3><a class="btnlink" href="${esc(asUrl(bassNow ? s.root_notes : s.chords))}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(bassNow ? 'Bass line' : 'Chords', bassNow ? s.root_notes : s.chords, true)));
+  }
+  if (s.notes) parts.push(panel('Notes', s.notes));
+  const hint = roles.length ? '' : '<p><small>Pick your role in the menu (☰) to see lyrics, chords or the bass line here.</small></p>';
+  $('gig').innerHTML = `<div class="gtop"><span style="display:flex;align-items:center;gap:8px">${bandLogo() ? `<img src="${bandLogo()}" alt="" style="height:30px;width:30px;object-fit:contain">` : ''}<small>${gigIdx + 1} of ${items.length} · ${esc($('setlist').selectedOptions[0]?.text || '')}</small></span><button id="gigClose">✕ Close</button></div>
+  <h1>${esc(s.title)}</h1><small>${esc([s.artist, s.version_label].filter(Boolean).join(' · '))}</small>
+  <div class="tiles">${tile('BPM', s.bpm, drummer ? 'xl' : '')}${tile('Key', s.musical_key)}${drummer ? tile('Time', s.time_signature || '4/4') : ''}</div>
+  ${hint}${parts.join('')}
+  <div class="next">${nx ? `Next: <b>${esc(nx.title)}</b> · ${nx.bpm || '–'} bpm · ${esc(nx.musical_key || '–')}` : 'Last song in the setlist'}</div>
+  <div class="gnav"><button id="gPrev" ${gigIdx ? '' : 'disabled'}>◀ Previous</button><button id="gPlay" class="primary">${running && clickSong === s.id ? '■ Stop' : '▶ Click'}</button><button id="gNext" ${gigIdx < items.length - 1 ? '' : 'disabled'}>Next ▶</button></div>`;
+  $('gigClose').onclick = closeGig; $('gPrev').onclick = () => gigGo(-1); $('gNext').onclick = () => gigGo(1);
+  $('gPlay').onclick = () => toggleClick(items[gigIdx].songs);
+  if ($('gvG')) { $('gvG').onclick = () => { setView(s.id, 'guitar'); renderGig(); }; $('gvB').onclick = () => { setView(s.id, 'bass'); renderGig(); }; }
+}
+$('gigBtn').onclick = openGig;
+document.addEventListener('keydown', (e) => { if ($('gig').hidden) return; if (e.key === 'ArrowRight') gigGo(1); else if (e.key === 'ArrowLeft') gigGo(-1); else if (e.key === 'Escape') closeGig(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !$('gig').hidden) gigWake(); });
+
+// ---- metronome (with the iOS audio fix)
+let ctx, timer, nextT = 0, beat = 0, running = false, silentEl, lock, perBar = 4, clickSong = null, clockKind = 'a';
+function silentWavUrl() {
+  const sr = 8000, n = sr / 2, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+async function unlock() { // returns true when the audio engine is running
+  const Ctor = window.AudioContext || window.webkitAudioContext;
+  if (!Ctor) return false;
+  const wait = (p, ms) => Promise.race([p, new Promise((r) => setTimeout(r, ms))]);
+  try { ctx ||= new Ctor(); } catch { return false; }
+  try { if ('audioSession' in navigator) navigator.audioSession.type = 'playback'; } catch {}
+  if (!silentEl) { silentEl = new Audio(silentWavUrl()); silentEl.loop = true; silentEl.setAttribute('playsinline', ''); }
+  // start both inside the tap itself: iPhones only allow this straight from a touch
+  const played = silentEl.play().catch(() => {});
+  const resumed = ctx.state === 'running' ? Promise.resolve() : Promise.resolve(ctx.resume()).catch(() => {});
+  await wait(Promise.all([played, resumed]), 900);
+  if (ctx.state !== 'running') { // one retry with a fresh audio engine
+    try { ctx.close(); } catch {}
+    try { ctx = new Ctor(); await wait(Promise.resolve(ctx.resume()).catch(() => {}), 700); } catch {}
+  }
+  if (ctx.state === 'running') { const s = ctx.createBufferSource(); s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate); s.connect(ctx.destination); s.start(0); }
+  return ctx.state === 'running';
+}
+function beep(t, f, len, vol) {
+  const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = f;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + len);
+}
+// The full-screen flash never goes above three flashes a second: every beat up to 180 BPM, above that only beat 1 of the bar
+// (and not at all if even that would be more than three a second).
+const flashAllowed = (bpm, beatInBar, perBar) => bpm <= 180 || (beatInBar === 0 && bpm / 60 / perBar <= 3);
+const audioOk = () => !!ctx && ctx.state === 'running';
+const nowSec = () => (audioOk() ? ctx.currentTime : performance.now() / 1000); // the sound clock, or the phone's own timer when sound is blocked
+function setDots(n) { n = Math.max(1, Math.min(12, n || 4)); const d = $('dots'); if (d.children.length !== n) d.innerHTML = '<i></i>'.repeat(n); }
+function litDot(i) { [...$('dots').children].forEach((el, k) => { el.classList.toggle('on', k === i); el.classList.toggle('one', k === i && i === 0); }); }
+function lightBeat(i, full) {
+  if (!running) return;
+  litDot(i);
+  if (full && $('fl').checked) { $('fx').classList.add('on'); setTimeout(() => $('fx').classList.remove('on'), 90); }
+}
+function drawAudioMsg() {
+  const bad = running && !audioOk(); $('aMsg').hidden = !bad;
+  if (bad) $('aMsg').textContent = 'No sound yet. Check the silent switch and volume, and open the app in Safari or Chrome, not inside WhatsApp. The dots keep time.';
+}
+function tick() {
+  const bpm = Math.min(300, Math.max(20, +$('bpm').value || 120));
+  const k = audioOk() ? 'a' : 'p';
+  if (k !== clockKind) { clockKind = k; nextT = nowSec() + 0.05; drawAudioMsg(); }
+  while (nextT < nowSec() + 0.15) {
+    const i = beat % perBar;
+    if (clockKind === 'a') beep(nextT, i === 0 ? 1500 : 1000, 0.06, 0.5);
+    const full = flashAllowed(bpm, i, perBar);
+    setTimeout(() => lightBeat(i, full), Math.max(0, (nextT - nowSec()) * 1000));
+    nextT += 60 / bpm; beat++;
+  }
+}
+$('fl').onchange = () => { // first-time warning before the screen flash is switched on
+  if ($('fl').checked && !localStorage.getItem('flashOk')) {
+    if (confirm('Flashing lights can trigger seizures in some people with photosensitive epilepsy. The flash is limited to three per second. Turn the flash on?')) localStorage.setItem('flashOk', '1'); else $('fl').checked = false;
+  }
+};
+async function getLock() { try { if ('wakeLock' in navigator) lock = await navigator.wakeLock.request('screen'); } catch {} }
+async function start() {
+  if (running) return;
+  running = true; // set first, so a second tap while the sound is starting stops it instead of starting twice
+  $('go').textContent = 'Stop'; syncPlay(); // react at once, even if the sound takes a moment
+  const ok = await unlock();
+  if (!running) return;
+  beat = 0; clockKind = ok ? 'a' : 'p'; nextT = nowSec() + 0.05; timer = setInterval(tick, 25);
+  $('go').textContent = 'Stop'; getLock(); syncPlay(); drawAudioMsg();
+}
+function stop() { running = false; clearInterval(timer); lock?.release?.(); lock = null; silentEl?.pause(); $('go').textContent = 'Start'; litDot(-1); $('fx').classList.remove('on'); $('aMsg').hidden = true; syncPlay(); }
+function loadSong(s) { $('bpm').value = s.bpm || 120; $('now').textContent = s.title; perBar = parseInt(s.time_signature) || 4; setDots(perBar); beat = 0; clickSong = s.id; syncPlay(); }
+async function toggleClick(s) { // the same song's button starts it, then stops it
+  if (running && clickSong === s.id) { stop(); return; }
+  loadSong(s); if (!running) await start();
+}
+function syncPlay() { // keep every Click button's label in step with the metronome
+  $('bar').classList.toggle('on', running); document.body.classList.toggle('run', running);
+  document.querySelectorAll('#list article').forEach((a) => { const b = a.querySelector('[data-a="play"]'); if (b) b.textContent = running && a.dataset.sid === clickSong ? '■ Stop' : '▶ Click'; });
+  const g = document.getElementById('gPlay'); if (g) g.textContent = running && clickSong === items[gigIdx]?.songs.id ? '■ Stop' : '▶ Click';
+}
+$('go').onclick = () => (running ? stop() : start());
+setDots(perBar);
+$('bpmDn').onclick = () => ($('bpm').value = Math.max(20, +$('bpm').value - 1));
+$('bpmUp').onclick = () => ($('bpm').value = Math.min(300, +$('bpm').value + 1));
+$('tone').onclick = async () => { const ok = await unlock(); if (ok) beep(ctx.currentTime + 0.02, 440, 0.4, 0.4); say(ok ? 'Test tone sent' : 'No sound: check the silent switch and the volume, and open the app in Safari or Chrome'); };
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && running) { ctx?.resume(); silentEl?.play().catch(() => {}); getLock(); } });
+setInterval(() => {
+  $('dbg').textContent = ['audioSession: ' + ('audioSession' in navigator ? navigator.audioSession.type : 'unsupported'), 'audio: ' + (ctx ? ctx.state : 'not started'),
+    'silent element: ' + (silentEl ? (silentEl.paused ? 'paused' : 'playing') : 'none'), 'wake lock: ' + (lock && !lock.released ? 'on' : 'off'), 'beat timer: ' + (running ? (clockKind === 'a' ? 'sound clock' : 'phone timer') : 'stopped'),
+    'installed: ' + (navigator.standalone === true || matchMedia('(display-mode: standalone)').matches), 'online: ' + navigator.onLine].join('\n');
+}, 500);
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch((e) => say('Offline support failed: ' + e.message));
+</script>
+</body>
+</html>

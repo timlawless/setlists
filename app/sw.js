@@ -1,10 +1,10 @@
 // Bump VERSION whenever you want this deployment path's installed copies to drop old cached files.
 const DEPLOYMENT_PATH = new URL(self.registration.scope).pathname.replace(/\/+$/, '').split('/').pop() || 'root';
 const CACHE_PREFIX = `band-setlist-${DEPLOYMENT_PATH}-`;
-const VERSION = `${CACHE_PREFIX}5`;
+const VERSION = `${CACHE_PREFIX}6`;
 const CDN = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const WAIT_MS = 1000; // how long to wait for the network before using the saved copy of an app file
-const FILES = ['./', 'index.html', 'offline-state.mjs', 'offline-queue.mjs', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', CDN];
+const FILES = ['./', 'index.html', 'offline-state.mjs', 'offline-queue.mjs', 'offline-recovery.mjs', 'config.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png', CDN];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
