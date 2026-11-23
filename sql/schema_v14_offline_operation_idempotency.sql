@@ -182,7 +182,12 @@ begin
     if jsonb_array_length(v_conflicts) > 0 then
       v_result := jsonb_build_object('status', 'conflict', 'conflicts', v_conflicts);
     end if;
-
+  elsif v_type = 'note' then
+    v_song_id := (p_operation->>'sid')::uuid;
+    if nullif(trim(coalesce(p_operation->>'note', '')), '') is null then
+      return jsonb_build_object('status', 'permanent', 'message', 'A reason is required.');
+    end if;
+    perform public.add_song_note(v_song_id, p_operation->>'note');
   else
     return jsonb_build_object('status', 'permanent', 'message', 'Unsupported offline operation type.');
   end if;

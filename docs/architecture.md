@@ -78,9 +78,9 @@ Band ──< ChangeLog   (filled by a database trigger)
 
 | Table | Purpose and key fields |
 | --- | --- |
-| profiles | One row per user: display name. Created automatically at sign-up. |
+| profiles | One row per user: display name. Created automatically at sign-up. The person can change their own name (from the members list or the Account section of the menu); nobody else can. |
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
-| band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles; last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
+| band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles (singer, guitarist, bassist, drummer, keyboards and backing, the last from SQL v13); last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
 | songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, spotify_url, moises_url (SQL v12), catalog_ref, change_note, deleted_at |
 | song_links | Labelled links on a song (sheet music, tab, lyrics, video, other). This is the earlier `charts` list. |
@@ -108,16 +108,18 @@ Hiding a button in the app is a convenience. The database enforces all of this.
 | --- | --- | --- | --- | --- |
 | Read songs, setlists, links, history, members | Yes | Yes | Yes | Yes |
 | Add and edit songs, setlists and links (including soft delete) | Yes | Yes | Yes | No |
+| Add a reason (note) to a song's History without changing the song | Yes | Yes | Yes | No |
 | Create and list invite codes | Yes | Yes | No | No |
 | Change access levels, remove members | Yes | Yes | No | No |
 | Rename the band, set its colour and logo | Yes | Yes | No | No |
 | Hard-delete rows | Yes | Yes | No | No |
 | Delete the band | Yes | No | No | No |
 | Transfer ownership | Yes | No | No | No |
+| Change your own name | Yes | Yes | Yes | Yes |
 
 A band has exactly one owner, who cannot be removed, demoted or leave. People can edit only their own instrument roles
 and last-used setlist. Joining, changing a level, removing and transferring go through database functions, never direct edits.
-Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate and only change what gig mode puts first.
+Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer) are separate and only change what gig mode puts first.
 
 ## Versioning (change history)
 - The earlier design was an append-only list of `Change` records with an inverse for each, and a restore that applies the
@@ -129,6 +131,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   not silently win. The person syncing sees both values and chooses Use mine or Keep theirs, and the history records
   which. The earlier rule was "the later one wins and both stay in history". If you prefer that, it is a small change.
 - Per-change author and time give the "last changed by" information.
+- A reason can be recorded at any time. A song edit carries its reason in `songs.change_note`, which the History trigger copies into the entry. The trigger ignores an update where only the note changed, so a reason typed with no other change cannot go through that route. Instead the page sends it as a `note` item in the same queue (so it works offline, in order), which calls `add_song_note(song, note)` (SQL v15). That function adds a new `change_log` row for the song with the reason, who wrote it and the song's current values as both old and new, so History shows it as "Note added" with the reason. It changes nothing in the song and no earlier entry is rewritten. Allowed for owner, admin and editor; the reason is trimmed, must not be empty and is at most 500 characters. A retried note could in rare cases appear twice, because a note has no idempotency key.
 
 ## Offline
 - Reading: bands, setlists, songs, links and members you have opened are saved on the device and can be shown without signal.
@@ -160,7 +163,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - The service worker caches the app shell and CDN library, but Supabase Auth, database and Edge Function requests always
   require a connection. The manifest and service-worker scope are relative to the deployed app path. Cache names include
   that path, but `localStorage` is shared by production and preview paths on the same origin.
-- Online only for now: creating, renaming, duplicating and deleting setlists, band settings, members and invites.
+- Online only for now: creating, renaming, duplicating and deleting setlists, band settings, members, invites and your own name.
 - Open: how long to keep history on the device.
 
 ### Offline audit findings (2026-11-19)
@@ -305,7 +308,7 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
   (with spaces trimmed from each end).
 - It is edited in the song details (the inline row on a phone, the right-hand pane on a wide screen), between the
   Title to Key boxes and Chords. Viewers see it only when it has text, and cannot change it; editors always see the box.
-- It is not shown in the song list rows, in the Create a new song box or in gig mode. Adding it to gig mode later is a
+- It is not shown in the song list rows or in the Create a new song box. Gig mode shows it for singers, guitarists, drummers and keyboards (see Gig mode by role). Adding it to the other places later is a
   small change.
 - It follows the same path as every other song field: shown at once, saved on the device in the offline queue, merged
   field by field at sync time (a same-field conflict is shown for the person to resolve), and recorded in the history,
@@ -334,14 +337,49 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards) are separate a
 - Which view shows: the person's remembered choice for that song, otherwise bass if their instrument roles in that band include Bassist, otherwise guitar. Anyone, including viewers, can switch on any song. The same switch and panel appear in gig mode for guitarists, keyboards and bassists.
 - Remembering: the choice is stored in `song_views` (SQL v11), one row per person per song, and also kept on the device (`c:<user>:views:<band>`). A change is written to the device first and sent in the background (`vq:<user>` holds choices still waiting). Offline, or before v11 has been run, it stays on the device and is sent later; opening a band picks up choices made on other devices. A choice that cannot ever be saved (the song or band is gone) is dropped.
 - `song_views` access: a person reads, adds, changes and removes only their own rows, and only for bands they belong to (row-level security with `is_band_member`); the song and band must match; the view must be `guitar` or `bass`. It is not part of the change history.
-- Find chords link / Find bass tab link (in the view you are on) lists search pages: Ultimate Guitar, Songsterr and Google, for chords or for bass tabs. Each has Open (new page) and, for people who can edit, Use. Use puts the link in the box for the current view, asks first if something is already written there (Cancel keeps it, OK replaces it), and saves it at once (it runs the same save as Save changes, so any other edits typed in the panel are saved with it). Every link goes through `cleanLink`. The app fetches nothing and never copies chords, bass lines or lyrics.
+- Find chords link / Find bass tab link (in the view you are on) lists four searches, all with the title and artist in quotes after brackets, "- Remastered" endings and "feat." parts are removed (the artist must be filled in first). Guitar: Google limited to Ultimate Guitar (chords), Songsterr and Chordify, and a plain Google chords search. Bass: Google limited to Ultimate Guitar (bass tab) and Songsterr, a YouTube bass lesson search, and a plain Google bass tab search. Each has Open (new page) and, for people who can edit, Use. Use puts the link in the box for the current view, asks first if something is already written there (Cancel keeps it, OK replaces it), and saves it at once (it runs the same save as Save changes, so any other edits typed in the panel are saved with it). Every link goes through `cleanLink`. The app fetches nothing and never copies chords, bass lines or lyrics.
 - A box that holds just one link shows a larger Open button beside its label (as does a saved lyrics link), "Chords: link" on song rows, and an Open chords or Open bass line button in gig mode.
 - Planned: a separate link field beside the manual chords and bass line, so both can be kept.
+
+## Listen links (YouTube, Spotify, Moises)
+- A song can hold three optional listening links, shared by the whole band like the other song fields: `youtube_url` (the older box), and `spotify_url` and `moises_url` (SQL v12). The three boxes sit together in the song details, each with a large Open button beside a stored link.
+- Spotify and Moises entries go through `cleanLink` (http and https only, Google redirects unwrapped, tracking removed), and the Spotify share tracking parameter (`si`) is dropped too. A non-empty entry that cannot be made into a web link is refused with a message and nothing is saved. An emptied box removes the link. The YouTube box still uses the older check (https added, nothing else); applying `cleanLink` there is part of the known gap.
+- Moises is manual only: the app cannot look inside a band's Moises library, so the band pastes the link to its own or edited version.
+- Gig mode shows a Listen panel with a button for each link that exists, in this order: the band's Moises version, YouTube, Spotify. A stored value that is not a safe web link is never drawn as a link.
+- Changes to the two new columns are recorded by the existing history trigger with no change to it, and appear in History as Spotify link and Moises link. Access follows the songs table: members read, editors and above change.
+- Planned (stage 2): a function that finds the link to the most popular version of the song on YouTube and Spotify, with Use saving at once and the overwrite question as for lyrics and progression. It needs a YouTube Data API key and a Spotify client ID and secret held as Supabase secrets. A manual entry always wins. Not built.
+
+## Gig mode by role
+- Each instrument role puts its own fields first in gig mode, in this order (`GIG_FIELDS` in the page):
+  - Singer: Lyrics, Key, Structure.
+  - Guitarist and Keyboards: Chords, Key, Structure, BPM.
+  - Bassist: Chords (shown as the Bass line by default), Key, BPM.
+  - Drummer: BPM (extra large), Time, Structure, Notes. Time is kept next to BPM because the drummer's tile was already there.
+  - Backing singer (stored as `backing`): Lyrics, added after the other fields. It is meant to be used with another role, and on its own it shows the lyrics.
+- A person with several roles gets the fields merged: roles are taken in the order of the roles list (singer, guitarist, bassist, drummer, keyboards, backing), and each field appears once, at its first position. With no role chosen the order is BPM, Key, plus a hint to pick a role.
+- Fields that are not on the person's list but have something in them (and a time signature other than 4/4) sit under a collapsed More fields bar, so nothing is hidden for good. Empty fields are not listed there. The bar stays open or closed as the person left it while moving between songs and switching views. A priority field with nothing in it says so, except Notes, which is left out when empty.
+- Key, BPM and Time are tiles; tiles next to each other share a row and a lone tile is kept to a sensible width. Lyrics is a button that opens the lyrics link. The progression panel keeps its Guitar chords / Bass line switch, and a stored link shows as an Open button.
+- The Listen panel (Moises version, YouTube, Spotify) follows the priority fields. The song list rows give a backing singer the lyrics link, as for a singer. The Details view follows the same role order (see Details view by role).
+- The roles list (under Band members and access) has a sixth box, Backing singer. SQL v13 widens the rule on `band_members.roles` if one exists.
+
+## Details view by role
+- The first rows of the Details view are the same for everyone: Title, Artist, Artist version, Time signature, BPM and Key (the grid). After the grid the fields come in the person's role order from gig mode, then everything else in the usual order.
+- Only four fields are placed this way, because Key, BPM and Time are in the grid already: the lyrics link (with Find lyrics link), the progression (with the Guitar/Bass switch and Find link), Song structure and Notes. The rule is `detailOrder(roles)` in the page, kept apart from the gig mode rule so it can change later. With no role chosen nothing moves.
+- Examples: Singer: Lyrics, Structure, then Chords, Notes. Guitarist, Keyboards and Bassist: Chords, Structure, then Notes. Drummer: Structure, Notes, then Chords. Backing singer: Lyrics first. Several roles merge as in gig mode (roles-list order, each field once).
+- The usual order after the priority fields: on a phone or inside a row it is Structure, Chords, Notes, Reason, Lyrics, then the YouTube, Spotify and Moises links; on the wide right-hand panel it is Structure, Chords and Notes, with Reason, Lyrics and the three listening links under the collapsed More bar. A lyrics link that comes first by role is shown in the order, not under More.
+- On the wide panel, Chords sit beside Notes only when the two are next to each other in the order (for example with no role). Otherwise each box has its own row. Save, Look up, History and the other buttons stay below the fields. All the boxes are always present, so Save changes still saves every one.
+
+## Settings screens
+- The menu (☰) holds the personal and band-level settings. **Band settings** is its own screen (`bandDlg`), opened from a menu button that only owners and admins see: band name, band link ending, band colour, band logo and, for the owner only, Delete this band. It used to sit inside Band members and access.
+- **Band members and access** (`memDlg`) keeps the member list, access levels, Remove and Make owner, the invite code and sharing buttons, the Copy band link row and Leave this band. It also holds My roles in this band (moved here from the main menu), so everything about the people in a band is at this level.
+- **Back buttons:** Band members and access and Band settings each have a "← Settings" button beside Close. Back closes the screen and reopens the general settings menu (with the Band settings button and your name refreshed); Close closes everything.
+- **Your own name:** every person can change their own display name. In Band members it is Edit name on your own row (a box with Save and Cancel; Enter saves); in the Account section of the menu it is Your name with Save name. Both use one routine: the name is tidied (spaces trimmed and collapsed), must not be empty or longer than 50 characters, and is written to the person's own `profiles` row. The existing profiles rule (SQL v1: a person updates only their own row) already allows this, so there is no SQL. A saved name is kept on the device and the cached member list is updated.
+- A name is profile-wide, so it changes in every band the person belongs to. Bandmates see it in the members list and in History. Owners and admins cannot rename other people. Changing a name needs a connection.
 
 ## Layout: phones and tablets
 - Phone: one column. This is what the web app does at every width today.
 - Tablet (about 768 px wide and up): two panes, setlist on the left and the selected song on the right. **Not built yet.**
-- Gig mode is the stage view: large BPM and key, the next song, and panels chosen by instrument role.
+- Gig mode is the stage view: large BPM and key, the next song, and the fields in an order chosen by instrument role (see Gig mode by role).
 - Test landscape and large text on a tablet.
 
 ## Metronome
@@ -495,14 +533,15 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v9 | `invite_preview(code)`: the band name and level for a valid invite code, usable before sign-in |
 | v10 | `songs.song_structure`: an optional free-text Song structure (text, not null, empty by default) |
 | v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
-| v12 | `songs.spotify_url` and `songs.moises_url` (added on Claude branch) |
-| v13 | Adds the Backing singer instrument role where an existing role rule limits names (added on Claude branch) |
-| v14 | `offline_operation_receipts` and `apply_offline_operation(...)`: transactional, per-user idempotency for offline queue writes; SECURITY INVOKER |
+| v12 | `songs.spotify_url` and `songs.moises_url`: optional links to a Spotify track and to the band's own Moises version |
+| v13 | Allows the `backing` instrument role: widens the rule on `band_members.roles` if there is one (check rule or list type), and changes nothing if there is none |
+| v14 | `offline_operation_receipts` and `apply_offline_operation(...)`: transactional, per-user idempotency for offline queue writes; SECURITY INVOKER. The RPC also handles reason-only `note` operations by calling `add_song_note(...)` from v15. |
+| v15 | `add_song_note(song, note)`: adds a reason to a song's History as its own entry, without changing the song or any earlier entry |
 | check_schema | A read-only checklist of which updates are present |
 
-This branch contains migration files v1, v2, v9-v11 and v14. The v12 and v13 migrations currently live on `claude-dev`;
-the historical v3-v8 files and `check_schema.sql` are not present here. Confirm v12, v13 and the existing v1-v11 schema
-before running v14; do not try to rebuild an existing project from only the files currently present.
+This branch contains migration files v1, v2, v9-v11 and v12-v15. The historical v3-v8 files and `check_schema.sql` are
+not present here. Confirm the existing v1-v11 schema before applying the later migrations. Apply v15 before v14 because
+v14 calls `add_song_note`; do not try to rebuild an existing project from only the files currently present.
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
 
@@ -524,7 +563,12 @@ in the repository and nothing re-runs them automatically. The offline queue/stat
 check are now stored under `test/`. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) and the removal of the
 GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet. The lyrics link suggestions were tested with 24 checks in headless Chromium against a stand-in for Supabase and the functions (suggest, review, use, replace prompt, remove, save, error fallback, viewer, phone layout) and the ranking was run on sample data, but the live Genius service, a real phone and a real signed-in session were not used.
-SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-in for Supabase's auth layer: it runs twice without error, a person reads and writes only their own rows, another member and an outsider are refused, a row whose song and band do not match is refused, only guitar or bass is accepted, a signed-out visitor has no access, `updated_at` moves on a change and the rows go with the song (16 checks). The guitar or bass view, the progression link finder, Use with its overwrite question, and the gig mode switch were tested in a simulated browser (jsdom) with a stand-in database (about 35 checks, two-pane layout). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the switch, and whether the Songsterr and Ultimate Guitar search addresses land on a useful page.
+SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-in for Supabase's auth layer: it runs twice without error, a person reads and writes only their own rows, another member and an outsider are refused, a row whose song and band do not match is refused, only guitar or bass is accepted, a signed-out visitor has no access, `updated_at` moves on a change and the rows go with the song (16 checks). The guitar or bass view, the progression link finder, Use with its overwrite question, and the gig mode switch were tested in a simulated browser (jsdom) with a stand-in database (about 35 checks, two-pane layout). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the switch, and whether the Google, site-limited and YouTube searches land on the right page for real songs.
+SQL v12 (the two link columns) was run on an in-memory PostgreSQL with a stand-in for Supabase's auth layer: it runs twice without error, both columns are optional text, existing rows are untouched, a band member can set both links, an outsider can neither change nor read them, and the history trigger records them (7 checks). The Spotify and Moises boxes, safe link handling (cleaning, refusing a javascript: or unusable entry, clearing a link), the Open buttons, the gig mode Listen panel and the viewer's read-only view were tested in a simulated browser (jsdom) with a stand-in database (14 checks, with the earlier checks re-run). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the new boxes, and whether real Spotify and Moises links open the right place.
+SQL v13 (the Backing singer role) was run on an in-memory PostgreSQL in five situations: a text list with a limiting check rule (backing refused before, allowed after, an unknown role still refused, the old roles still work), a text list with no rule (nothing created), a list type (the value is added), existing rows (kept), and no roles column (the script ends quietly); it runs twice without error (11 checks). Role-based gig mode was tested in a simulated browser (jsdom) with a stand-in database (28 checks): the field order for each role, merged roles, Backing singer on its own and with other roles, the More fields bar (contents, empty fields left out, unusual time signature, stays open), placeholders, the no-role case, the Guitar/Bass switch in gig mode, the roles list and the lyrics link on song rows; the earlier checks were re-run. Not tested: the real Supabase project, a real browser or any phone or tablet (including sideways on a music stand), and how the order feels to real players.
+The role-ordered Details view was tested in a simulated browser (jsdom) with a stand-in database (24 checks), on the wide panel and in the narrow inline layout: the order for no role and for each role, merged roles and Backing singer, Chords beside Notes only when adjacent, the Title to Key grid unchanged and placed before the role fields, every field still present for every role, and Find chords link, the Guitar/Bass switch and Find lyrics link still working in their new places; the earlier checks were re-run. Not tested: a real browser or any phone or tablet, and how the new order looks and feels.
+The Settings changes were tested in a simulated browser (jsdom) with a stand-in database (28 checks): Band settings button shown to an owner and an admin and hidden from an editor and a viewer, the new screen and its contents, nothing left of them in Band members, rename and delete from the new screen, Edit name only on your own row, Save sending a tidied name to your own profile, Cancel, an empty name and an over-long name refused, Enter saving, a viewer editing their own name, the Account box, and a refused save when no row changes; the earlier checks were re-run. Not tested: the real Supabase project (in particular that the profiles rule allows the update as expected), a real browser or any phone or tablet, and how the screens look.
+SQL v15 (`add_song_note`) was run on an in-memory PostgreSQL with a stand-in for Supabase's auth layer, once with a text role column and once with an enum role column (38 checks): it runs twice without error; an editor, an admin and an owner can add a reason; the new History row carries the reason, the song and band, identical old and new values and the author; the song is unchanged; a viewer, an outsider, a signed-out visitor and the signed-out role are refused; a blank, a missing, an over-long reason, a deleted song and an unknown song are refused; only the allowed notes were recorded. In a simulated browser (22 checks): a reason with nothing else changed is queued as a note and sent to the function, then cleared; nothing typed still says Nothing has changed; a change with a reason is still one song edit carrying the reason; a viewer has no reason box; a refused note appears under Check sync with its message; History shows Note added with the reason; roles are in Band members and not in the menu and choosing one saves; Back and Close behave as described; the earlier checks were re-run. Not tested: the real Supabase project, a real browser or any phone or tablet. Not yet explained: the History rows Tim pasted show two updates about 0.2 seconds apart for the same song, and an empty reason on each, so whether a reason typed with a change reaches History in the real database is still to be confirmed.
 
 ## Running and changing it safely
 1. For any change that includes SQL: run the SQL first, then upload the new `index.html`.
@@ -546,7 +590,13 @@ SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-
 - The install steps were written from how iOS and Android normally behave and have not been tried on a real phone yet; the wording of the iOS menus can change between versions.
 - An invite link remembered in Safari does not reach the installed iPhone app, so those testers type the code. A mistyped email at sign-up cannot be recovered while email is off; the app only catches common domain typos.
 - The home-screen icon is the same for every band.
-- The guitar or bass choice is per song and person. Until SQL v11 is run it stays on one device. The suggested links are search pages, not specific songs, and a link and written notes share one box until a separate link field is built.
+- The guitar or bass choice is per song and person. Until SQL v11 is run it stays on one device. The suggested links are searches (the first result is usually the song's page but can miss), not specific songs, and a link and written notes share one box until a separate link field is built.
+- Listen links: Moises links are manual and there is no automatic find of the most popular YouTube or Spotify link yet. The YouTube box does not yet use `cleanLink`.
+- Role-based gig mode: the order follows the table agreed with Tim and has not been tried by real players. Time shows only for drummers (or under More fields for an unusual time signature). Which fields other roles want first is an open tuning question.
+- Details view by role: the order uses the gig mode table for now and some of it is expected to change. With Chords and Notes on separate rows for most roles, the wide panel is a little taller than before; the layout tidy-up is still to do.
+- Settings: a name change depends on the profiles rule from SQL v1 and has not been tried against the real database. A name is shared by all of a person's bands. Names are not checked for being unique or appropriate.
+- History: a reason typed with a change was reported not to reach History, and Tim's pasted History rows show two updates a fraction of a second apart for one song. The reason-only note is fixed by SQL v15; whether a reason with a change reaches History on the real database, and what causes the paired updates, are still to be confirmed (the three read-only queries in the roadmap, item 15).
+- Offline work on two branches: the Codex branch's SQL v14 and its `index.html` changes improve the offline experience (cached information without internet), and this branch also changes the offline queue (the `note` item for reason-only notes, SQL v15). Both edit the same large `index.html`, so merging will need care: compare the queue, `runOp`, `flush` and the cached-read code before merging, and check v14 does not clash with `add_song_note`.
 
 ## Open questions
 1. ~~PWA first or Expo first.~~ Answered: PWA first.
