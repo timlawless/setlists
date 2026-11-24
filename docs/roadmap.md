@@ -63,6 +63,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 | Settings: Band settings one level up, editable own name | Band settings (band name, link ending, colour, logo, delete band) now has its own screen, opened from the menu (owners and admins only), instead of sitting inside Band members and access. Band members and access keeps the member list, invites, the band link copy and Leave. Everyone can change their own name, which bandmates see in the members list and in History: Edit name on your own row in Band members, or Your name in the Account section of the menu. You cannot edit anyone else's name | none | Built, not yet on the site; tested in a simulated browser, not on real devices or the real database |
 | Settings: roles under Band members, Back buttons | "My roles in this band" moved out of the main menu into Band members and access (the member-management level). Band members and access and Band settings each have a Back button ("← Settings") next to Close, which returns to the general settings menu | none | Built, not yet on the site; tested in a simulated browser, not on real devices |
 | Reason-only notes in History | A reason typed with no other change used to be dropped ("Nothing has changed"). It is now added to History as its own entry ("Note added", with the reason and who wrote it), so the reason can be recorded at any time. History is only added to, never rewritten. Owners, admins and editors can do it; it works offline and syncs later | v15 | Built, not yet on the site; the SQL was tested on in-memory Postgres (text and enum role columns) and the page in a simulated browser, not on real devices or the real database |
+| Pinned Close and Save bar | In the song Details view, Close and Save changes are in a bar pinned to the top of the details, so they never need scrolling to. On a phone or in one pane the bar sticks just under the top bar while you scroll the details; in the two-pane layout it sticks to the top of the right-hand panel. Save moved out of the row of buttons below the fields (there is still only one Save). Close folds the row up and brings it back into view; in two panes it empties the right-hand panel ("Select a song to see its details") until you pick a song. A viewer gets Close only | none | Built, not yet on the site; tested in a simulated browser, not on real devices (how it sticks and looks while scrolling is unchecked) |
 
 ## The earlier plan: what happened to each step
 | Earlier step | Outcome |
@@ -129,6 +130,10 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
     still shows the reason on the change; a viewer has no reason box. If a reason typed WITH a change still does not appear in History,
     run the three read-only queries I gave (the History trigger's code, songs.change_note and change_log.reason) and paste the results.
     Note: the Codex branch has SQL v14 and `index.html` changes for a better offline experience. Before merging, compare the offline queue code in the two `index.html` files (see the handoff, task 12).
+16. **Pinned Close and Save bar (awaiting review).** One new `app/index.html`, no SQL. Upload it and leave `config.js` alone. Test on real devices:
+    the bar with Close and Save changes sits at the top of the song details and stays in view while you scroll a long song, on a phone,
+    on a tablet or laptop in two panes, and in one pane; it is not hidden behind the top bar; Save in the bar saves; Close folds the row
+    up (phone, one pane) or empties the right-hand panel (two panes) and picking another song brings it back; a viewer sees Close only.
 
 ## Next up, in order
 1. [x] **Flash safety.** Built: the full-screen flash is limited to three a second (every beat up to 180 BPM, beat 1
@@ -164,7 +169,7 @@ Not committed. Move any of these up by saying so.
 - A setlist note shown large in gig mode.
 - Song structure in the Create a new song box (gig mode now shows it, by role; it was left out of the first version on purpose).
 - What a bass player sees in gig mode (chords, or root notes brought back). Resolved by the guitar or bass view: bassists see the Bass line (the root notes box, brought back) by default.
-- Keep Save pinned at the bottom of the right-hand panel when it does scroll.
+- Done: Save is now pinned in a bar at the top of the Details (with Close) instead of the bottom of the right-hand panel; see Pinned Close and Save bar.
 - A separate progression link field beside the manual chords and bass line, so a link and written notes can both be kept (today a link goes into the same box and replaces notes only after you agree).
 - Layout tweaks to the song details after the recent additions (Open button, progression switch, Use). Paused by Tim until all functionality is in place.
 - Membership changes (promotions, removals) in the history.
@@ -212,7 +217,8 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 | 34 | Settings: Band settings one level up, editable own name | You | Band settings out of Band members and access into their own screen from the menu; every person can change their own name. No SQL (people can already change their own profile). Needs a test on real devices. | Now | Built |
 | 35 | Settings: roles under Band members, Back buttons | You | Role selection moved down to member management (Band members and access). Member management and Band settings get a Back to settings button as well as Close. Needs a test on real devices. | Now | Built |
 | 36 | Reason can be added at any time (reason-only note) | You | The reason box dropped its text when nothing else had changed. A reason alone is now added to History as its own entry. SQL v15. Needs a test on real devices; also check that a reason with a change appears in History. | Now | Built |
-| 37 | (add your next change here) |  |  |  |  |
+| 37 | Close and Save always in view in the song details | You | A bar pinned to the top of the details (top right in the panel) with Close and Save, so neither needs scrolling to. No SQL. Needs a test on real devices. | Now | Built |
+| 38 | (add your next change here) |  |  |  |  |
 
 ## Decisions since the earlier plan
 - **Songs belong to the band, not to a setlist.** A change to a song applies in every setlist. Per-setlist overrides
@@ -237,6 +243,7 @@ Add a row for each change. Source says who suggested it. Priority is Now, Next o
 - **Gig mode shows each role's priority fields first and keeps everything else one tap away.** Fields not on a role's list are collapsed under More fields, not hidden, so nothing is lost on stage. Backing singer is a role that is used with another role, and it adds the lyrics after the other fields. The Details view follows the same role order after the Title to Key grid, with the rest in the usual order.
 - **Band settings are separate from the members list, and you own your name.** Band settings is its own screen for owners and admins; the members list keeps people and invites. A person can change only their own name (a profile-level name shared by all their bands); owners and admins cannot rename other people.
 - **A reason can be recorded at any time, as its own History entry.** History is only added to, so a reason with no other change becomes a new "Note added" line rather than editing an old entry. Roles are chosen at member-management level, and every second-level screen has a Back button to the general settings.
+- **Close and Save are pinned to the top of the song details.** Save moved out of the button row into the bar. In two panes Close empties the right-hand panel rather than refusing to close, so the panel can be cleared.
 - **Declined for now:** tap tempo, a Deezer-based tempo backup, bulk song import.
 
 ## Notes for whoever picks this up
