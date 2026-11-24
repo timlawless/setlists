@@ -112,6 +112,9 @@ textarea.grow{resize:none;overflow:hidden}
 .seg button:first-child{border-radius:8px 0 0 8px}.seg button:last-child{border-radius:0 8px 8px 0;border-left:0}
 .seg button[aria-pressed=true]{background:var(--accent);color:var(--on);border-color:var(--accent);font-weight:600}
 #gig>.seg{margin-bottom:8px}
+.actbar{position:sticky;top:calc(var(--hdrH,58px) + env(safe-area-inset-top,0px));z-index:4;display:flex;justify-content:flex-end;gap:8px;padding:6px 0;margin:0 0 6px;background:var(--card);border-bottom:1px solid var(--line)}
+.actbar button{flex:0 0 auto}
+body.dual #pane .actbar{top:0}
 a.openbtn{display:inline-block;margin-left:6px;padding:1px 10px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--accent);font-size:13px;line-height:1.3;font-weight:600;text-decoration:none;vertical-align:middle}
 @media (pointer:coarse){a.openbtn{display:inline-flex;align-items:center;min-height:32px;padding:3px 12px}}
 @media (min-width:900px) and (pointer:fine){
@@ -1371,7 +1374,7 @@ async function loadSetlist() {
   } catch { items = []; quietRefresh = false; }
   render();
 }
-$('band').onchange = () => { closeGig(); loadBand(); }; $('setlist').onchange = () => { closeGig(); openId = null; loadSetlist(); };
+$('band').onchange = () => { closeGig(); paneClosed = false; loadBand(); }; $('setlist').onchange = () => { closeGig(); paneClosed = false; openId = null; loadSetlist(); };
 
 async function showSetlist(id) { forcePick = id; await loadBand(); }
 async function makeSetlist(inp) {
@@ -1419,7 +1422,7 @@ function render() {
   $('emptySl').hidden = items.length > 0;
   const ce = canEdit(); $('addBtn').hidden = !ce; $('slNew2').parentElement.hidden = !ce; $('slSec').hidden = !ce;
   drawPaneBtn();
-  if (dual() && !items.some((x) => x.songs.id === openId)) openId = items[0]?.songs.id ?? null; // two panes always show one song
+  if (dual() && !paneClosed && !items.some((x) => x.songs.id === openId)) openId = items[0]?.songs.id ?? null; // two panes show a song, unless the person closed the panel
   $('list').innerHTML = items.map(card).join('');
   drawPane();
   if (openId) loadLinks(openId);
@@ -1434,8 +1437,9 @@ function drawPaneBtn() {
   document.body.classList.toggle('dual', dual());
 }
 if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--barH', $('bar').offsetHeight + 'px')).observe($('bar')); // the details panel fills the window down to the metronome bar, however tall the bar is
-$('paneBtn').onclick = () => { const toSingle = paneMode() === 'dual'; try { localStorage.setItem('paneMode', toSingle ? 'single' : 'dual'); } catch {} if (toSingle) openId = null; render(); };
-let moreOpen = false; // whether the More section of the right-hand panel is open; kept when the panel is redrawn
+if (window.ResizeObserver && document.querySelector('header')) new ResizeObserver(() => document.documentElement.style.setProperty('--hdrH', document.querySelector('header').offsetHeight + 'px')).observe(document.querySelector('header')); // the pinned Close and Save bar sits just under the top bar
+$('paneBtn').onclick = () => { paneClosed = false; const toSingle = paneMode() === 'dual'; try { localStorage.setItem('paneMode', toSingle ? 'single' : 'dual'); } catch {} if (toSingle) openId = null; render(); };
+let paneClosed = false, moreOpen = false; // whether the More section of the right-hand panel is open; kept when the panel is redrawn
 const grow = (t) => { if (!t.offsetParent) return; t.style.height = 'auto'; t.style.height = (t.scrollHeight + t.offsetHeight - t.clientHeight) + 'px'; }; // boxes in the panel grow with their text
 const growAll = () => $('pane').querySelectorAll('textarea.grow').forEach(grow);
 $('pane').addEventListener('input', (e) => { if (e.target.matches('textarea.grow')) grow(e.target); });
@@ -1443,7 +1447,7 @@ $('pane').addEventListener('toggle', (e) => { if (e.target.matches('details[data
 window.addEventListener('resize', growAll);
 function drawPane() {
   const it = items.find((x) => x.songs.id === openId);
-  $('pane').innerHTML = dual() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs, true)}</article>` : '';
+  $('pane').innerHTML = dual() && it ? `<article class="pane" data-id="${it.id}" data-sid="${it.songs.id}">${detail(it.songs, true)}</article>` : dual() ? '<article class="pane"><small>Select a song to see its details.</small></article>' : '';
   growAll();
 }
 wideQ.addEventListener?.('change', () => render());
@@ -1478,7 +1482,8 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
   const lyricsBlk = `${lk('lyrics_url', 'Lyrics link (for example Ultimate Guitar)', true)}${ro ? '' : `<div class="btns"><button data-a="lyrfind">Find lyrics link</button></div><ul data-lyr></ul>`}`;
   const listenBlk = `${lk('youtube_url', 'YouTube link', true)}${lk('spotify_url', 'Spotify link', true)}${lk('moises_url', "Moises link (the band's own or edited version, if you have one)", true)}<small>Moises links are pasted by hand: the app cannot look inside your Moises library.</small>`;
-  const buttons = `<div class="btns">${ro ? '' : `<button data-a="save" class="primary">Save changes</button><button data-a="lookup">Look up key and BPM</button>`}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
+  const buttons = `<div class="btns">${ro ? '' : '<button data-a="lookup">Look up key and BPM</button>'}<button data-a="hist">History</button>${ro ? '' : `<button data-a="remove">Remove from setlist</button><button data-a="delsong">Delete song</button>`}</div>`;
+  const actbar = `<div class="actbar"><button type="button" data-a="close">✕ Close</button>${ro ? '' : '<button type="button" data-a="save" class="primary">Save changes</button>'}</div>`; // pinned to the top of the details, so Close and Save are always in reach
   const note = ro ? '<small>You have view-only access in this band.</small>' : '<small>Changes apply to this song in every setlist.</small>';
   const sheet = `<h3>Sheet music, tabs and other links</h3><ul data-links><li><small>Loading…</small></li></ul>${ro ? '' : `<div class="grid"><label>Type<select data-l="kind"><option value="sheet_music">Sheet music</option><option value="tab">Tab</option><option value="lyrics">Lyrics</option><option value="video">Video</option><option value="other">Other</option></select></label><label>Label<input data-l="label"></label><label>Link<input data-l="url" placeholder="https://"></label></div>
   <div class="btns"><button data-a="addlink">Add link</button></div>`}`;
@@ -1492,8 +1497,8 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
     if (compact && seq[k] === 'chords' && seq[k + 1] === 'notes') { body += `${bar}<div class="two">${chords}${notes}</div><ul data-prog-links></ul>`; k++; } // Chords beside Notes when they are next to each other
     else body += blk[seq[k]] ?? '';
   }
-  if (compact) return `<div>${top}${grid}${body}${buttons}<ul data-lookup></ul>${note}<ul data-hist></ul><details data-more${moreOpen ? ' open' : ''}><summary>More: links, sheet music${ro ? '' : ', reason for change'}</summary>${['reason', 'lyrics', 'listen'].filter((x) => !seq.includes(x)).map((x) => blk[x]).join('')}${sheet}</details></div>`;
-  return `<div>${top}${grid}${body}${buttons}<ul data-lookup></ul>${note}${sheet}<ul data-hist></ul></div>`;
+  if (compact) return `<div>${actbar}${top}${grid}${body}${buttons}<ul data-lookup></ul>${note}<ul data-hist></ul><details data-more${moreOpen ? ' open' : ''}><summary>More: links, sheet music${ro ? '' : ', reason for change'}</summary>${['reason', 'lyrics', 'listen'].filter((x) => !seq.includes(x)).map((x) => blk[x]).join('')}${sheet}</details></div>`;
+  return `<div>${actbar}${top}${grid}${body}${buttons}<ul data-lookup></ul>${note}${sheet}<ul data-hist></ul></div>`;
 }
 const CONF = { high: 'confidence: high', medium: 'confidence: medium', check: 'check this tempo' };
 function drawLookup(ul) { // matches already have tempo and key; candidates are recordings to pick from
@@ -1644,7 +1649,12 @@ $('split').onclick = async (e) => {
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
   if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear', 'proguse'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
-    if (a === 'toggle') { openId = dual() ? sid : openId === sid ? null : sid; render(); }
+    if (a === 'toggle') { paneClosed = false; openId = dual() ? sid : openId === sid ? null : sid; render(); }
+    else if (a === 'close') { // two panes: the right-hand panel empties; otherwise the row folds up and comes back into view
+      if (dual()) paneClosed = true;
+      openId = null; render();
+      if (!dual()) document.querySelector(`#list article[data-sid="${sid}"]`)?.scrollIntoView({ block: 'nearest' });
+    }
     else if (a === 'pv') { // switch between guitar chords and bass line; nobody is blocked, any role can use either
       const v = b.dataset.view === 'bass' ? 'bass' : 'guitar';
       art.querySelectorAll('[data-pl]').forEach((l) => { l.hidden = l.dataset.pl !== v; });

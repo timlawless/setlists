@@ -63,6 +63,8 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 - **Settings:** Band settings (name, link ending, colour, logo, delete band) has its own screen opened from the menu, for owners and
   admins; Band members and access keeps the list, invites and Leave. Every person can change their own name (Edit name on their row, or
   Your name in the Account section); it is written to their own `profiles` row, so no SQL was needed. My roles in this band is now under Band members and access, and Band members and Band settings each have a Back button to the menu.
+- **Pinned Close and Save bar:** the song Details start with a sticky bar holding Close and Save changes (one Save only). Close folds the
+  row (phone, one pane) or empties the right-hand panel (two panes). Look up, History, Remove and Delete stay below the fields.
 - **Reason-only notes (SQL v15):** a reason typed with no other change is sent as a `note` item through the offline queue to
   `add_song_note(song, note)`, which adds a new History entry ("Note added") without touching the song or rewriting history.
 - The GetSongBPM link was removed from the footer while no key is in use.
@@ -75,7 +77,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   deployed and `GENIUS_ACCESS_TOKEN` saved), the progression link finder, and the earlier items listed in the roadmap
   (offline editing, flash limit, sign-in and invite changes, launch speed, install help).
 - **Paused by Tim:** layout tweaks to the song details and gig mode. Tim finds the views messier after the recent additions. He will return to them once all functionality is in place. The Open button was reduced slightly after a first look.
-- **Delivered, awaiting review:** the role-ordered Details view, the Settings changes (Band settings screen, editable own name), roles under Band members with Back buttons, and reason-only notes (SQL v15: run it first). The Details view and Settings changes are one `index.html`, no SQL.
+- **Delivered, awaiting review:** the role-ordered Details view, the Settings changes (Band settings screen, editable own name), roles under Band members with Back buttons, and reason-only notes (SQL v15: run it first). The Details view and Settings changes are one `index.html`, no SQL. Also the pinned Close and Save bar (one `index.html`, no SQL).
 - **Not yet reported on:** the tighter progression searches (roadmap backlog 29). Whether they reach the right song is still unknown.
 - **Waiting:** the email service for reset and sign-in codes (SQL v7 needs it), the GetSongBPM API key, and a second lookup
   source for songs Song Finder cannot find.
@@ -93,8 +95,10 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 7. Decide whether a progression link needs its own field, then Google sign-in and history restore.
 8. Listen links stage 2: a `find-listen-link` function that finds the most popular YouTube video and Spotify track for a song, with Use saving at once and the overwrite question, always overridable by hand. It needs a YouTube Data API key and a Spotify client ID and secret as Supabase secrets.
 9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different. Do the same for the role-ordered Details view. Also check that saving your own name works against the real database.
+9b. Check the pinned Close and Save bar on real devices: that it sticks under the top bar on a phone (including iPhone), in one pane and in two panes, and does not clash with the metronome bar.
 10. Confirm that a reason typed WITH a change shows in History on the real database (the History trigger may have lost the copy in a later SQL file), and investigate why one save writes two History rows for the same song a fraction of a second apart. The three read-only queries are in the roadmap, item 15.
 11. Update `docs/tester-guide.md` and `docs/go-live-checklist.md`: they still say instrument roles are chosen in the menu.
+
 ## 5. Things learned the hard way
 - Use `@supabase/supabase-js@2` from the CDN. An older pinned version rejected the newer `sb_publishable_` keys and
   reported it as "invalid login credentials" or "failed to fetch".
