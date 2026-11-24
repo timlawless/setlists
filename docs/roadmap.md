@@ -155,6 +155,50 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
        Also: apply `cleanLink` to every stored link, as `AGENTS.md` requires (the web app currently only checks for http
        and https).
 
+## Phase 1 offline reliability
+- [x] **Stage 1 – separate connectivity and access state.** Frontend state model tracks browser connectivity,
+      Supabase reachability, cached-data availability and server-confirmed authentication independently. A restored
+      session is checked with Supabase while online; cached access is retained during offline initialization and never
+      treated as authorization. Queued edits and view preferences wait for confirmed authentication before sync.
+      The 10-case reducer suite passed in the embedded Node test runner, and the app module passed a syntax parse. Real
+      browsers/devices were unavailable in this environment.
+- [ ] **Stage 2 – offline and sync experience.** Show clear offline and pending-sync status with local-data context;
+      explain or disable actions that require Supabase while unavailable. Preserve offline-capable viewing and local
+      metronome, flash and search-link generation. **Frontend; medium.**
+- [ ] **Stage 3 – reconnection and recovery.** Report sync progress and refresh stale data safely when no edit is in
+      progress. Retain the existing queue design; do not discard pending work on refresh or auth failure. **Frontend;
+      medium.**
+- [ ] **Device validation.** Test offline startup, loss/restoration, cached/uncached records, expired session and
+      service-worker behavior on desktop browsers and real iOS/Android devices before marking the phase done.
+      **Testing; medium.**
+
+## Phase 2 offline data reliability
+- [x] **Phase 2A.1 – IndexedDB queue foundation.** New offline operations are validated and written as individual records
+  in IndexedDB before the app reports them saved locally. The app keeps the existing localStorage queue intact for
+  compatibility; no legacy queue or cached-data migration is included. Tests use Node's built-in runner and an
+  in-memory IndexedDB test double. Browser and real-device testing remains outstanding.
+- [x] **Phase 2A.2 – Legacy queue migration and local recovery.** Import and verify legacy `q:<user>` operations and
+  `qi:<user>` issues into IndexedDB, retain originals, quarantine malformed/divergent records, make migration repeatable,
+  and pause sync with clear feedback when IndexedDB cannot be read. Automated coverage uses an in-memory IndexedDB test
+  double; browser and device behavior remains unverified.
+- [x] **Phase 2A.2 follow-up – order and ownership recovery.** Interleave legacy and durable operations using timestamps
+      while preserving each source's order and known create dependencies; apply a deterministic legacy-first fallback for
+      equal/missing timestamps and report it in Sync. Quarantine divergent duplicate payloads while verifying the chosen
+      operation and retained copy. Validate IndexedDB ownership metadata before user filtering. Browser-native IndexedDB
+      and device behavior remain unverified.
+- [ ] **Phase 2A.3 – Reliable synchronization.** Implementation is committed on `codex-dev`: FIFO durable queue,
+      per-user cross-tab coordination, interrupted-operation recovery, capped retry backoff and the SQL v14
+      idempotency RPC. Run `sql/schema_v14_offline_operation_idempotency.sql` after v12/v13 and before uploading the app, then run
+      `test/offline-idempotency.sql` on a non-production Supabase project and test multi-tab/restart behavior in real
+      browsers. The SQL integration test and live Supabase behavior have not yet been validated, so lost-acknowledgement
+      protection is not yet accepted as complete.
+- [ ] **Phase 2C – Cached application data.** Assess and implement a separate migration for cached bands, setlists,
+  songs and links. This is not part of Phase 2A.1.
+
+The earlier “Done (checklist passed)” entry describes the original offline-editing checklist, not complete verification
+of offline reliability. Cached band data may remain visible on an unlocked device after server-side revocation until the
+device reconnects; local cache is not an authorization signal.
+
 ## Later and ideas
 Not committed. Move any of these up by saying so.
 - Band logo on the app icon (the home-screen icon is fixed when the app is installed, so a per-band icon needs extra handling).
