@@ -36,7 +36,7 @@ Band member's phone, tablet or laptop (browser, or installed from the home scree
   index.html      the whole interface and its logic, in one file
   config.js       Supabase project URL and publishable key
   sw.js           service worker: keeps an offline copy of the app
-  localStorage    saved copies of bands, setlists, songs and links; the queue of changes waiting to sync
+  localStorage    cached app data and legacy queue compatibility; IndexedDB holds new durable operations
         |  HTTPS
         v
 Supabase project
@@ -82,7 +82,7 @@ Band ──< ChangeLog   (filled by a database trigger)
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
 | band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles (singer, guitarist, bassist, drummer, keyboards and backing, the last from SQL v13); last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
-| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, spotify_url, moises_url, catalog_ref, change_note, deleted_at |
+| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, spotify_url, moises_url (SQL v12), catalog_ref, change_note, deleted_at |
 | song_links | Labelled links on a song (sheet music, tab, lyrics, video, other). This is the earlier `charts` list. |
 | song_views | One row per person per song (SQL v11): whether they last used the guitar or the bass view of the progression box. Private to that person, only for bands they belong to, removed with the song or band. |
 | setlists | name, gig_date, venue, notes, deleted_at. Gig date, venue and notes are not shown yet. |
@@ -134,10 +134,14 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer
 - A reason can be recorded at any time. A song edit carries its reason in `songs.change_note`, which the History trigger copies into the entry. The trigger ignores an update where only the note changed, so a reason typed with no other change cannot go through that route. Instead the page sends it as a `note` item in the same queue (so it works offline, in order), which calls `add_song_note(song, note)` (SQL v15). That function adds a new `change_log` row for the song with the reason, who wrote it and the song's current values as both old and new, so History shows it as "Note added" with the reason. It changes nothing in the song and no earlier entry is rewritten. Allowed for owner, admin and editor; the reason is trimmed, must not be empty and is at most 500 characters. A retried note could in rare cases appear twice, because a note has no idempotency key.
 
 ## Offline
-- Reading: bands, setlists, songs, links and members you have opened are saved on the device and shown without signal.
-- Editing (built, not yet on the site): changes to songs, setlist order, links and the song list are shown at once, saved
+- Reading: bands, setlists, songs, links and members you have opened are saved on the device and can be shown without signal.
+- Editing (built in the web app): changes to songs, setlist order, links and the song list are shown at once, saved
   on the device in a queue, and sent oldest first when a connection is available. They are retried when the device comes
   back online, when the app is opened again, and every 20 seconds while changes wait.
+- The implementation is in `app/index.html`; it does not use the separate `core/src/offlineQueue.ts` library. Cached
+  records use `c:<user id>:...` in `localStorage`; legacy queued operations and issues remain at `q:<user id>` and
+  `qi:<user id>`; new durable operations are in IndexedDB. Guitar/bass view choices waiting to sync use
+  `vq:<user id>`. Only records fetched or opened on that device are cached; there is no complete-band download.
 - Each new song, setlist entry and link is created with an id made on the device, so sending the same change twice does
   nothing the second time.
 - A song edit sends only the fields that changed, together with the values they had. At sync time the app reads the song
@@ -145,14 +149,146 @@ Instrument roles (singer, guitarist, bassist, drummer, keyboards, backing singer
   If the song changes while the app is merging, it reads again and retries.
 - A lost connection stops the queue and keeps the order. A change the server refuses (for example, the person is now a
   viewer, or the song was deleted by someone else) does not block the rest: it moves to a "Check sync" list with the
-  reason, and can be dismissed. The earlier design said to stop at the first failure; this is different so one bad
-  change cannot block everything behind it.
+  reason, and can be dismissed. Conflicts can be resolved with Use mine or Keep theirs; other failed items currently have
+  no retry action. Legacy queue/issue source writes and cached view writes remain best-effort. Phase 2A.2 imports and
+  quarantines malformed legacy queue data before synchronization; cached app-data writes remain localStorage-based and
+  best-effort until Phase 2C.
 - While changes are waiting, the screen shows the device's own copy. When everything has synced it refreshes from the
   server, but not while someone is typing in a song.
 - The header shows "Offline", "N waiting" or "Check sync". Signing out with unsynced changes asks first, and the queue
   stays on the device for that person's next sign-in.
+- Connectivity display uses `navigator.onLine` and its `online`/`offline` events; this reports browser network state, not
+  whether Supabase is reachable. When connectivity returns the app attempts to flush the queue, but does not always
+  refresh cached reads if there was no queued change.
+- The service worker caches the app shell and CDN library, but Supabase Auth, database and Edge Function requests always
+  require a connection. The manifest and service-worker scope are relative to the deployed app path. Cache names include
+  that path, but `localStorage` is shared by production and preview paths on the same origin.
 - Online only for now: creating, renaming, duplicating and deleting setlists, band settings, members, invites and your own name.
 - Open: how long to keep history on the device.
+
+### Offline audit findings (2026-11-19)
+- A saved Supabase session is used for a provisional fast start: `savedUser()` reads a user id from local storage and
+  `instantFromCache()` displays cached data before `INITIAL_SESSION` finishes. This is local cached access, not proof
+  that Supabase still considers the session or membership valid. When the browser is offline and auth initialization
+  returns no session, the app now retains that provisional cache view; an online auth rejection can still end the view.
+- New sign-in, history, song lookup, external pages, and direct-only setlist, band, member and invite operations require
+  a connection. Metronome timing, flash, appearance preferences and generation of local search URLs do not call Supabase.
+- `navigator.onLine` can show online while the Supabase service is unavailable. The sync chip is also hidden when there
+  is no local user, even if an offline cache exists.
+- Stage 1 is implemented by `app/offline-state.mjs`, imported by `app/index.html`. Its reducer tracks browser
+  connectivity, Supabase reachability, cached-data availability and authenticated access independently. Browser online
+  events reset server reachability to unknown; offline means unavailable. The Supabase client's fetch wrapper records
+  HTTP responses below 500 as reachable, 5xx and transport failures as unavailable. A stored cache scan and cache reads
+  mark cached access; this state does not establish identity or permission.
+- Authentication remains unknown while a restored local session is being checked. When online, `sb.auth.getUser()` must
+  confirm the current user before state becomes authenticated. Offline auth failure leaves it unknown, and the existing
+  queued song/setlist edits and guitar/bass view sync wait until that confirmation. Authenticated requests continue to
+  be authorized by Supabase and row-level security. An online 4xx identity response marks the session unauthenticated;
+  transport errors and 5xx responses leave it unknown.
+- The state model does not redesign the existing sync indicator. Stage 2 proposals remain: improve the offline and
+  pending-sync display; explain or disable direct-only actions while offline; handle recovery and refresh more clearly.
+  Do not add a new auth system, PIN/biometrics, IndexedDB, a queue redesign or a new data architecture in these stages.
+- A cached user's identity is discovered from that browser's Supabase auth storage so only that user's cache is scanned.
+  If auth storage is cleared, the app does not guess which account's cached band data to expose. Cached data can remain
+  visible on an unlocked device after server-side revocation until reconnection; it is never proof that access remains
+  authorized.
+
+### Durable offline operation queue (Phase 2A.1, 2026-11-20)
+- The web app now opens IndexedDB database `setlists-offline-queue`, version 1. It creates an `operations` store keyed by
+  `operationId`, with unique per-user sequence and per-user/status/sequence indexes, and a `metadata` store for the
+  monotonic sequence counter plus acknowledgement and resolution receipts. The queue module is `app/offline-queue.mjs`; `app/sw.js`
+  precaches it and uses cache version 3.
+- Each operation record associates the existing operation payload and `qid` with a user ID, FIFO sequence, status,
+  attempt count, creation time and last error. Current operation formats remain in use for song edits, new songs,
+  setlist entry creation, positions, removals, song deletion and link additions/deletions. Song edits retain their
+  changed fields and base values; device-generated IDs and setlist relationships are preserved.
+- New operations enter the live sync queue only after an IndexedDB transaction commits. Batch enqueue allocates sequence
+  values and writes all records in one transaction. A failed open, request or transaction rejects the enqueue. The UI
+  displays “Saving on this device…”, then “Saved on this device · waiting to sync” only after commit, or “Couldn't save
+  on this device” with Retry. Failed writes remain as clearly unsaved drafts in the current page only; they are not
+  sent or represented as durable, and will be lost if the page closes before a successful retry.
+- Existing `q:<user id>` and `qi:<user id>` localStorage data is not migrated or deleted. Existing queue entries remain
+  readable and sync through the existing path. Phase 2A.2 imports legacy queue and issue records into IndexedDB while
+  retaining their localStorage source records. IndexedDB operations are authoritative for duplicate IDs; differences are
+  quarantined and surfaced. Cached app data remains in localStorage; cache migration is Phase 2C.
+- IndexedDB operations transition through `pending`, `inFlight` and `blocked`. Startup returns interrupted `inFlight`
+  operations to `pending`; transient sync failures do likewise. A successful server response is recorded as an
+  acknowledgement and removes the IndexedDB operation in one transaction. Permanent failures remain as `blocked`
+  records and reappear in the existing sync issues list. Existing field-level song conflict detection and resolution,
+  FIFO sync, and the Phase 1 confirmed-authentication gate remain in place.
+- These client receipts do not provide server idempotency. If Supabase applies a write but the response is lost, the
+  client can retry the same operation. Existing operation behavior remains responsible for that case until a separate
+  server-side idempotency stage is designed and approved. There is no multi-tab lease or cross-tab coordination yet.
+- Existing localStorage queue entries are not made more durable by this stage; their prior best-effort storage behavior
+  remains. Browser-native IndexedDB, PWA restart behavior, real-device behavior, and Supabase sync were not tested here.
+  Unit tests use a small in-memory IndexedDB test double and cover the queue transaction contract, not browser IDB
+  implementation details.
+
+### Legacy queue migration and recovery (Phase 2A.2, 2026-11-20)
+- The IndexedDB schema is now version 2. It adds `issues` and `quarantine` stores while preserving existing operation
+  records and metadata. Legacy source keys remain `q:<user id>` (pending operations) and `qi:<user id>` (sync issues).
+- At account queue load, both localStorage values are read and parsed independently. Valid operation and issue payloads
+  are migrated with their original IDs, payloads and array order. Invalid JSON, non-array values, malformed records,
+  duplicate-ID payload disagreements and cross-account ID collisions are retained in the IndexedDB quarantine store;
+  the original localStorage data is never removed. A legacy issue overlapping a queued operation is represented as
+  blocked so it is not accidentally resubmitted.
+- Migration writes are transactional and idempotent. A `legacyMigration:<user id>` marker first records `verifying`;
+  the app rereads and checks operations, issues and quarantined rows, then separately commits and rereads `complete`.
+  Startup repeats migration from the retained source data, which also discovers late localStorage-only entries. If a
+  write or verification is interrupted, original data remains and a later load can safely retry.
+- IndexedDB wins for duplicate operation IDs. A differing legacy copy is quarantined and reported. If IndexedDB cannot
+  open, be read, or contains malformed stored records, queue loading reports that saved changes are inaccessible and
+  gates all Supabase queue synchronization. A retry control reruns queue recovery. Phase 1 authentication gating and
+  field-level song conflict handling are unchanged.
+- `saveQ()` now retains existing localStorage queue/issue entries and appends unseen IDs rather than clearing completed
+  items. Acknowledgement and resolution receipts suppress those retained copies during future migration. This preserves
+  migration sources but can grow localStorage over time; safe pruning needs a separate reviewed policy.
+- Migration completion is quiet when there is nothing to recover. Recovered counts, malformed/conflicting record counts,
+  and unreadable-queue failures are shown in the Sync dialog. Quarantine is retained for recovery but has no dedicated
+  user-facing record editor yet.
+- Tests run under Node's built-in runner with the repository's in-memory IndexedDB test double. Browser-native IndexedDB,
+  service-worker update behavior, real-device restarts, multiple-tab races and live Supabase behavior remain unverified.
+  Client acknowledgement still cannot prevent a duplicate server submission after an applied write loses its response;
+  server-side idempotency remains outstanding and is excluded from this phase.
+
+### Phase 2A.2 ordering and record validation follow-up
+- Migration reorders the current user's durable operations by valid creation time while retaining source order for each
+  stream. Equal or missing timestamps use a deterministic legacy-before-IndexedDB fallback; source ordering and known
+  create-before-reference relationships (song, setlist-song and link IDs) constrain the merge. The Sync dialog reports
+  when fallback ordering was used. Existing localStorage sources remain intact.
+- When duplicate IDs conflict, an existing IndexedDB operation remains authoritative. If no durable copy exists, the
+  first valid legacy queue occurrence is used as canonical by FIFO source order and every differing later occurrence is
+  quarantined with its raw payload. Migration verifies both canonical and quarantine records before completion.
+- IndexedDB operation, issue and quarantine ownership metadata is validated before records are filtered by user. A row
+  with malformed ownership fails queue loading and keeps sync paused; valid rows for other users remain isolated.
+- Ordering and ownership behavior is covered by queue unit tests. The in-memory test double does not validate native
+  IndexedDB index enforcement, browser transaction scheduling, multi-tab behavior or real-device persistence.
+
+### Phase 2A.3 reliable synchronization implementation (2026-11-21)
+- The app still sends one durable operation at a time in IndexedDB sequence order. It refreshes the durable queue after
+  taking synchronization ownership, recovers interrupted `inFlight` rows to `pending`, and records the local
+  acknowledgement only after the server confirms a result.
+- Tabs coordinate with an exclusive Web Lock scoped to the signed-in user. A BroadcastChannel reports active sync and
+  queue changes. If Web Locks are unavailable, an IndexedDB lease is renewed while syncing and expires automatically
+  after a crashed tab stops renewing. The server receipt remains the final duplicate-write protection if an old lease
+  holder finishes a request after ownership has expired.
+- The queue calls `public.apply_offline_operation` for every existing operation type. SQL v14 records each result in a
+  per-user receipt in the same transaction as the row change. Repeated requests with the same ID and payload return the
+  prior result; reusing an ID with different data is rejected. The function is `SECURITY INVOKER`, and writes to band
+  data continue through the existing grants and RLS policies. Receipt rows have user-scoped RLS and no anon access.
+- A permanent blocked operation is a FIFO barrier: later queued operations remain available but are not submitted until
+  the member resolves or dismisses the earlier issue. This avoids sending operations that depend on an unapplied change.
+- Song edits still compare each changed field against its saved base and current server value. Non-conflicting fields
+  are applied and differing fields return the existing Use mine / Keep theirs resolution shape. Temporary network,
+  rate-limit and service failures retain the operation with capped exponential backoff and jitter. Authentication errors
+  pause sync for re-confirmation; permission, validation and conflict outcomes remain visible as blocked issues.
+- `sw.js` cache version 5 refreshes installed copies of the changed app and queue module. Apply
+  `sql/schema_v14_offline_operation_idempotency.sql` after v12 and v13 are applied and before serving the updated app. The migration and rollback-only
+  integration check are committed, but neither has been run against a PostgreSQL/Supabase runtime in this environment;
+  lost-acknowledgement protection must not be considered validated or live yet.
+- Automated queue and offline-state suites pass using the in-memory IndexedDB test double. The SQL check is
+  `test/offline-idempotency.sql`; native IndexedDB, actual Web Locks across browser tabs, Supabase RLS/RPC behavior,
+  service-worker update behavior and real-device behavior remain untested.
 
 ## Lyrics and links
 - Each song has a lyrics link. A text box for the band's own lyrics or cues is wanted later. The app never supplies or fetches lyrics.
@@ -399,9 +535,13 @@ These are not Edge Functions. Keep them in `sql/`, outside the public `app/` fol
 | v11 | `song_views`: a person's remembered guitar or bass view of a song (one row per person per song, private to that person, with row-level security) |
 | v12 | `songs.spotify_url` and `songs.moises_url`: optional links to a Spotify track and to the band's own Moises version |
 | v13 | Allows the `backing` instrument role: widens the rule on `band_members.roles` if there is one (check rule or list type), and changes nothing if there is none |
-| v14 | Made on the Codex branch by Tim: changes to give a better offline experience, with cached information available when there is no internet. The exact tables and functions have not been seen, so they are not described here yet. |
+| v14 | `offline_operation_receipts` and `apply_offline_operation(...)`: transactional, per-user idempotency for offline queue writes; SECURITY INVOKER. The RPC also handles reason-only `note` operations by calling `add_song_note(...)` from v15. |
 | v15 | `add_song_note(song, note)`: adds a reason to a song's History as its own entry, without changing the song or any earlier entry |
 | check_schema | A read-only checklist of which updates are present |
+
+This branch contains migration files v1, v2, v9-v11 and v12-v15. The historical v3-v8 files and `check_schema.sql` are
+not present here. Confirm the existing v1-v11 schema before applying the later migrations. Apply v15 before v14 because
+v14 calls `add_song_note`; do not try to rebuild an existing project from only the files currently present.
 
 The `lookup-song` Edge Function is deployed separately under Edge Functions and only needs redeploying when its file changes.
 
@@ -418,8 +558,9 @@ Database changes were tested on a local PostgreSQL 16 with a stand-in for Supaba
 across owner, admin, editor, viewer and a non-member (with deliberately weakened rules to confirm the tests catch
 mistakes), and separate checks for the last-used setlist, band deletion, the logo limits and the offline sync engine
 (run against real row-level security). Screen logic was tested in Node with stand-ins. The sign-up and invite screen logic was run in a simulated browser (jsdom) against a stand-in for Supabase: 90 checks (sign-up and invites, the install card, the Enter key and Share and Email invite buttons, the welcome screen with one-step sign-up, confirm password, the fast start and the invitation page), plus 183 checks in headless Chromium (layout at phone, tablet and laptop sizes, the two-column view, the metronome with a real audio engine and with fake ones that refuse to start, the real Enter key, the launch screens with a slow fake server, the service worker against a server made slow, broken or offline, and the invitation page) at 360, 390, 820 and 1366 px wide that look at what is actually drawn (a page-wide rule keeps anything marked hidden out of sight even when another style sets its display), not stored in the
-repository and never run on a real phone or the real database. None of these tests are in the
-repository yet and nothing re-runs them automatically. Confirmed on the live app by you: the iPhone test and the
+repository and never run on a real phone or the real database. Most earlier permission, browser and device tests are not
+in the repository and nothing re-runs them automatically. The offline queue/state suites and Phase 2A.3 SQL integration
+check are now stored under `test/`. Confirmed on the live app by you: the iPhone test and the
 delete-song update. `core/` has its own 23 tests. The Song Structure change (SQL v10 and the details editor) and the removal of the
 GetSongBPM footer link and the Root notes box have not been tested yet. The compact right-hand panel was measured in headless Chromium (Linux fonts) at 1920x1080, 1536x864 and 1366x768, not on a real desktop or tablet. The lyrics link suggestions were tested with 24 checks in headless Chromium against a stand-in for Supabase and the functions (suggest, review, use, replace prompt, remove, save, error fallback, viewer, phone layout) and the ranking was run on sample data, but the live Genius service, a real phone and a real signed-in session were not used.
 SQL v11 (`song_views`) was run on an in-memory PostgreSQL (PGlite) with a stand-in for Supabase's auth layer: it runs twice without error, a person reads and writes only their own rows, another member and an outsider are refused, a row whose song and band do not match is refused, only guitar or bass is accepted, a signed-out visitor has no access, `updated_at` moves on a change and the rows go with the song (16 checks). The guitar or bass view, the progression link finder, Use with its overwrite question, and the gig mode switch were tested in a simulated browser (jsdom) with a stand-in database (about 35 checks, two-pane layout). Not tested: the real Supabase project, a real browser or any phone or tablet, the look of the switch, and whether the Google, site-limited and YouTube searches land on the right page for real songs.
