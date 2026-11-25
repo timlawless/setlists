@@ -1721,7 +1721,11 @@ $('split').onclick = async (e) => {
       if (!p.title) return say('A title is needed');
       const sp = linkIn(p.spotify_url), mo = linkIn(p.moises_url);
       if (sp.bad || mo.bad) return say(`That does not look like a web link. Check the ${sp.bad ? 'Spotify' : 'Moises'} link.`);
-      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), spotify_url: sp.v, moises_url: mo.v, ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
+      const chordPaste = asUrl(p.chords), bassPaste = asUrl(p.root_notes);
+      const chordUrl = chordPaste ? cleanLink(chordPaste) : (p.chords_url || null), bassUrl = bassPaste ? cleanLink(bassPaste) : (p.bassline_url || null);
+      if (chordPaste && p.chords_url && cleanLink(chordPaste) !== cleanLink(p.chords_url) && !confirm(`Replace the saved chords link?\n\nCurrent: ${p.chords_url}\nNew: ${cleanLink(chordPaste)}`)) return;
+      if (bassPaste && p.bassline_url && cleanLink(bassPaste) !== cleanLink(p.bassline_url) && !confirm(`Replace the saved bass line link?\n\nCurrent: ${p.bassline_url}\nNew: ${cleanLink(bassPaste)}`)) return;
+      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: chordPaste ? '' : p.chords, root_notes: bassPaste ? '' : p.root_notes, chords_url: chordUrl, bassline_url: bassUrl, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), spotify_url: sp.v, moises_url: mo.v, ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
       const song = items[i].songs, set = {}, base = {};
       Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
       const why = art.querySelector('[data-r="reason"]')?.value.trim() || '';
