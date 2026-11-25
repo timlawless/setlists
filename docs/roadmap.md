@@ -15,6 +15,12 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 - The installed iPhone test was reported good. The main items in flight are the email setup for password reset and
   sign-in codes, and the live test of offline editing, the flash limit and the backup lookup (all built, not yet on the site).
 
+## Mobile layout refinement (ChatGPT branch)
+- First pass reviewed on a Flip 7. The initial typography-only changes were too subtle to notice.
+- A second CSS-only pass now tightens mobile song cards and expanded editor spacing, reduces Gig Mode panel/tile/button padding, and reserves more scroll space below Gig Mode navigation for the fixed metronome bar. It also slightly tightens the mobile metronome controls while retaining touch target minimums.
+- All new rules are inside the max-width:699px media query; desktop styles are unchanged by this pass.
+- **Awaiting real-device review:** compare normal setlist and Gig Mode on the Flip 7 and S24. Desktop has not been tested in a browser; no browser/device automation was run for this CSS-only change.
+
 ## Done
 - [x] Interactive prototype (`prototype/`): bands, several setlists per band, song editing and reordering, original
       key/tempo with a version picker, YouTube link, lyrics link and lyrics text, sheet music and tab links, change
