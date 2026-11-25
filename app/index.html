@@ -1492,9 +1492,10 @@ function drawPane() {
 wideQ.addEventListener?.('change', () => render());
 function roleLine(s) {
   const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
+  const progSummary = (t, u) => { const v = asUrl(t) ? '' : first(t); return v ? v + (u ? ' · link' : '') : (u || asUrl(t) ? 'link' : ''); };
   if ((r.includes('singer') || r.includes('backing')) && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
-  if (r.includes('bassist') && viewOf(s.id) === 'bass' && (s.bassline_url || s.root_notes)) out.push('Bass: ' + (s.bassline_url || asUrl(s.root_notes) ? 'link' : first(s.root_notes)));
-  else if ((r.includes('guitarist') || r.includes('keyboards')) && (s.chords_url || s.chords)) out.push('Chords: ' + (s.chords_url || asUrl(s.chords) ? 'link' : first(s.chords)));
+  if (r.includes('bassist') && viewOf(s.id) === 'bass' && (s.bassline_url || s.root_notes)) out.push('Bass: ' + progSummary(s.root_notes, s.bassline_url));
+  else if ((r.includes('guitarist') || r.includes('keyboards')) && (s.chords_url || s.chords)) out.push('Chords: ' + progSummary(s.chords, s.chords_url));
   if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
   return out.length ? `<div class="rl">${out.join(' · ')}</div>` : '';
 }
@@ -1892,7 +1893,7 @@ function renderGig() {
   const seg = `<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>`;
   const block = {
     lyrics: () => (safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', '')),
-    chords: () => seg + (safe(progUrl) ? `<section class="panel"><h3>${pName}</h3><a class="btnlink" href="${esc(progUrl)}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(pName, progText, true)),
+    chords: () => seg + `<section class="panel"><h3>${pName}</h3>${progText ? `<div class="pbody mono">${esc(progText)}</div>` : (!safe(progUrl) ? '<small>Nothing entered yet. Add it under Details.</small>' : '')}${safe(progUrl) ? `<a class="btnlink" href="${esc(progUrl)}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a>` : ''}</section>`,
     structure: () => panel('Structure', s.song_structure),
     notes: () => (s.notes ? panel('Notes', s.notes) : ''),
     key: () => tile('Key', s.musical_key, `key${(s.musical_key || '').length > 8 ? ' long' : ''}`),
