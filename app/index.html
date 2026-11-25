@@ -1728,6 +1728,7 @@ $('split').onclick = async (e) => {
       const sp = linkIn(p.spotify_url), mo = linkIn(p.moises_url);
       if (sp.bad || mo.bad) return say(`That does not look like a web link. Check the ${sp.bad ? 'Spotify' : 'Moises'} link.`);
       const chordPaste = asUrl(p.chords), bassPaste = asUrl(p.root_notes);
+      if ((chordPaste && !cleanLink(chordPaste)) || (bassPaste && !cleanLink(bassPaste))) return say('That does not look like a valid web link.');
       const chordUrl = chordPaste ? cleanLink(chordPaste) : (p.chords_url || null), bassUrl = bassPaste ? cleanLink(bassPaste) : (p.bassline_url || null);
       if (chordPaste && p.chords_url && cleanLink(chordPaste) !== cleanLink(p.chords_url) && !confirm(`Replace the saved chords link?\n\nCurrent: ${p.chords_url}\nNew: ${cleanLink(chordPaste)}`)) return;
       if (bassPaste && p.bassline_url && cleanLink(bassPaste) !== cleanLink(p.bassline_url) && !confirm(`Replace the saved bass line link?\n\nCurrent: ${p.bassline_url}\nNew: ${cleanLink(bassPaste)}`)) return;
@@ -1905,7 +1906,7 @@ function renderGig() {
     flush(); return out;
   };
   const order = gigOrder(roles), txt = (v) => !!(v || '').trim();
-  const filled = { lyrics: !!safe(s.lyrics_url), chords: !!safe(s.chords_url || asUrl(s.chords)) || !!safe(s.bassline_url || asUrl(s.root_notes)) || txt(asUrl(s.chords) ? '' : s.chords) || txt(asUrl(s.root_notes) ? '' : s.root_notes), key: !!s.musical_key, bpm: !!s.bpm, time: !!s.time_signature && s.time_signature !== '4/4', structure: txt(s.song_structure), notes: txt(s.notes) };
+  const filled = { lyrics: !!safe(s.lyrics_url), chords: !!safe(progUrl) || txt(progText), key: !!s.musical_key, bpm: !!s.bpm, time: !!s.time_signature && s.time_signature !== '4/4', structure: txt(s.song_structure), notes: txt(s.notes) };
   const rest = ['lyrics', 'chords', 'key', 'bpm', 'time', 'structure', 'notes'].filter((f) => !order.includes(f) && filled[f]);
   const listen = [["Band's Moises version", s.moises_url], ['YouTube', s.youtube_url], ['Spotify', s.spotify_url]].filter(([, u]) => safe(u));
   const listenHtml = listen.length ? `<section class="panel"><h3>Listen</h3>${listen.map(([n, u]) => `<a class="btnlink" style="margin:0 8px 8px 0" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join('')}</section>` : '';
