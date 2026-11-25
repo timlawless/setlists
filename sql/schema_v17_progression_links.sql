@@ -1,5 +1,5 @@
 -- Setlists SQL v17: separate progression links from text notes.
--- Run in the Supabase SQL Editor after v16 and BEFORE deploying the matching app/index.html.
+-- Run in the Supabase SQL Editor after v14, v15 and v16, and BEFORE deploying the matching app/index.html.
 -- Safe to run more than once. No rows, permissions or existing history are deleted.
 
 alter table public.songs add column if not exists chords_url text;
@@ -19,7 +19,7 @@ update public.songs
    and btrim(coalesce(root_notes, '')) ~* '^https?://[^[:space:]]+$';
 
 -- Setlists schema v17: separate saved progression links from the band's editable chord and bass notes.
--- Apply after schema v16 and before uploading the matching app/index.html. Safe to run more than once.
+-- Apply after schema v14, v15 and v16 and before uploading the matching app/index.html. Safe to run more than once.
 -- Existing HTTP(S) URLs in songs.chords and songs.root_notes are moved to chords_url and bassline_url;
 -- the text fields are cleared only when they contain a URL, preserving any actual notes.
 -- The offline RPC is updated to accept the two new song fields while retaining v14 idempotency and RLS behaviour.
