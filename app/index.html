@@ -1605,7 +1605,7 @@ const linkIn = (v) => {
   return { v: c };
 };
 const asUrl = (t) => { const x = (t || '').trim(); return /^https?:\/\/\S+$/i.test(x) ? x : ''; }; // legacy URL values are still recognised during migration
-const progOpen = (url, field) => { const u = safe(url); return u ? ` <a class="openbtn" href="${esc(u)}" target="_blank" rel="noopener">Open</a>${canEdit() ? `<button type="button" class="linkbtn" data-a="progremove" data-field="${field}">Remove link</button>` : ''}` : ''; };
+const progOpen = (url, field) => { const u = cleanLink(url); return u ? ` <a class="openbtn" href="${esc(u)}" target="_blank" rel="noopener">Open</a>${canEdit() ? `<button type="button" class="linkbtn" data-a="progremove" data-field="${field}">Remove link</button>` : ''}` : ''; };
 const defaultView = () => (myRoles().includes('bassist') ? 'bass' : 'guitar'); // bass for bassists, guitar for everyone else
 const viewOf = (sid) => (views[sid] === 'bass' || views[sid] === 'guitar' ? views[sid] : defaultView());
 const savePending = () => { try { localStorage.setItem(vqk(), JSON.stringify(viewsPending)); } catch {} };
@@ -1729,7 +1729,7 @@ $('split').onclick = async (e) => {
       if (sp.bad || mo.bad) return say(`That does not look like a web link. Check the ${sp.bad ? 'Spotify' : 'Moises'} link.`);
       const chordPaste = asUrl(p.chords), bassPaste = asUrl(p.root_notes);
       if ((chordPaste && !cleanLink(chordPaste)) || (bassPaste && !cleanLink(bassPaste))) return say('That does not look like a valid web link.');
-      const chordUrl = chordPaste ? cleanLink(chordPaste) : (p.chords_url || null), bassUrl = bassPaste ? cleanLink(bassPaste) : (p.bassline_url || null);
+      const chordUrl = chordPaste ? cleanLink(chordPaste) : (p.chords_url ? cleanLink(p.chords_url) || null : null), bassUrl = bassPaste ? cleanLink(bassPaste) : (p.bassline_url ? cleanLink(p.bassline_url) || null : null);
       if (chordPaste && p.chords_url && cleanLink(chordPaste) !== cleanLink(p.chords_url) && !confirm(`Replace the saved chords link?\n\nCurrent: ${p.chords_url}\nNew: ${cleanLink(chordPaste)}`)) return;
       if (bassPaste && p.bassline_url && cleanLink(bassPaste) !== cleanLink(p.bassline_url) && !confirm(`Replace the saved bass line link?\n\nCurrent: ${p.bassline_url}\nNew: ${cleanLink(bassPaste)}`)) return;
       const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: chordPaste ? '' : p.chords, root_notes: bassPaste ? '' : p.root_notes, chords_url: chordUrl, bassline_url: bassUrl, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), spotify_url: sp.v, moises_url: mo.v, ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
@@ -1888,7 +1888,7 @@ function renderGig() {
   const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), drummer = roles.includes('drummer');
   const tile = (l, v, c = '') => `<div class="tile ${c}"><small>${l}</small><b>${esc(v || '–')}</b></div>`;
   const panel = (t, body, mono) => `<section class="panel"><h3>${t}</h3>${body ? `<div class="pbody${mono ? ' mono' : ''}">${esc(body)}</div>` : '<small>Nothing entered yet. Add it under Details.</small>'}</section>`;
-  const bassNow = viewOf(s.id) === 'bass', prog = bassNow ? s.root_notes : s.chords, progUrl = bassNow ? (s.bassline_url || asUrl(s.root_notes)) : (s.chords_url || asUrl(s.chords)), progText = asUrl(prog) ? '' : prog, pName = bassNow ? 'Bass line' : 'Chords';
+  const bassNow = viewOf(s.id) === 'bass', prog = bassNow ? s.root_notes : s.chords, progUrl = cleanLink(bassNow ? (s.bassline_url || asUrl(s.root_notes)) : (s.chords_url || asUrl(s.chords))), progText = asUrl(prog) ? '' : prog, pName = bassNow ? 'Bass line' : 'Chords';
   const seg = `<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>`;
   const block = {
     lyrics: () => (safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', '')),
