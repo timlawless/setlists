@@ -562,7 +562,7 @@ function overlayQueueCache(key, value) {
     try { (JSON.parse(localStorage.getItem(ck('lib:' + bandId)) || '[]')).forEach((song) => songs.set(song.id, song)); } catch {}
     rows.forEach((entry) => { if (entry.songs) songs.set(entry.songs.id, entry.songs); });
     for (const op of queue) {
-      if (op.t === 'songNew') songs.set(op.row.id, { version_label: '', time_signature: '4/4', chords: '', root_notes: '', notes: '', lyrics_url: null, youtube_url: null, ...op.row });
+      if (op.t === 'songNew') songs.set(op.row.id, { version_label: '', time_signature: '4/4', chords: '', root_notes: '', chords_url: null, bassline_url: null, notes: '', lyrics_url: null, youtube_url: null, ...op.row });
       if (op.t === 'song') {
         const song = songs.get(op.sid); if (song) Object.assign(song, op.set);
         rows.forEach((entry) => { if (entry.songs?.id === op.sid) Object.assign(entry.songs, op.set); });
@@ -1674,7 +1674,7 @@ function drawProg(art) {
   if (!artist) return say('Type the artist first, so the search finds the right song');
   const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar';
   ul.innerHTML = progLinks(v, title, artist).map((l) => `<li><span>${esc(l.label)}<br><small>${esc(l.note)}</small></span><span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open</a>${canEdit() ? ` <button type="button" data-a="proguse" data-url="${esc(l.url)}">Use</button>` : ''}</span></li>`).join('')
-    + `<li><small>These are searches, so check that the result is the right song. Use puts the link in the ${v === 'bass' ? 'bass line' : 'chords'} box and saves it straight away. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
+    + `<li><small>These are searches, so check that the result is the right song. Use saves the link separately and adds an Open button, leaving your typed notes untouched. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
 }
 async function loadLinks(sid) {
   const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
@@ -1686,7 +1686,7 @@ async function loadLinks(sid) {
 $('split').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
-  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear', 'proguse'].includes(a) && !canEdit()) return say('You have view-only access in this band');
+  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear', 'proguse', 'progremove'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
     if (a === 'toggle') { paneClosed = false; openId = dual() ? sid : openId === sid ? null : sid; render(); }
     else if (a === 'close') { // two panes: the right-hand panel empties; otherwise the row folds up and comes back into view
@@ -1705,10 +1705,16 @@ $('split').onclick = async (e) => {
     else if (a === 'progfind') { drawProg(art); }
     else if (a === 'proguse') {
       const url = cleanLink(b.dataset.url || ''); if (!url) return;
-      const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar', what = v === 'bass' ? 'bass line' : 'chords';
-      const box = art.querySelector(`[data-f="${v === 'bass' ? 'root_notes' : 'chords'}"]`), cur = box.value.trim();
-      if (cur && cur !== url && !confirm(`Replace what is in the ${what} box with this link?\n\nCurrent: ${cur.length > 120 ? cur.slice(0, 120) + '…' : cur}\nNew: ${url}`)) return; // never overwrite notes without permission
-      box.value = url; grow(box); art.querySelector('[data-a="save"]')?.click(); // Use saves straight away, the same as Save changes
+      const bass = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass', field = bass ? 'bassline_url' : 'chords_url', what = bass ? 'bass line' : 'chords';
+      const box = art.querySelector(`[data-f="${field}"]`), cur = box.value.trim();
+      if (cur && cur !== url && !confirm(`Replace the saved ${what} link?\n\nCurrent: ${cur}\nNew: ${url}`)) return;
+      box.value = url; art.querySelector('[data-a="save"]')?.click(); // Save separately; typed notes are untouched.
+    }
+    else if (a === 'progremove') {
+      const field = b.dataset.field, box = art.querySelector(`[data-f="${field}"]`);
+      if (!box || !box.value) return;
+      if (!confirm(`Remove the saved ${field === 'bassline_url' ? 'bass line' : 'chords'} link?`)) return;
+      box.value = ''; art.querySelector('[data-a="save"]')?.click();
     }
     else if (a === 'up' || a === 'down') {
       const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
@@ -1751,7 +1757,7 @@ $('split').onclick = async (e) => {
         must(sb.from('band_members').select('user_id,profiles(display_name)').eq('band_id', bandId)),
       ]);
       const who = Object.fromEntries(mem.map((m) => [m.user_id, m.profiles?.display_name || 'Someone']));
-      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', notes: 'notes', song_structure: 'structure', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', spotify_url: 'Spotify link', moises_url: 'Moises link', deleted_at: 'deleted' };
+      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', chords_url: 'Guitar chords link', bassline_url: 'Bass line link', notes: 'notes', song_structure: 'structure', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', spotify_url: 'Spotify link', moises_url: 'Moises link', deleted_at: 'deleted' };
       const short = (v) => { const t = v == null || v === '' ? 'empty' : String(v); return t.length > 30 ? t.slice(0, 30) + '…' : t; };
       const diff = (r) => {
         if (r.op === 'INSERT') return 'Song added';
@@ -1847,7 +1853,7 @@ $('libList').onclick = (e) => {
 $('addNew').onclick = () => {
   const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
   if (!setlistId) return say('Create or pick a setlist first');
-  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
+  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', root_notes: '', chords_url: null, bassline_url: null, notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
   if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); }
   const entry = addToSetlist(song, false, false);
   enqueue(
@@ -1881,11 +1887,11 @@ function renderGig() {
   const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), drummer = roles.includes('drummer');
   const tile = (l, v, c = '') => `<div class="tile ${c}"><small>${l}</small><b>${esc(v || '–')}</b></div>`;
   const panel = (t, body, mono) => `<section class="panel"><h3>${t}</h3>${body ? `<div class="pbody${mono ? ' mono' : ''}">${esc(body)}</div>` : '<small>Nothing entered yet. Add it under Details.</small>'}</section>`;
-  const bassNow = viewOf(s.id) === 'bass', prog = bassNow ? s.root_notes : s.chords, pName = bassNow ? 'Bass line' : 'Chords';
+  const bassNow = viewOf(s.id) === 'bass', prog = bassNow ? s.root_notes : s.chords, progUrl = bassNow ? (s.bassline_url || asUrl(s.root_notes)) : (s.chords_url || asUrl(s.chords)), progText = asUrl(prog) ? '' : prog, pName = bassNow ? 'Bass line' : 'Chords';
   const seg = `<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>`;
   const block = {
     lyrics: () => (safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', '')),
-    chords: () => seg + (asUrl(prog) ? `<section class="panel"><h3>${pName}</h3><a class="btnlink" href="${esc(asUrl(prog))}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(pName, prog, true)),
+    chords: () => seg + (safe(progUrl) ? `<section class="panel"><h3>${pName}</h3><a class="btnlink" href="${esc(progUrl)}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(pName, progText, true)),
     structure: () => panel('Structure', s.song_structure),
     notes: () => (s.notes ? panel('Notes', s.notes) : ''),
     key: () => tile('Key', s.musical_key, `key${(s.musical_key || '').length > 8 ? ' long' : ''}`),
@@ -1899,7 +1905,7 @@ function renderGig() {
     flush(); return out;
   };
   const order = gigOrder(roles), txt = (v) => !!(v || '').trim();
-  const filled = { lyrics: !!safe(s.lyrics_url), chords: txt(s.chords) || txt(s.root_notes), key: !!s.musical_key, bpm: !!s.bpm, time: !!s.time_signature && s.time_signature !== '4/4', structure: txt(s.song_structure), notes: txt(s.notes) };
+  const filled = { lyrics: !!safe(s.lyrics_url), chords: !!safe(s.chords_url || asUrl(s.chords)) || !!safe(s.bassline_url || asUrl(s.root_notes)) || txt(asUrl(s.chords) ? '' : s.chords) || txt(asUrl(s.root_notes) ? '' : s.root_notes), key: !!s.musical_key, bpm: !!s.bpm, time: !!s.time_signature && s.time_signature !== '4/4', structure: txt(s.song_structure), notes: txt(s.notes) };
   const rest = ['lyrics', 'chords', 'key', 'bpm', 'time', 'structure', 'notes'].filter((f) => !order.includes(f) && filled[f]);
   const listen = [["Band's Moises version", s.moises_url], ['YouTube', s.youtube_url], ['Spotify', s.spotify_url]].filter(([, u]) => safe(u));
   const listenHtml = listen.length ? `<section class="panel"><h3>Listen</h3>${listen.map(([n, u]) => `<a class="btnlink" style="margin:0 8px 8px 0" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join('')}</section>` : '';
