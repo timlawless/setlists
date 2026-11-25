@@ -1735,7 +1735,13 @@ $('split').onclick = async (e) => {
       if (bassPaste && p.bassline_url && cleanLink(bassPaste) !== cleanLink(p.bassline_url) && !confirm(`Replace the saved bass line link?\n\nCurrent: ${p.bassline_url}\nNew: ${cleanLink(bassPaste)}`)) return;
       const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: chordPaste ? '' : p.chords, root_notes: bassPaste ? '' : p.root_notes, chords_url: chordUrl, bassline_url: bassUrl, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), spotify_url: sp.v, moises_url: mo.v, ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
       const song = items[i].songs, set = {}, base = {};
-      Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
+      const legacyChord = !song.chords_url ? asUrl(song.chords) : '', legacyBass = !song.bassline_url ? asUrl(song.root_notes) : '';
+      Object.keys(nv).forEach((k) => {
+        if (!same(song[k], nv[k])) {
+          set[k] = nv[k];
+          base[k] = k === 'chords' && legacyChord ? '' : k === 'root_notes' && legacyBass ? '' : k === 'chords_url' && legacyChord ? legacyChord : k === 'bassline_url' && legacyBass ? legacyBass : song[k] ?? null;
+        }
+      });
       const why = art.querySelector('[data-r="reason"]')?.value.trim() || '';
       if (!Object.keys(set).length) {
         if (!why) return say('Nothing has changed');
