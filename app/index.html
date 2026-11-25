@@ -1606,7 +1606,7 @@ const linkIn = (v) => {
   return { v: c };
 };
 const asUrl = (t) => { const x = (t || '').trim(); return /^https?:\/\/\S+$/i.test(x) ? x : ''; }; // legacy URL values are still recognised during migration
-const progOpen = (url, field) => { const u = cleanLink(url); return u ? ` <a class="openbtn" href="${esc(u)}" target="_blank" rel="noopener">Open</a>${canEdit() ? `<button type="button" class="linkbtn" data-a="progremove" data-field="${field}">Remove link</button>` : ''}` : ''; };
+const progOpen = (url, field) => { const raw = safe(url), u = cleanLink(url); return raw ? `${u ? ` <a class="openbtn" href="${esc(u)}" target="_blank" rel="noopener">Open</a>` : ''}${canEdit() ? `<button type="button" class="linkbtn" data-a="progremove" data-field="${field}">Remove link</button>` : ''}` : ''; };
 const defaultView = () => (myRoles().includes('bassist') ? 'bass' : 'guitar'); // bass for bassists, guitar for everyone else
 const viewOf = (sid) => (views[sid] === 'bass' || views[sid] === 'guitar' ? views[sid] : defaultView());
 const savePending = () => { try { localStorage.setItem(vqk(), JSON.stringify(viewsPending)); } catch {} };
