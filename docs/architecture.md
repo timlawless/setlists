@@ -9,6 +9,7 @@ Last updated: November 2026. This version keeps the earlier reasoning and adds w
 - **Decided:** Supabase for the backend (Postgres, row-level security, sign-in).
 - **Decided:** the app is free and never commercial.
 - **Decided:** devices are iPhone, Android and tablets, so the layout must work on phones and tablets.
+- **Decided:** mobile layout refinements should be scoped to narrow-screen media queries where practical, preserving desktop presentation. Gig Mode should keep its role-prioritised information readable while avoiding unnecessary panel and navigation spacing; the fixed metronome bar must not obscure access to Gig Mode navigation.
 - **Decided:** the chords section lets members add links to sheet music or tabs.
 - **Decided:** each song has a lyrics link (to a lyrics site the band already uses, for example Ultimate Guitar). An
   optional text box for the band's own lyrics or cues is wanted later.
