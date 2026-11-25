@@ -17,9 +17,9 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 
 ## Mobile layout refinement (ChatGPT branch)
 - First pass reviewed on a Flip 7. The initial typography-only changes were too subtle to notice.
-- A second CSS-only pass now tightens mobile song cards and expanded editor spacing, reduces Gig Mode panel/tile/button padding, and reserves more scroll space below Gig Mode navigation for the fixed metronome bar. It also slightly tightens the mobile metronome controls while retaining touch target minimums.
-- All new rules are inside the max-width:699px media query; desktop styles are unchanged by this pass.
-- **Awaiting real-device review:** compare normal setlist and Gig Mode on the Flip 7 and S24. Desktop has not been tested in a browser; no browser/device automation was run for this CSS-only change.
+- The latest CSS-only pass lets full artist names wrap in setlist cards and tightens the expanded editor's field, progression-bar and button-group spacing. Shared editor spacing applies to desktop single-pane and the left list in dual-pane; narrow-screen overrides tighten it further. Gig Mode spacing and metronome scroll clearance remain scoped to mobile.
+- The first textarea-height adjustment was too subtle to notice and is not being treated as a confirmed improvement.
+- **Awaiting review:** compare normal setlist on mobile and desktop single-pane, the dual-pane left list and right editor, and Gig Mode on the Flip 7 and S24. No browser/device automation was run for these CSS-only changes.
 
 ## Done
 - [x] Interactive prototype (`prototype/`): bands, several setlists per band, song editing and reordering, original
