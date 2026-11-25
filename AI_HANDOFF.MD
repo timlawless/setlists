@@ -44,10 +44,8 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   and song (default bass for bassists, guitar for everyone else; anyone can switch on any song), stored in `song_views` with a
   copy on the device. Gig mode has the same switch for guitarists, keyboards and bassists.
 - **Progression link finder:** Find chords link / Find bass tab link lists four searches with the quoted, tidied title and artist: Google limited to Ultimate Guitar, Songsterr or Chordify, a plain Google search and, for bass, a YouTube lesson search. The artist must be filled in first.
-  Open goes to a new page; Use (editors) puts the link in the box and saves it at once, after asking if something is already
-  written there. Nothing is fetched. The lyrics finder behaves the same way: Use saves at once, with the same question.
-- A box that holds just one link shows a larger Open button beside its label, "Chords: link" on song rows, and an Open
-  button in gig mode.
+  Use now stores the selected URL separately from the editable Chords or Bass line text, with Open and Remove link controls. Replacing an existing saved link asks first; using a suggestion never overwrites typed notes. Pasting a URL into the text box is also recognised and moved to the separate link field on Save. Gig mode shows Open for the selected progression.
+- **SQL v17 progression-link separation:** adds `songs.chords_url` and `songs.bassline_url`, migrates existing HTTP(S) URLs out of `chords` and `root_notes` while preserving actual notes, and extends the offline RPC's accepted song fields. The app changes are on `chatgpt-dev`; run `sql/schema_v17_progression_links.sql` in Supabase before testing saves. This migration has not yet been run against the live project.
 - **Listen links (SQL v12):** a song has YouTube (the older box), Spotify and Moises link boxes, shared by the band, each with a
   large Open button beside a stored link. Spotify and Moises entries go through `cleanLink` (Spotify's `si` tracking dropped); a bad
   entry is refused. Moises is pasted by hand (the app cannot see a Moises library). Gig mode has a Listen panel: Moises version,
