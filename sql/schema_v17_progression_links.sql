@@ -7,13 +7,13 @@ alter table public.songs add column if not exists bassline_url text;
 
 -- Preserve legacy links, but stop treating the text fields as link storage.
 update public.songs
-   set chords_url = coalesce(chords_url, btrim(chords)),
+   set chords_url = coalesce(nullif(chords_url, ''), btrim(chords)),
        chords = ''
  where deleted_at is null
    and btrim(coalesce(chords, '')) ~* '^https?://[^[:space:]]+$';
 
 update public.songs
-   set bassline_url = coalesce(bassline_url, btrim(root_notes)),
+   set bassline_url = coalesce(nullif(bassline_url, ''), btrim(root_notes)),
        root_notes = ''
  where deleted_at is null
    and btrim(coalesce(root_notes, '')) ~* '^https?://[^[:space:]]+$';
