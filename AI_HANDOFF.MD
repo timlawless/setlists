@@ -1,7 +1,7 @@
 # Development handoff
 
 A status snapshot for whoever picks this work up next (a person or an AI). Last updated: November 2026, after the guitar or
-bass view and progression searches, the Use-saves-at-once change, the Spotify and Moises links (SQL v12), role-based gig mode (SQL v13), the role-ordered Details view, the Settings changes, roles under Band members with Back buttons, and reason-only notes (SQL v15).
+bass view and progression searches, the Use-saves-at-once change, the Spotify and Moises links (SQL v12), role-based gig mode (SQL v13), the role-ordered Details view, the Settings changes, roles under Band members with Back buttons, reason-only notes (SQL v15), and the v16 keep-alive check.
 Read `AGENTS.md` for the rules, `docs/architecture.md` for the design and `docs/roadmap.md` for the plan.
 This file is updated with every set of files, together with the roadmap, the architecture notes and the commit message.
 If it disagrees with the repository, the repository wins: correct this file.
@@ -14,9 +14,8 @@ parts were removed. If files like `useLiveSync.ts` or `SetlistManager.tsx` exist
 experiments, not as the live app, and check with Tim before building on them.
 
 ## 0. Branches and delivery
-- Tim and others work on different areas on different branches. Changes from the assistant are uploaded to the
-  `claude-dev` branch and then merged into `main`. Codex is also used for some tasks, for example a deployment update
-  (already merged) that gives the branches separate live addresses.
+- Work is split across `chatgpt-dev`, `claude-dev` and `codex-dev`; production is `main`. ChatGPT changes are made on
+  `chatgpt-dev` and are not merged into `main` unless Tim explicitly asks. Branch previews use their own GitHub Pages paths.
 - Always start from the current repository files, never from an older upload or a copy kept in a chat project: those copies
   have been stale before (`index.html` and the docs). If the current file is not available, ask for it.
 - Repository files use Windows (CRLF) line endings. Keep them when editing and check the diff shows only the intended lines.
@@ -28,7 +27,7 @@ experiments, not as the live app, and check with Tim before building on them.
 - **Backend:** one Supabase project. Postgres with row-level security, Auth, and two Edge Functions: `lookup-song` (tempo and
   key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
   `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
-- **Database files:** Codex contains v1, v2, v9-v11 and v14; historical v3-v8 and `check_schema.sql` are missing. Main adds v12 (`songs.spotify_url` and `songs.moises_url`), v13 (the `backing` instrument role) and v15 (`add_song_note`, for reason-only notes). Codex v14 adds offline operation receipts and supports queued reason-only notes through `add_song_note`. Confirm the existing schema and v12/v13 before applying migrations. Apply v15 before v14, because v14 calls `add_song_note`. See `docs/architecture.md`.
+- **Database files:** historical v3-v8 and `check_schema.sql` are missing. v12 adds Spotify/Moises links, v13 adds the `backing` role, v14 adds offline operation receipts, v15 adds `add_song_note`, v16 adds the harmless keep-alive check, and v17 separates progression links from text notes and updates the offline RPC. v17 is prepared on `chatgpt-dev` but has not yet been run against Supabase; apply it before testing the matching app. The v14/v17 RPC depends on v15's `add_song_note`. See `docs/architecture.md`.
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -82,7 +81,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 - **Waiting:** the email service for reset and sign-in codes (SQL v7 needs it), the GetSongBPM API key, and a second lookup
   source for songs Song Finder cannot find.
 - **Not built:** Google sign-in, history restore, MusicBrainz and merging lookup sources, full lyrics text, per-band app icon,
-  high-contrast mode, a separate progression link field beside the manual chords and bass line, `cleanLink` on every stored link (the new Spotify and Moises boxes use it; lyrics and YouTube links do not yet), automatic finding of the most popular YouTube and Spotify link.
+  high-contrast mode, `cleanLink` on every stored link (the new Spotify and Moises boxes use it; lyrics and YouTube links do not yet), automatic finding of the most popular YouTube and Spotify link.
 
 ## 4. Next tasks, in order
 1. Test the latest changes on real devices: the guitar or bass switch and Use in the right-hand panel and the phone layout,
