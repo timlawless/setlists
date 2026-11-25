@@ -2,7 +2,7 @@ name: Deploy Setlists PWA to GitHub Pages
 
 on:
   push:
-    branches: [main, claude-dev, codex-dev]
+    branches: [main, claude-dev, codex-dev, chatgpt-dev]
     paths:
       - "app/**"
       - ".github/workflows/deploy-pages.yml"
@@ -34,11 +34,13 @@ jobs:
           git fetch origin \
             +refs/heads/main:refs/remotes/origin/main \
             +refs/heads/claude-dev:refs/remotes/origin/claude-dev \
-            +refs/heads/codex-dev:refs/remotes/origin/codex-dev
-          mkdir -p _site/claude-dev _site/codex-dev
+            +refs/heads/codex-dev:refs/remotes/origin/codex-dev \
+            +refs/heads/chatgpt-dev:refs/remotes/origin/chatgpt-dev
+          mkdir -p _site/claude-dev _site/codex-dev _site/chatgpt-dev
           git archive origin/main app | tar -xf - -C _site --strip-components=1
           git archive origin/claude-dev app | tar -xf - -C _site/claude-dev --strip-components=1
           git archive origin/codex-dev app | tar -xf - -C _site/codex-dev --strip-components=1
+          git archive origin/chatgpt-dev app | tar -xf - -C _site/chatgpt-dev --strip-components=1
       - name: Upload combined Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
