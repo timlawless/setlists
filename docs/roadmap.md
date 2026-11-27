@@ -19,6 +19,7 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 - First pass reviewed on a Flip 7. The initial typography-only changes were too subtle to notice.
 - The latest CSS-only pass lets full artist names wrap in setlist cards and tightens the expanded editor's field, progression-bar and button-group spacing. Shared editor spacing applies to desktop single-pane and the left list in dual-pane; narrow-screen overrides tighten it further. Gig Mode spacing and metronome scroll clearance remain scoped to mobile.
 - The first textarea-height adjustment was too subtle to notice and is not being treated as a confirmed improvement.
+- The song-editor Open links now have consistent padding and space below them so they do not crowd adjacent fields. The direct Songsterr tab lookup and autosave confirmation are implemented on `chatgpt-dev`; the new `find-progression-link` Edge Function still needs deploying and real-song verification.
 - **Awaiting review:** compare normal setlist on mobile and desktop single-pane, the dual-pane left list and right editor, and Gig Mode on the Flip 7 and S24. No browser/device automation was run for these CSS-only changes.
 
 ## Done
