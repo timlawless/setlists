@@ -1,6 +1,6 @@
 # Development handoff
 
-A status snapshot for whoever picks this work up next (a person or an AI). Last updated: November 2026, after the guitar or
+A status snapshot for whoever picks this work up next (a person or an AI). Last updated: November 2026, after the deployed Songsterr progression lookup, manual-entry guidance and link-button spacing changes, the guitar or
 bass view and progression searches, the Use-saves-at-once change, the Spotify and Moises links (SQL v12), role-based gig mode (SQL v13), the role-ordered Details view, the Settings changes, roles under Band members with Back buttons, reason-only notes (SQL v15), and the v16 keep-alive check.
 Read `AGENTS.md` for the rules, `docs/architecture.md` for the design and `docs/roadmap.md` for the plan.
 This file is updated with every set of files, together with the roadmap, the architecture notes and the commit message.
@@ -24,10 +24,10 @@ experiments, not as the live app, and check with Tim before building on them.
 ## 1. What exists
 - **Live app:** `app/` (`index.html`, `config.js`, `sw.js`, manifest, icons), served by GitHub Pages at
   https://timlawless.github.io/setlists/
-- **Backend:** one Supabase project. Postgres with row-level security, Auth, and two Edge Functions: `lookup-song` (tempo and
-  key, GetSongBPM key optional, Song Finder as the backup) and `find-lyrics-link` (suggests a Genius page, secret
-  `GENIUS_ACCESS_TOKEN`). Both have Verify JWT off and check the caller themselves.
-- **Database files:** historical v3-v8 and `check_schema.sql` are missing. v12 adds Spotify/Moises links, v13 adds the `backing` role, v14 adds offline operation receipts, v15 adds `add_song_note`, v16 adds the harmless keep-alive check, and v17 separates progression links from text notes and updates the offline RPC. v17 is prepared on `chatgpt-dev` but has not yet been run against Supabase; apply it before testing the matching app. The v14/v17 RPC depends on v15's `add_song_note`. See `docs/architecture.md`.
+- **Backend:** one Supabase project. Postgres with row-level security, Auth, and three Edge Functions: `lookup-song` (tempo and
+  key, GetSongBPM key optional, Song Finder as the backup), `find-lyrics-link` (suggests a Genius page, secret
+  `GENIUS_ACCESS_TOKEN`) and `find-progression-link` (Songsterr tab lookup). All have Verify JWT off and check the caller themselves.
+- **Database files:** historical v3-v8 and `check_schema.sql` are missing. v12 adds Spotify/Moises links, v13 adds the `backing` role, v14 adds offline operation receipts, v15 adds `add_song_note`, v16 adds the harmless keep-alive check, and v17 separates progression links from text notes and updates the offline RPC. v17 was run successfully against Supabase on 27 November 2026; all branches share that database. The v14/v17 RPC depends on v15's `add_song_note`. See `docs/architecture.md`.
 - **`core/`:** a tested TypeScript library from the earlier plan. The web app does not use it yet.
 - **`prototype/`:** a UI prototype with sample data. A reference only.
 
@@ -43,9 +43,8 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
   bass edits `songs.root_notes` (the old Root notes column, brought back as the Bass line). The view is remembered per person
   and song (default bass for bassists, guitar for everyone else; anyone can switch on any song), stored in `song_views` with a
   copy on the device. Gig mode has the same switch for guitarists, keyboards and bassists.
-- **Progression link finder:** Find chords link / Find bass tab link lists four searches with the quoted, tidied title and artist: Google limited to Ultimate Guitar, Songsterr or Chordify, a plain Google search and, for bass, a YouTube lesson search. The artist must be filled in first.
-  Use now stores the selected URL separately from the editable Chords or Bass line text, with Open and Remove link controls. Replacing an existing saved link asks first; using a suggestion never overwrites typed notes. Pasting a URL into the text box is also recognised and moved to the separate link field on Save. Gig mode shows Open for the selected progression.
-- **SQL v17 progression-link separation:** adds `songs.chords_url` and `songs.bassline_url`, migrates existing HTTP(S) URLs out of `chords` and `root_notes` while preserving actual notes, and extends the offline RPC's accepted song fields. The app changes are on `chatgpt-dev`; run `sql/schema_v17_progression_links.sql` in Supabase before testing saves. This migration has not yet been run against the live project.
+- **Progression link finder:** Find chords link / Find bass tab link calls the deployed `find-progression-link` Edge Function, which searches Songsterr and returns direct tab pages when it finds a close title/artist and instrument match. If no suitable Songsterr match is found, the app offers search links instead; these are deliberately search results, not direct tab links. The artist must be filled in first. The Chords and Bass line fields now show guidance to enter notes manually or paste a link when Find does not locate the desired version. Use stores a selected direct URL separately from editable progression text, with Open and Remove link controls. Replacing an existing saved link asks first; using a suggestion never overwrites typed notes. Pasting a URL into the text box is also recognised and moved to the separate link field on Save. Gig mode shows Open for the selected progression.
+- **SQL v17 progression-link separation:** adds `songs.chords_url` and `songs.bassline_url`, migrates existing HTTP(S) URLs out of `chords` and `root_notes` while preserving actual notes, and extends the offline RPC's accepted song fields. Tim ran the corrected `sql/schema_v17_progression_links.sql` successfully in Supabase on 27 November 2026. No need to rerun it.
 - **Listen links (SQL v12):** a song has YouTube (the older box), Spotify and Moises link boxes, shared by the band, each with a
   large Open button beside a stored link. Spotify and Moises entries go through `cleanLink` (Spotify's `si` tracking dropped); a bad
   entry is refused. Moises is pasted by hand (the app cannot see a Moises library). Gig mode has a Listen panel: Moises version,
@@ -71,7 +70,7 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 - **Tried by Tim and reported working:** the iPhone install test, and the recent sets: SQL v11 to v13 (guitar or bass view, Spotify and Moises links, role-based gig mode with the Backing singer role), Use saving at once, and the Open button. Tim says it all works, but the views have become busy and need tidying later.
 - **Delivered, not yet confirmed on real devices:**
   the compact right-hand panel, Song structure (SQL v10), lyrics link suggestions (needs the `find-lyrics-link` function
-  deployed and `GENIUS_ACCESS_TOKEN` saved), the progression link finder, and the earlier items listed in the roadmap
+  deployed and `GENIUS_ACCESS_TOKEN` saved), the compact right-hand panel and the earlier items listed in the roadmap
   (offline editing, flash limit, sign-in and invite changes, launch speed, install help).
 - **Layout refinement in progress on `chatgpt-dev`:** artist names now wrap in setlist cards; editor field/progression/button spacing is tighter on desktop single-pane and the dual-pane left list, with a further compact mobile override. Gig Mode spacing and metronome scroll clearance remain mobile-scoped. An initial textarea-height tweak was too subtle to count as a confirmed improvement. Awaiting review on Flip 7 and S24 plus desktop single- and dual-pane; no browser/device automation has been run.
 - **Delivered, awaiting review:** the role-ordered Details view, the Settings changes (Band settings screen, editable own name), roles under Band members with Back buttons, and reason-only notes (SQL v15: run it first). The Details view and Settings changes are one `index.html`, no SQL. Also the pinned Close and Save bar (one `index.html`, no SQL).
@@ -88,8 +87,8 @@ iPhone and Android, small-phone layout, two-pane or one-pane layout on wide scre
 3. Test offline editing on real devices (airplane mode, then a deliberate conflict from a second account).
 4. Apply `cleanLink` to every stored link (a gap against `AGENTS.md`). The page already uses it for suggested links.
 5. Restore the missing v3-v8 migration files and `check_schema.sql`, and put the earlier permission tests in the repository. The v11 tests were run on an in-memory Postgres and are not stored yet. The offline queue/state tests are stored; live SQL integration still needs a non-production Supabase run.
-6. Check the tighter progression searches on real songs (roadmap backlog 29, step 1 built). If they still miss, build step 2: a function that finds specific videos.
-7. Decide whether a progression link needs its own field, then Google sign-in and history restore.
+6. Improve progression lookup coverage if useful. Real-song testing confirms the deployed Songsterr lookup works for some versions, but less well-known or alternate versions may fall back to search links. Manual progression entry and pasted links are the supported fallback; do not treat search links as direct tab pages.
+7. Google sign-in and history restore.
 8. Listen links stage 2: a `find-listen-link` function that finds the most popular YouTube video and Spotify track for a song, with Use saving at once and the overwrite question, always overridable by hand. It needs a YouTube Data API key and a Spotify client ID and secret as Supabase secrets.
 9. Check role-based gig mode on a real phone and tablet (sideways on a music stand), with each role and with two roles, and tune the order if the band wants it different. Do the same for the role-ordered Details view. Also check that saving your own name works against the real database.
 9b. Check the pinned Close and Save bar on real devices: that it sticks under the top bar on a phone (including iPhone), in one pane and in two panes, and does not clash with the metronome bar.

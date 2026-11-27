@@ -154,8 +154,7 @@ textarea.grow{resize:none;overflow:hidden}
 .actbar{position:sticky;top:calc(var(--hdrH,58px) + env(safe-area-inset-top,0px));z-index:4;display:flex;justify-content:flex-end;gap:8px;padding:6px 0;margin:0 0 6px;background:var(--card);border-bottom:1px solid var(--line)}
 .actbar button{flex:0 0 auto}
 body.dual #pane .actbar{top:0}
-a.openbtn{display:inline-block;margin-left:6px;padding:1px 10px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--accent);font-size:13px;line-height:1.3;font-weight:600;text-decoration:none;vertical-align:middle}
-@media (pointer:coarse){a.openbtn{display:inline-flex;align-items:center;min-height:32px;padding:3px 12px}}
+a.openbtn{display:inline-block;min-height:30px;margin:0 0 8px 8px;padding:5px 12px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--accent);font-size:13px;line-height:1.2;font-weight:600;text-decoration:none;vertical-align:middle}
 @media (min-width:900px) and (pointer:fine){
 body.dual #pane article.pane{padding:10px}
 body.dual #pane label{margin-top:5px;font-size:12px}
@@ -1516,7 +1515,7 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const struct = ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="${compact ? 1 : 2}"${compact ? ' class="grow"' : ''} placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`;
   const bassNow = viewOf(s.id) === 'bass'; // which progression box shows: remembered per person and song
   const ta = (k, rows, ph, value = s[k]) => `<textarea data-f="${k}" rows="${rows}" class="mono${compact ? ' grow' : ''}"${ph ? ` placeholder="${ph}"` : ''}${dis}>${esc(value)}</textarea>`;
-  const chords = `<label data-pl="guitar"${bassNow ? ' hidden' : ''}>Chords${progOpen(s.chords_url || asUrl(s.chords), 'chords_url')}<input type="hidden" data-f="chords_url" value="${esc(s.chords_url || asUrl(s.chords))}">${ta('chords', compact ? 1 : 4, '', asUrl(s.chords) ? '' : s.chords)}</label><label data-pl="bass"${bassNow ? '' : ' hidden'}>Bass line (root notes)${progOpen(s.bassline_url || asUrl(s.root_notes), 'bassline_url')}<input type="hidden" data-f="bassline_url" value="${esc(s.bassline_url || asUrl(s.root_notes))}">${ta('root_notes', compact ? 1 : 4, 'e.g. E  A  B  E', asUrl(s.root_notes) ? '' : s.root_notes)}</label>`;
+  const chords = `<label data-pl="guitar"${bassNow ? ' hidden' : ''}>Chords${progOpen(s.chords_url || asUrl(s.chords), 'chords_url')}<input type="hidden" data-f="chords_url" value="${esc(s.chords_url || asUrl(s.chords))}">${ta('chords', compact ? 1 : 4, 'Enter chords manually, or paste a tab link if Find doesn’t find your version', asUrl(s.chords) ? '' : s.chords)}</label><label data-pl="bass"${bassNow ? '' : ' hidden'}>Bass line (root notes)${progOpen(s.bassline_url || asUrl(s.root_notes), 'bassline_url')}<input type="hidden" data-f="bassline_url" value="${esc(s.bassline_url || asUrl(s.root_notes))}">${ta('root_notes', compact ? 1 : 4, 'Enter bass notes manually, or paste a tab link if Find doesn’t find your version', asUrl(s.root_notes) ? '' : s.root_notes)}</label>`;
   const bar = `<div class="progbar"><div class="seg" role="group" aria-label="Guitar or bass"><button type="button" data-a="pv" data-view="guitar" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" data-a="pv" data-view="bass" aria-pressed="${bassNow}">Bass line</button></div><button type="button" data-a="progfind">${bassNow ? 'Find bass tab link' : 'Find chords link'}</button></div>`;
   const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 1 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
@@ -1649,33 +1648,44 @@ async function syncViews() { // after opening a band: send waiting choices, then
 }
 window.addEventListener('online', () => flushViews());
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') flushViews(); });
-// ---- find a chords or bass tab link: search pages only, opened in a new page. The app fetches and saves nothing.
-// Tidy a title or artist before searching: drop brackets, "- Remastered" endings, "feat." parts and quote marks.
+// ---- direct Songsterr tab pages via the public search API; search-only alternatives remain open-only.
 const tidyTitle = (t) => (t || '').replace(/[([].*?[)\]]/g, ' ').replace(/\s+-\s+.*$/, '').replace(/\s+(feat\.?|ft\.?|featuring)\s+.*$/i, '').replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
 const tidyArtist = (a) => (a || '').replace(/[([].*?[)\]]/g, ' ').replace(/\s+(feat\.?|ft\.?|featuring|with)\s+.*$/i, '').replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
-// Quoted title and artist, and Google limited to one site, so the song's own page is usually the first result.
-const progLinks = (v, title, artist) => {
+const progSearchLinks = (v, title, artist) => {
   const t = tidyTitle(title) || title, a = tidyArtist(artist) || artist, qt = `"${t}" "${a}"`;
   const g = (extra, site) => `https://www.google.com/search?q=${enc(`${qt} ${extra}${site ? ' site:' + site : ''}`.replace(/\s+/g, ' ').trim())}`;
   const raw = v === 'bass'
-    ? [{ label: 'Ultimate Guitar: bass tabs', note: 'Google search limited to Ultimate Guitar', url: g('bass tab', 'tabs.ultimate-guitar.com') },
-      { label: 'Songsterr: bass track', note: 'Google search limited to Songsterr', url: g('bass', 'songsterr.com') },
-      { label: 'YouTube: bass lesson', note: 'Video search', url: `https://www.youtube.com/results?search_query=${enc(`${t} ${a} bass line lesson`)}` },
-      { label: 'Google: bass tab', note: 'Quoted Google search', url: g('bass tab') }]
-    : [{ label: 'Ultimate Guitar: chords', note: 'Google search limited to Ultimate Guitar', url: g('chords', 'tabs.ultimate-guitar.com') },
-      { label: 'Songsterr', note: 'Google search limited to Songsterr', url: g('', 'songsterr.com') },
-      { label: 'Chordify', note: 'Google search limited to Chordify', url: g('', 'chordify.net') },
-      { label: 'Google: chords', note: 'Quoted Google search', url: g('chords') }];
+    ? [{ label: 'Search Ultimate Guitar: bass tabs', note: 'Search results, not a direct tab link', url: g('bass tab', 'tabs.ultimate-guitar.com') },
+      { label: 'Search Songsterr: bass tabs', note: 'Search results, not a direct tab link', url: g('bass', 'songsterr.com') },
+      { label: 'Search YouTube: bass lesson', note: 'Video search results', url: `https://www.youtube.com/results?search_query=${enc(`${t} ${a} bass line lesson`)}` },
+      { label: 'Search Google: bass tab', note: 'Search results, not a direct tab link', url: g('bass tab') }]
+    : [{ label: 'Search Ultimate Guitar: chords', note: 'Search results, not a direct tab link', url: g('chords', 'tabs.ultimate-guitar.com') },
+      { label: 'Search Songsterr', note: 'Search results, not a direct tab link', url: g('', 'songsterr.com') },
+      { label: 'Search Chordify', note: 'Search results, not a direct tab link', url: g('', 'chordify.net') },
+      { label: 'Search Google: chords', note: 'Search results, not a direct tab link', url: g('chords') }];
   return raw.map((l) => ({ ...l, url: cleanLink(l.url) })).filter((l) => l.url);
 };
-function drawProg(art) {
+async function drawProg(art) {
   const ul = art.querySelector('[data-prog-links]'); if (!ul) return;
   const val = (k) => (art.querySelector(`[data-f="${k}"]`)?.value || '').trim(), title = val('title'), artist = val('artist');
   if (!title) return say('Type a title first');
   if (!artist) return say('Type the artist first, so the search finds the right song');
   const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar';
-  ul.innerHTML = progLinks(v, title, artist).map((l) => `<li><span>${esc(l.label)}<br><small>${esc(l.note)}</small></span><span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open</a>${canEdit() ? ` <button type="button" data-a="proguse" data-url="${esc(l.url)}">Use</button>` : ''}</span></li>`).join('')
-    + `<li><small>These are searches, so check that the result is the right song. Use saves the link separately and adds an Open button, leaving your typed notes untouched. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
+  const fallback = progSearchLinks(v, title, artist);
+  ul.innerHTML = '<li><small>Looking for direct tab links…</small></li>';
+  let candidates = [], note = '';
+  try {
+    const { data, error } = await sb.functions.invoke('find-progression-link', { body: { title, artist, instrument: v } });
+    if (error) throw error;
+    candidates = (data?.candidates || []).map((c) => ({ ...c, url: cleanLink(c.url) }))
+      .filter((c) => c.url && hostOf(c.url) === 'songsterr.com');
+    note = data?.note || '';
+  } catch { note = 'Direct tab lookup is unavailable right now; the search links below still work.'; }
+  if (!ul.isConnected) return;
+  const direct = candidates.map((c) => `<li><span>${esc(c.artist)} – ${esc(c.title)}<br><small>Songsterr · ${esc(c.track || (v === 'bass' ? 'Bass' : 'Guitar'))} tab</small></span><span><a href="${esc(c.url)}" target="_blank" rel="noopener">Open</a>${canEdit() ? ` <button type="button" data-a="proguse" data-url="${esc(c.url)}">Use</button>` : ''}</span></li>`);
+  const searches = fallback.map((l) => `<li><span>${esc(l.label)}<br><small>${esc(l.note)}</small></span><span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open search</a></span></li>`);
+  ul.innerHTML = (note ? `<li><small>${esc(note)}</small></li>` : '') + direct.join('') + searches.join('')
+    + '<li><small>Use is available only for a specific Songsterr tab page. Search links open results but are not saved. Saving a link never copies chords, bass lines or lyrics.</small></li>';
 }
 async function loadLinks(sid) {
   const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
@@ -1684,6 +1694,7 @@ async function loadLinks(sid) {
     ul.innerHTML = rows.length ? rows.map((l) => `<li><a href="${esc(safe(l.url) || '#')}" target="_blank" rel="noopener">${esc(l.label || l.kind.replace('_', ' '))}</a>${canEdit() ? `<button data-a="dellink" data-lid="${l.id}">×</button>` : ''}</li>`).join('') : '<li><small>No links yet</small></li>';
   } catch { ul.innerHTML = '<li><small>Could not load links</small></li>'; }
 }
+const autosavedLinkNotices = Object.create(null);
 $('split').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
@@ -1703,13 +1714,13 @@ $('split').onclick = async (e) => {
       const pl = art.querySelector('[data-prog-links]'); if (pl) pl.innerHTML = '';
       art.querySelectorAll('textarea.grow').forEach(grow); setView(sid, v);
     }
-    else if (a === 'progfind') { drawProg(art); }
+    else if (a === 'progfind') { await drawProg(art); }
     else if (a === 'proguse') {
       const url = cleanLink(b.dataset.url || ''); if (!url) return;
       const bass = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass', field = bass ? 'bassline_url' : 'chords_url', what = bass ? 'bass line' : 'chords';
       const box = art.querySelector(`[data-f="${field}"]`), cur = box.value.trim();
       if (cur && cur !== url && !confirm(`Replace the saved ${what} link?\n\nCurrent: ${cur}\nNew: ${url}`)) return;
-      box.value = url; art.querySelector('[data-a="save"]')?.click(); // Save separately; typed notes are untouched.
+      box.value = url; autosavedLinkNotices[sid] = { field, url }; art.querySelector('[data-a="save"]')?.click(); // Save separately; typed notes are untouched.
     }
     else if (a === 'progremove') {
       const field = b.dataset.field, box = art.querySelector(`[data-f="${field}"]`);
@@ -1744,12 +1755,18 @@ $('split').onclick = async (e) => {
       });
       const why = art.querySelector('[data-r="reason"]')?.value.trim() || '';
       if (!Object.keys(set).length) {
-        if (!why) return say('Nothing has changed');
+        if (!why) {
+          const notice = autosavedLinkNotices[sid];
+          if (notice && (song[notice.field] || '') === notice.url) { delete autosavedLinkNotices[sid]; return say('Link already saved'); }
+          return say('Nothing has changed');
+        }
         // a reason with nothing else changed is added to History as its own entry (history is never rewritten)
         enqueue({ t: 'note', sid, label: song.title, note: why });
         say(navigator.onLine ? 'Reason added to History' : 'Saved on this device. It will sync when you are back online.'); render(); return;
       }
       Object.assign(song, set); const l = libFor === bandId ? lib.find((x) => x.id === sid) : null; if (l) Object.assign(l, set);
+      const autoNotice = autosavedLinkNotices[sid];
+      if (!autoNotice || set[autoNotice.field] !== autoNotice.url) delete autosavedLinkNotices[sid];
       enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null }); render();
     }
     else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { const x = items[i]; items.splice(i, 1); openId = null; enqueue({ t: 'slRemove', id: x.id, label: x.songs.title }); render(); } }
