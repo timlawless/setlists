@@ -160,6 +160,36 @@ test('preserves the current song, setlist, order, deletion, and link operation p
   assert.deepEqual((await queue.list(userId)).map((row) => row.operation), operations);
 });
 
+test('accepts a reason-only note with its payload and refuses an empty one', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'note-test' });
+  const note = { qid: id(9), t: 'note', sid: id(100), label: 'Song', at: '2026-11-20T00:00:09.000Z', offline: true, note: 'Band plays it faster live' };
+  await queue.enqueueMany([note], userId);
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation), [note]);
+  await assert.rejects(queue.enqueueMany([{ ...note, qid: id(10), note: '   ' }], userId), OfflineQueueError);
+  await assert.rejects(queue.enqueueMany([{ ...note, qid: id(11), note: undefined }], userId), OfflineQueueError);
+  await assert.rejects(queue.enqueueMany([{ ...note, qid: id(12), sid: '' }], userId), OfflineQueueError);
+  assert.equal((await queue.list(userId)).length, 1);
+});
+
+test('a note and an edit to the same song stay in the order they were made', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'note-order-test' });
+  const note = { qid: id(2), t: 'note', sid: id(100), label: 'Song', at: '2026-11-20T00:00:02.000Z', offline: true, note: 'Why' };
+  await queue.enqueueMany([edit(1)], userId);
+  await queue.enqueueMany([note], userId);
+  assert.deepEqual((await queue.list(userId)).map((row) => row.operation.t), ['song', 'note']);
+});
+
+test('a repeated note keeps one copy, and the same ID with different text is refused', async () => {
+  const queue = await openOfflineQueue({ indexedDB: new FakeIndexedDB(), name: 'note-retry-test' });
+  const note = { qid: id(5), t: 'note', sid: id(100), label: 'Song', at: '2026-11-20T00:00:05.000Z', offline: true, note: 'Band plays it faster live' };
+  await queue.enqueueMany([note], userId);
+  await queue.enqueueMany([{ ...note }], userId); // the same note queued again after a lost response
+  assert.equal((await queue.list(userId)).length, 1);
+  await assert.rejects(queue.enqueueMany([{ ...note, note: 'A different reason' }], userId), OfflineQueueError);
+  assert.equal((await queue.list(userId)).length, 1);
+  assert.equal((await queue.list(userId))[0].operation.note, 'Band plays it faster live');
+});
+
 test('committed operations and payloads survive a fresh queue instance', async () => {
   const indexedDB = new FakeIndexedDB();
   const first = await openOfflineQueue({ indexedDB, name: 'restart-test' });

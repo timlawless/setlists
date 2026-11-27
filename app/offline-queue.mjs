@@ -5,7 +5,7 @@ const METADATA_STORE = 'metadata';
 const ISSUE_STORE = 'issues';
 const QUARANTINE_STORE = 'quarantine';
 const VALID_STATUSES = new Set(['pending', 'inFlight', 'blocked']);
-const VALID_TYPES = new Set(['song', 'songNew', 'songDel', 'slAdd', 'slPos', 'slRemove', 'linkAdd', 'linkDel']);
+const VALID_TYPES = new Set(['song', 'songNew', 'songDel', 'slAdd', 'slPos', 'slRemove', 'linkAdd', 'linkDel', 'note']);
 const VALID_USER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export class OfflineQueueError extends Error {
@@ -55,6 +55,9 @@ export function validateOperation(operation, userId) {
       break;
     case 'songDel':
       if (!has(operation.sid)) throw new OfflineQueueError('Song deletes need a song ID');
+      break;
+    case 'note':
+      if (!has(operation.sid) || !has(operation.note)) throw new OfflineQueueError('Reasons need a song ID and some text');
       break;
   }
   return operation;
