@@ -19,8 +19,8 @@ The earlier plan is kept below (steps 1 to 7) with the outcome of each step, so 
 - First pass reviewed on a Flip 7. The initial typography-only changes were too subtle to notice.
 - The latest CSS-only pass lets full artist names wrap in setlist cards and tightens the expanded editor's field, progression-bar and button-group spacing. Shared editor spacing applies to desktop single-pane and the left list in dual-pane; narrow-screen overrides tighten it further. Gig Mode spacing and metronome scroll clearance remain scoped to mobile.
 - The first textarea-height adjustment was too subtle to notice and is not being treated as a confirmed improvement.
-- The song-editor Open links now have consistent padding and space below them so they do not crowd adjacent fields. The direct Songsterr tab lookup and autosave confirmation are implemented on `chatgpt-dev`; the new `find-progression-link` Edge Function still needs deploying and real-song verification.
-- **Awaiting review:** compare normal setlist on mobile and desktop single-pane, the dual-pane left list and right editor, and Gig Mode on the Flip 7 and S24. No browser/device automation was run for these CSS-only changes.
+- The song-editor Open links now have consistent padding and space below them so they do not crowd adjacent fields. The direct Songsterr tab lookup, autosave confirmation and manual-entry/paste-link guidance are implemented on `chatgpt-dev`. The `find-progression-link` Edge Function has been deployed and tested: it returns direct Songsterr pages for some songs, while less well-known or alternate versions may fall back to search links. Those fallbacks are not direct tab links.
+- **Awaiting review:** compare normal setlist on mobile and desktop single-pane, the dual-pane left list and right editor, and Gig Mode on the Flip 7 and S24. Also check the progression fields, Find/Use/Open flow and manual link paste on phone and desktop. No browser/device automation was run for these CSS-only changes.
 
 ## Done
 - [x] Interactive prototype (`prototype/`): bands, several setlists per band, song editing and reordering, original
