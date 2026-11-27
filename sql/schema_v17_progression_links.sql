@@ -105,10 +105,10 @@ begin
 
   if v_type = 'songNew' then
     v_id := (v_row->>'id')::uuid; v_band_id := (v_row->>'band_id')::uuid;
-    insert into public.songs (id, band_id, title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes, notes, song_structure, lyrics_url, youtube_url, spotify_url, moises_url, catalog_ref, created_by)
+    insert into public.songs (id, band_id, title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes, chords_url, bassline_url, notes, song_structure, lyrics_url, youtube_url, spotify_url, moises_url, catalog_ref, created_by)
       values (v_id, v_band_id, v_row->>'title', coalesce(v_row->>'artist', ''), coalesce(v_row->>'version_label', ''), nullif(v_row->>'bpm', '')::integer,
         v_row->>'musical_key', coalesce(v_row->>'time_signature', '4/4'), coalesce(v_row->>'chords', ''), coalesce(v_row->>'root_notes', ''),
-        coalesce(v_row->>'notes', ''), coalesce(v_row->>'song_structure', ''), v_row->>'lyrics_url', v_row->>'youtube_url',
+        v_row->>'chords_url', v_row->>'bassline_url', coalesce(v_row->>'notes', ''), coalesce(v_row->>'song_structure', ''), v_row->>'lyrics_url', v_row->>'youtube_url',
         v_row->>'spotify_url', v_row->>'moises_url', v_row->>'catalog_ref', v_user)
       on conflict (id) do nothing;
     get diagnostics v_count = row_count;
