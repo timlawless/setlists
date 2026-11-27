@@ -154,7 +154,7 @@ textarea.grow{resize:none;overflow:hidden}
 .actbar{position:sticky;top:calc(var(--hdrH,58px) + env(safe-area-inset-top,0px));z-index:4;display:flex;justify-content:flex-end;gap:8px;padding:6px 0;margin:0 0 6px;background:var(--card);border-bottom:1px solid var(--line)}
 .actbar button{flex:0 0 auto}
 body.dual #pane .actbar{top:0}
-a.openbtn{display:inline-flex;align-items:center;min-height:30px;margin:0 0 6px 8px;padding:4px 12px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--accent);font-size:13px;line-height:1.2;font-weight:600;text-decoration:none;vertical-align:middle}
+a.openbtn{display:inline-block;min-height:30px;margin:0 0 8px 8px;padding:5px 12px;border:1px solid var(--accent);border-radius:7px;background:var(--bg);color:var(--accent);font-size:13px;line-height:1.2;font-weight:600;text-decoration:none;vertical-align:middle}
 @media (min-width:900px) and (pointer:fine){
 body.dual #pane article.pane{padding:10px}
 body.dual #pane label{margin-top:5px;font-size:12px}
@@ -1765,7 +1765,9 @@ $('split').onclick = async (e) => {
         say(navigator.onLine ? 'Reason added to History' : 'Saved on this device. It will sync when you are back online.'); render(); return;
       }
       Object.assign(song, set); const l = libFor === bandId ? lib.find((x) => x.id === sid) : null; if (l) Object.assign(l, set);
-      delete autosavedLinkNotices[sid]; enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null }); render();
+      const autoNotice = autosavedLinkNotices[sid];
+      if (!autoNotice || set[autoNotice.field] !== autoNotice.url) delete autosavedLinkNotices[sid];
+      enqueue({ t: 'song', sid, label: song.title, base, set, note: art.querySelector('[data-r="reason"]').value.trim() || null }); render();
     }
     else if (a === 'remove') { if (confirm('Remove this song from the setlist?')) { const x = items[i]; items.splice(i, 1); openId = null; enqueue({ t: 'slRemove', id: x.id, label: x.songs.title }); render(); } }
     else if (a === 'delsong') {
