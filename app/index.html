@@ -39,7 +39,9 @@ a{color:var(--accent)}
 .n{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--accent);color:var(--on);font-weight:700;font-size:13px;flex:none}
 .t{flex:1;min-width:0}.t b{display:block}.t small{color:var(--mute)}
 .pill{border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
-.btns,.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.btns>*{flex:1 1 70px}.row>*{flex:1 1 120px}
+.btns,.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+#list article.open label{margin-top:6px}
+#list article.open .progbar{margin-top:6px}.btns>*{flex:1 1 70px}.row>*{flex:1 1 120px}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0 10px}
 .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
 h2,h3{margin:14px 0 6px;font-size:15px}
@@ -63,7 +65,8 @@ li select{width:auto}
 .gtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .tiles{display:flex;gap:10px;margin:14px 0;flex-wrap:wrap}
 .tile{flex:1 1 140px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px;text-align:center}
-.tile b{display:block;font-size:clamp(44px,14vw,96px);line-height:1.05;color:var(--accent)}
+.tile b{display:block;font-size:clamp(34px,10vw,76px);line-height:1.05;color:var(--accent);white-space:nowrap;letter-spacing:-.035em}
+.tile.key{flex:1.45 1 140px;container-type:inline-size}.tile.key b{font-size:clamp(22px,6vw,42px);letter-spacing:-.045em}.tile.key.long b{font-size:clamp(14px,10cqi,22px)}
 .tiles.one .tile{flex:0 1 260px}
 #gig details.more{margin:10px 0}
 #gig details.more>summary{padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--mute);font-weight:600;cursor:pointer}
@@ -80,7 +83,7 @@ li select{width:auto}
 button.rowmain{display:block;width:100%;min-width:0;text-align:left;background:none;border:0;padding:6px 0;border-radius:6px}
 .rt{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:700;line-height:1.25}
 .rs{display:flex;align-items:center;gap:6px;margin-top:2px;font-size:13px;color:var(--mute)}
-.ra{flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ra{flex:1 1 0;min-width:0;overflow-wrap:anywhere;white-space:normal;line-height:1.2}
 .rs .pill{flex:none;padding:1px 8px;font-size:12px;color:var(--ink)}.chev{flex:none;padding-left:2px}
 button.playbtn{min-width:74px;min-height:44px}
 #list article>.rl{grid-column:2/-1;margin:0 0 2px}
@@ -91,7 +94,43 @@ button.playbtn{min-width:74px;min-height:44px}
 .dots i.on{background:var(--flash);transform:scale(1.08)}.dots i.on.one{background:var(--accent)}
 #aMsg{margin:0 0 6px;padding:6px 8px;font-size:13px;border:1px solid var(--flash);border-radius:8px}
 body.run main{padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))}body.run #gig{padding-bottom:210px}
-@media (max-width:699px){#bar .bc{flex-wrap:wrap}#bar #dots{order:-1;flex:1 0 100%;margin-bottom:4px}#bar:not(.on) #dots{display:none}}
+@media (max-width:699px){
+#bar .bc{flex-wrap:wrap;gap:5px}
+#bar #dots{order:-1;flex:1 0 100%;margin-bottom:4px}
+#bar:not(.on) #dots{display:none}
+#bar{padding:6px 10px calc(6px + env(safe-area-inset-bottom,0px))}
+#bar .bc button{padding:7px 9px}
+#bar .bc input[type=number]{width:64px;padding:7px 5px}
+#bar .bc .fl{font-size:13px}
+.rs{gap:4px}
+.rs .pill{padding:1px 7px;font-size:11px}
+.ra{font-size:12px}
+#list article{padding:5px 8px;margin-bottom:7px;gap:0 8px}
+#list article.open{padding:8px}
+#list article.open .actbar{padding:4px 0;margin-bottom:4px;gap:6px}
+#list article.open .grid{gap:0 8px}
+#list article.open label{margin-top:3px}
+#list article.open input,#list article.open select,#list article.open textarea{padding:7px}
+#list article.open .progbar{margin-top:4px}
+#list article.open .btns{gap:6px;margin-top:6px}
+#list article.open .row{gap:6px;margin-top:7px}
+#list article.open .seg button{padding:8px 6px}
+#gig{padding-left:12px;padding-right:12px;padding-bottom:calc(230px + env(safe-area-inset-bottom,0px))}
+#gig h1{font-size:clamp(26px,7vw,36px);margin:7px 0 1px}
+#gig .tiles{gap:8px;margin:8px 0}
+#gig .tile{min-width:0;padding:8px 10px}
+#gig .tiles .tile.key{flex:2 1 180px}
+#gig .tiles .tile.bpm{flex:1 1 105px}
+#gig .tile b{font-size:clamp(34px,10vw,58px)}
+#gig .panel{padding:10px;margin-bottom:8px}
+#gig .panel:has(>small){padding:8px 10px}
+#gig .panel h3{margin-bottom:4px}
+#gig .pbody{font-size:18px;line-height:1.35}
+#gig .btnlink{padding:10px 14px;font-size:17px}
+#gig .next{margin:8px 0;font-size:16px}
+#gig .gnav{margin-top:8px;gap:6px}
+#gig .gnav button{min-width:0;padding:12px 7px;font-size:15px}
+}
 @media (min-width:700px){.dots{--d:56px;padding:0 12px;flex:1 1 auto}}
 @media (pointer:coarse){button,select,input:not([type=checkbox]):not([type=radio]){min-height:44px}input[type=checkbox]{width:22px;height:22px}}
 @media (max-width:520px){dialog#menu,dialog#memDlg,dialog#bandDlg,dialog#addDlg{width:100%;max-width:100%;height:100%;max-height:100%;margin:0;border:0;border-radius:0;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
@@ -523,7 +562,7 @@ function overlayQueueCache(key, value) {
     try { (JSON.parse(localStorage.getItem(ck('lib:' + bandId)) || '[]')).forEach((song) => songs.set(song.id, song)); } catch {}
     rows.forEach((entry) => { if (entry.songs) songs.set(entry.songs.id, entry.songs); });
     for (const op of queue) {
-      if (op.t === 'songNew') songs.set(op.row.id, { version_label: '', time_signature: '4/4', chords: '', root_notes: '', notes: '', lyrics_url: null, youtube_url: null, ...op.row });
+      if (op.t === 'songNew') songs.set(op.row.id, { version_label: '', time_signature: '4/4', chords: '', root_notes: '', chords_url: null, bassline_url: null, notes: '', lyrics_url: null, youtube_url: null, ...op.row });
       if (op.t === 'song') {
         const song = songs.get(op.sid); if (song) Object.assign(song, op.set);
         rows.forEach((entry) => { if (entry.songs?.id === op.sid) Object.assign(entry.songs, op.set); });
@@ -1453,9 +1492,10 @@ function drawPane() {
 wideQ.addEventListener?.('change', () => render());
 function roleLine(s) {
   const r = myRoles(), first = (t) => esc((t || '').split('\n')[0].slice(0, 60)), out = [];
+  const progSummary = (t, u) => { const v = asUrl(t) ? '' : first(t); return v ? v + (u ? ' · link' : '') : (u || asUrl(t) ? 'link' : ''); };
   if ((r.includes('singer') || r.includes('backing')) && safe(s.lyrics_url)) out.push(`<a href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Lyrics</a>`);
-  if (r.includes('bassist') && viewOf(s.id) === 'bass' && s.root_notes) out.push('Bass: ' + (asUrl(s.root_notes) ? 'link' : first(s.root_notes)));
-  else if ((r.includes('guitarist') || r.includes('keyboards')) && s.chords) out.push('Chords: ' + (asUrl(s.chords) ? 'link' : first(s.chords)));
+  if (r.includes('bassist') && viewOf(s.id) === 'bass' && (s.bassline_url || s.root_notes)) out.push('Bass: ' + progSummary(s.root_notes, s.bassline_url));
+  else if ((r.includes('guitarist') || r.includes('keyboards')) && (s.chords_url || s.chords)) out.push('Chords: ' + progSummary(s.chords, s.chords_url));
   if (r.includes('drummer')) out.push('Time: ' + esc(s.time_signature || '4/4'));
   return out.length ? `<div class="rl">${out.join(' · ')}</div>` : '';
 }
@@ -1475,8 +1515,8 @@ function detail(s, compact) { // compact is the wide-screen right-hand panel: sh
   const grid = `<div class="grid">${f('title', 'Title')}${f('artist', 'Artist')}${f('version_label', 'Artist version')}${f('time_signature', 'Time signature')}${f('bpm', 'BPM', 'number')}${f('musical_key', 'Key')}</div>`;
   const struct = ro && !s.song_structure ? '' : `<label>Song structure<textarea data-f="song_structure" rows="${compact ? 1 : 2}"${compact ? ' class="grow"' : ''} placeholder="e.g. V C V C M8 V C Outro"${dis}>${esc(s.song_structure)}</textarea></label>`;
   const bassNow = viewOf(s.id) === 'bass'; // which progression box shows: remembered per person and song
-  const ta = (k, rows, ph) => `<textarea data-f="${k}" rows="${rows}" class="mono${compact ? ' grow' : ''}"${ph ? ` placeholder="${ph}"` : ''}${dis}>${esc(s[k])}</textarea>`;
-  const chords = `<label data-pl="guitar"${bassNow ? ' hidden' : ''}>Chords${opn(s.chords)}${ta('chords', compact ? 1 : 4, '')}</label><label data-pl="bass"${bassNow ? '' : ' hidden'}>Bass line (root notes)${opn(s.root_notes)}${ta('root_notes', compact ? 1 : 4, 'e.g. E  A  B  E')}</label>`;
+  const ta = (k, rows, ph, value = s[k]) => `<textarea data-f="${k}" rows="${rows}" class="mono${compact ? ' grow' : ''}"${ph ? ` placeholder="${ph}"` : ''}${dis}>${esc(value)}</textarea>`;
+  const chords = `<label data-pl="guitar"${bassNow ? ' hidden' : ''}>Chords${progOpen(s.chords_url || asUrl(s.chords), 'chords_url')}<input type="hidden" data-f="chords_url" value="${esc(s.chords_url || asUrl(s.chords))}">${ta('chords', compact ? 1 : 4, '', asUrl(s.chords) ? '' : s.chords)}</label><label data-pl="bass"${bassNow ? '' : ' hidden'}>Bass line (root notes)${progOpen(s.bassline_url || asUrl(s.root_notes), 'bassline_url')}<input type="hidden" data-f="bassline_url" value="${esc(s.bassline_url || asUrl(s.root_notes))}">${ta('root_notes', compact ? 1 : 4, 'e.g. E  A  B  E', asUrl(s.root_notes) ? '' : s.root_notes)}</label>`;
   const bar = `<div class="progbar"><div class="seg" role="group" aria-label="Guitar or bass"><button type="button" data-a="pv" data-view="guitar" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" data-a="pv" data-view="bass" aria-pressed="${bassNow}">Bass line</button></div><button type="button" data-a="progfind">${bassNow ? 'Find bass tab link' : 'Find chords link'}</button></div>`;
   const notes = `<label>Notes<textarea data-f="notes" rows="${compact ? 1 : 3}"${compact ? ' class="grow"' : ''}${dis}>${esc(s.notes)}</textarea></label>`;
   const reason = ro ? '' : `<label>Reason for this change (optional, shown in History)<input data-r="reason" placeholder="e.g. Band plays it faster live"></label>`;
@@ -1565,8 +1605,8 @@ const linkIn = (v) => {
   try { const u = new URL(c); if (/(^|\.)spotify\.com$/i.test(u.hostname)) { u.searchParams.delete('si'); c = u.toString(); } } catch {}
   return { v: c };
 };
-const asUrl = (t) => { const x = (t || '').trim(); return /^https?:\/\/\S+$/i.test(x) ? x : ''; }; // a progression box that holds just one link
-const opn = (t) => (asUrl(t) ? ` <a class="openbtn" href="${esc(asUrl(t))}" target="_blank" rel="noopener">Open</a>` : '');
+const asUrl = (t) => { const x = (t || '').trim(); return /^https?:\/\/\S+$/i.test(x) ? x : ''; }; // legacy URL values are still recognised during migration
+const progOpen = (url, field) => { const raw = safe(url), u = cleanLink(url); return raw ? `${u ? ` <a class="openbtn" href="${esc(u)}" target="_blank" rel="noopener">Open</a>` : ''}${canEdit() ? `<button type="button" class="linkbtn" data-a="progremove" data-field="${field}">Remove link</button>` : ''}` : ''; };
 const defaultView = () => (myRoles().includes('bassist') ? 'bass' : 'guitar'); // bass for bassists, guitar for everyone else
 const viewOf = (sid) => (views[sid] === 'bass' || views[sid] === 'guitar' ? views[sid] : defaultView());
 const savePending = () => { try { localStorage.setItem(vqk(), JSON.stringify(viewsPending)); } catch {} };
@@ -1635,7 +1675,7 @@ function drawProg(art) {
   if (!artist) return say('Type the artist first, so the search finds the right song');
   const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar';
   ul.innerHTML = progLinks(v, title, artist).map((l) => `<li><span>${esc(l.label)}<br><small>${esc(l.note)}</small></span><span><a href="${esc(l.url)}" target="_blank" rel="noopener">Open</a>${canEdit() ? ` <button type="button" data-a="proguse" data-url="${esc(l.url)}">Use</button>` : ''}</span></li>`).join('')
-    + `<li><small>These are searches, so check that the result is the right song. Use puts the link in the ${v === 'bass' ? 'bass line' : 'chords'} box and saves it straight away. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
+    + `<li><small>These are searches, so check that the result is the right song. Use saves the link separately and adds an Open button, leaving your typed notes untouched. The app only suggests links and never copies chords, bass lines or lyrics.</small></li>`;
 }
 async function loadLinks(sid) {
   const ul = document.querySelector(`[data-sid="${sid}"] [data-links]`); if (!ul) return;
@@ -1647,7 +1687,7 @@ async function loadLinks(sid) {
 $('split').onclick = async (e) => {
   const b = e.target.closest('button[data-a]'); if (!b) return;
   const art = b.closest('article'), id = art.dataset.id, sid = art.dataset.sid, i = items.findIndex((x) => x.id === id), a = b.dataset.a;
-  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear', 'proguse'].includes(a) && !canEdit()) return say('You have view-only access in this band');
+  if (['up', 'down', 'save', 'remove', 'delsong', 'lookup', 'sfget', 'usematch', 'addlink', 'dellink', 'lyrfind', 'lyruse', 'lyrclear', 'proguse', 'progremove'].includes(a) && !canEdit()) return say('You have view-only access in this band');
   try {
     if (a === 'toggle') { paneClosed = false; openId = dual() ? sid : openId === sid ? null : sid; render(); }
     else if (a === 'close') { // two panes: the right-hand panel empties; otherwise the row folds up and comes back into view
@@ -1666,10 +1706,16 @@ $('split').onclick = async (e) => {
     else if (a === 'progfind') { drawProg(art); }
     else if (a === 'proguse') {
       const url = cleanLink(b.dataset.url || ''); if (!url) return;
-      const v = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass' ? 'bass' : 'guitar', what = v === 'bass' ? 'bass line' : 'chords';
-      const box = art.querySelector(`[data-f="${v === 'bass' ? 'root_notes' : 'chords'}"]`), cur = box.value.trim();
-      if (cur && cur !== url && !confirm(`Replace what is in the ${what} box with this link?\n\nCurrent: ${cur.length > 120 ? cur.slice(0, 120) + '…' : cur}\nNew: ${url}`)) return; // never overwrite notes without permission
-      box.value = url; grow(box); art.querySelector('[data-a="save"]')?.click(); // Use saves straight away, the same as Save changes
+      const bass = art.querySelector('[data-pl]:not([hidden])')?.dataset.pl === 'bass', field = bass ? 'bassline_url' : 'chords_url', what = bass ? 'bass line' : 'chords';
+      const box = art.querySelector(`[data-f="${field}"]`), cur = box.value.trim();
+      if (cur && cur !== url && !confirm(`Replace the saved ${what} link?\n\nCurrent: ${cur}\nNew: ${url}`)) return;
+      box.value = url; art.querySelector('[data-a="save"]')?.click(); // Save separately; typed notes are untouched.
+    }
+    else if (a === 'progremove') {
+      const field = b.dataset.field, box = art.querySelector(`[data-f="${field}"]`);
+      if (!box || !box.value) return;
+      if (!confirm(`Remove the saved ${field === 'bassline_url' ? 'bass line' : 'chords'} link?`)) return;
+      box.value = ''; art.querySelector('[data-a="save"]')?.click();
     }
     else if (a === 'up' || a === 'down') {
       const j = i + (a === 'up' ? -1 : 1); if (j < 0 || j >= items.length) return; const x = items[i], y = items[j], px = x.position, py = y.position;
@@ -1682,9 +1728,20 @@ $('split').onclick = async (e) => {
       if (!p.title) return say('A title is needed');
       const sp = linkIn(p.spotify_url), mo = linkIn(p.moises_url);
       if (sp.bad || mo.bad) return say(`That does not look like a web link. Check the ${sp.bad ? 'Spotify' : 'Moises'} link.`);
-      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: p.chords, root_notes: p.root_notes, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), spotify_url: sp.v, moises_url: mo.v, ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
+      const chordPaste = asUrl(p.chords), bassPaste = asUrl(p.root_notes);
+      if ((chordPaste && !cleanLink(chordPaste)) || (bassPaste && !cleanLink(bassPaste))) return say('That does not look like a valid web link.');
+      const chordUrl = chordPaste ? cleanLink(chordPaste) : (p.chords_url ? cleanLink(p.chords_url) || null : null), bassUrl = bassPaste ? cleanLink(bassPaste) : (p.bassline_url ? cleanLink(p.bassline_url) || null : null);
+      if (chordPaste && p.chords_url && cleanLink(chordPaste) !== cleanLink(p.chords_url) && !confirm(`Replace the saved chords link?\n\nCurrent: ${p.chords_url}\nNew: ${cleanLink(chordPaste)}`)) return;
+      if (bassPaste && p.bassline_url && cleanLink(bassPaste) !== cleanLink(p.bassline_url) && !confirm(`Replace the saved bass line link?\n\nCurrent: ${p.bassline_url}\nNew: ${cleanLink(bassPaste)}`)) return;
+      const nv = { title: p.title, artist: p.artist, version_label: p.version_label, time_signature: p.time_signature || '4/4', bpm: +p.bpm || null, musical_key: p.musical_key || null, chords: chordPaste ? '' : p.chords, root_notes: bassPaste ? '' : p.root_notes, chords_url: chordUrl, bassline_url: bassUrl, notes: p.notes, song_structure: p.song_structure, lyrics_url: norm(p.lyrics_url), youtube_url: norm(p.youtube_url), spotify_url: sp.v, moises_url: mo.v, ...(art.dataset.ref ? { catalog_ref: art.dataset.ref } : {}) };
       const song = items[i].songs, set = {}, base = {};
-      Object.keys(nv).forEach((k) => { if (!same(song[k], nv[k])) { set[k] = nv[k]; base[k] = song[k] ?? null; } });
+      const legacyChord = !song.chords_url ? asUrl(song.chords) : '', legacyBass = !song.bassline_url ? asUrl(song.root_notes) : '';
+      Object.keys(nv).forEach((k) => {
+        if (!same(song[k], nv[k])) {
+          set[k] = nv[k];
+          base[k] = k === 'chords' && legacyChord ? '' : k === 'root_notes' && legacyBass ? '' : k === 'chords_url' && legacyChord ? legacyChord : k === 'bassline_url' && legacyBass ? legacyBass : song[k] ?? null;
+        }
+      });
       const why = art.querySelector('[data-r="reason"]')?.value.trim() || '';
       if (!Object.keys(set).length) {
         if (!why) return say('Nothing has changed');
@@ -1708,7 +1765,7 @@ $('split').onclick = async (e) => {
         must(sb.from('band_members').select('user_id,profiles(display_name)').eq('band_id', bandId)),
       ]);
       const who = Object.fromEntries(mem.map((m) => [m.user_id, m.profiles?.display_name || 'Someone']));
-      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', notes: 'notes', song_structure: 'structure', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', spotify_url: 'Spotify link', moises_url: 'Moises link', deleted_at: 'deleted' };
+      const LABEL = { title: 'title', artist: 'artist', version_label: 'version', bpm: 'BPM', musical_key: 'key', time_signature: 'time signature', chords: 'chords', root_notes: 'root notes', chords_url: 'Guitar chords link', bassline_url: 'Bass line link', notes: 'notes', song_structure: 'structure', lyrics_url: 'lyrics link', youtube_url: 'YouTube link', spotify_url: 'Spotify link', moises_url: 'Moises link', deleted_at: 'deleted' };
       const short = (v) => { const t = v == null || v === '' ? 'empty' : String(v); return t.length > 30 ? t.slice(0, 30) + '…' : t; };
       const diff = (r) => {
         if (r.op === 'INSERT') return 'Song added';
@@ -1804,7 +1861,7 @@ $('libList').onclick = (e) => {
 $('addNew').onclick = () => {
   const title = $('nTitle').value.trim(); if (!title) return say('A title is needed');
   if (!setlistId) return say('Create or pick a setlist first');
-  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
+  const song = { id: uuid(), band_id: bandId, title, artist: $('nArtist').value.trim(), version_label: '', bpm: +$('nBpm').value || null, musical_key: $('nKey').value.trim() || null, time_signature: '4/4', chords: '', root_notes: '', chords_url: null, bassline_url: null, notes: '', lyrics_url: null, youtube_url: null, created_by: user.id };
   if (libFor === bandId) { lib.push(song); lib.sort((m, n) => m.title.localeCompare(n.title)); }
   const entry = addToSetlist(song, false, false);
   enqueue(
@@ -1838,15 +1895,15 @@ function renderGig() {
   const s = items[gigIdx].songs, nx = items[gigIdx + 1]?.songs, roles = myRoles(), drummer = roles.includes('drummer');
   const tile = (l, v, c = '') => `<div class="tile ${c}"><small>${l}</small><b>${esc(v || '–')}</b></div>`;
   const panel = (t, body, mono) => `<section class="panel"><h3>${t}</h3>${body ? `<div class="pbody${mono ? ' mono' : ''}">${esc(body)}</div>` : '<small>Nothing entered yet. Add it under Details.</small>'}</section>`;
-  const bassNow = viewOf(s.id) === 'bass', prog = bassNow ? s.root_notes : s.chords, pName = bassNow ? 'Bass line' : 'Chords';
+  const bassNow = viewOf(s.id) === 'bass', prog = bassNow ? s.root_notes : s.chords, progUrl = cleanLink(bassNow ? (s.bassline_url || asUrl(s.root_notes)) : (s.chords_url || asUrl(s.chords))), progText = asUrl(prog) ? '' : prog, pName = bassNow ? 'Bass line' : 'Chords';
   const seg = `<div class="seg" role="group" aria-label="Guitar or bass"><button type="button" id="gvG" aria-pressed="${!bassNow}">Guitar chords</button><button type="button" id="gvB" aria-pressed="${bassNow}">Bass line</button></div>`;
   const block = {
     lyrics: () => (safe(s.lyrics_url) ? `<section class="panel"><h3>Lyrics</h3><a class="btnlink" href="${esc(s.lyrics_url)}" target="_blank" rel="noopener">Open lyrics</a></section>` : panel('Lyrics', '')),
-    chords: () => seg + (asUrl(prog) ? `<section class="panel"><h3>${pName}</h3><a class="btnlink" href="${esc(asUrl(prog))}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a></section>` : panel(pName, prog, true)),
+    chords: () => seg + `<section class="panel"><h3>${pName}</h3>${progText ? `<div class="pbody mono">${esc(progText)}</div>` : (!safe(progUrl) ? '<small>Nothing entered yet. Add it under Details.</small>' : '')}${safe(progUrl) ? `<a class="btnlink" href="${esc(progUrl)}" target="_blank" rel="noopener">Open ${bassNow ? 'bass line' : 'chords'}</a>` : ''}</section>`,
     structure: () => panel('Structure', s.song_structure),
     notes: () => (s.notes ? panel('Notes', s.notes) : ''),
-    key: () => tile('Key', s.musical_key),
-    bpm: () => tile('BPM', s.bpm, drummer ? 'xl' : ''),
+    key: () => tile('Key', s.musical_key, `key${(s.musical_key || '').length > 8 ? ' long' : ''}`),
+    bpm: () => tile('BPM', s.bpm, drummer ? 'xl bpm' : 'bpm'),
     time: () => tile('Time', s.time_signature || '4/4'),
   };
   const draw = (fields) => { // tiles that sit next to each other share a row
@@ -1856,7 +1913,7 @@ function renderGig() {
     flush(); return out;
   };
   const order = gigOrder(roles), txt = (v) => !!(v || '').trim();
-  const filled = { lyrics: !!safe(s.lyrics_url), chords: txt(s.chords) || txt(s.root_notes), key: !!s.musical_key, bpm: !!s.bpm, time: !!s.time_signature && s.time_signature !== '4/4', structure: txt(s.song_structure), notes: txt(s.notes) };
+  const filled = { lyrics: !!safe(s.lyrics_url), chords: !!safe(progUrl) || txt(progText), key: !!s.musical_key, bpm: !!s.bpm, time: !!s.time_signature && s.time_signature !== '4/4', structure: txt(s.song_structure), notes: txt(s.notes) };
   const rest = ['lyrics', 'chords', 'key', 'bpm', 'time', 'structure', 'notes'].filter((f) => !order.includes(f) && filled[f]);
   const listen = [["Band's Moises version", s.moises_url], ['YouTube', s.youtube_url], ['Spotify', s.spotify_url]].filter(([, u]) => safe(u));
   const listenHtml = listen.length ? `<section class="panel"><h3>Listen</h3>${listen.map(([n, u]) => `<a class="btnlink" style="margin:0 8px 8px 0" href="${esc(u)}" target="_blank" rel="noopener">${esc(n)}</a>`).join('')}</section>` : '';

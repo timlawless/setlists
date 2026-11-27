@@ -9,6 +9,7 @@ Last updated: November 2026. This version keeps the earlier reasoning and adds w
 - **Decided:** Supabase for the backend (Postgres, row-level security, sign-in).
 - **Decided:** the app is free and never commercial.
 - **Decided:** devices are iPhone, Android and tablets, so the layout must work on phones and tablets.
+- **Decided:** mobile layout refinements should be scoped to narrow-screen media queries where practical, preserving desktop presentation. Gig Mode should keep its role-prioritised information readable while avoiding unnecessary panel and navigation spacing; the fixed metronome bar must not obscure access to Gig Mode navigation.
 - **Decided:** the chords section lets members add links to sheet music or tabs.
 - **Decided:** each song has a lyrics link (to a lyrics site the band already uses, for example Ultimate Guitar). An
   optional text box for the band's own lyrics or cues is wanted later.
@@ -20,7 +21,7 @@ Last updated: November 2026. This version keeps the earlier reasoning and adds w
 - **Decided:** the Root notes box is removed from the app for now (song details, song rows, and the bass panel in gig mode). The
   `songs.root_notes` column stays in the database so existing values are kept and the box can be brought back later. The history
   still reads old Root notes changes correctly. A bass player's gig mode showed only the tempo and key tiles and the song notes while the box was gone; the box has since returned as the Bass line (see Guitar or bass view).
-- **Decided:** the chord/progression box has a Guitar chords / Bass line switch. Which view shows is remembered per person and song, defaults to bass for bassists and guitar for everyone else, and anyone can switch on any song. A lookup suggests chord or bass tab links, to begin with only as links that open in a new page.
+- **Decided:** the chord/progression box has a Guitar chords / Bass line switch. Which view shows is remembered per person and song, defaults to bass for bassists and guitar for everyone else, and anyone can switch on any song. Chord and bass-line links are stored separately from the editable text notes, with Open and Remove link controls; using a suggestion must never replace typed notes. Legacy URLs in the old text fields are migrated to the separate link fields by SQL v17.
 - **Decided:** sharing arrived early so it can be tested with bandmates.
 - **Decided:** a user can belong to several bands. Each band has several setlists (one per gig or arrangement).
 - **Decided:** every change to a song is recorded. Who can edit depends on the access level (see Access control).
@@ -82,7 +83,7 @@ Band ──< ChangeLog   (filled by a database trigger)
 | bands | name, theme (band colour), logo (a small validated image stored as text), slug (the band link ending), created_by |
 | band_members | role is the access level (owner, admin, editor, viewer); roles is the list of instrument roles (singer, guitarist, bassist, drummer, keyboards and backing, the last from SQL v13); last_setlist_id remembers the last-used setlist. A theme field remains from an earlier design and is unused. |
 | band_invites | An 8-character code, the access level it grants (editor or viewer), and an expiry. The app makes standing codes with an expiry 100 years away, so a code is reusable until someone makes a new one (older codes made by the app expired after 7 days). |
-| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), notes, song_structure (SQL v10), lyrics_url, youtube_url, spotify_url, moises_url (SQL v12), catalog_ref, change_note, deleted_at |
+| songs | title, artist, version_label, bpm, musical_key, time_signature, chords, root_notes (shown in the app as the Bass line), chords_url and bassline_url (SQL v17), notes, song_structure (SQL v10), lyrics_url, youtube_url, spotify_url, moises_url (SQL v12), catalog_ref, change_note, deleted_at |
 | song_links | Labelled links on a song (sheet music, tab, lyrics, video, other). This is the earlier `charts` list. |
 | song_views | One row per person per song (SQL v11): whether they last used the guitar or the bass view of the progression box. Private to that person, only for bands they belong to, removed with the song or band. |
 | setlists | name, gig_date, venue, notes, deleted_at. Gig date, venue and notes are not shown yet. |
